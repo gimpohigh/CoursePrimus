@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>2026 김포고 수강신청 도우미(1학년)</title>
+    <!-- 🔥 파이어베이스 데이터베이스 엔진 탑재 -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
@@ -37,17 +38,77 @@
             --light-gray-box: #F2F4F6;
         }
 
-        html, body { width: 100%; height: 100%; margin: 0; padding: 0; background-color: var(--bg-color); font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; overflow-x: hidden; }
+        /* 🔥 전체 텍스트 복사 및 드래그 방지 */
+        html, body { 
+            width: 100%; height: 100%; margin: 0; padding: 0; 
+            background-color: var(--bg-color); 
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; 
+            overflow-x: hidden; 
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
         * { box-sizing: border-box; }
         
+        /* 채팅창 및 문의 입력칸은 글씨 복사/입력 허용 */
+        input, textarea {
+            -webkit-user-select: auto !important;
+            -moz-user-select: auto !important;
+            -ms-user-select: auto !important;
+            user-select: auto !important;
+        }
+
         #app { width: 100%; height: 100dvh; margin: 0 auto; background-color: var(--bg-color); display: flex; flex-direction: column; position: relative; overflow-x: hidden; }
         
-        .header { width: 100%; background-color: var(--primary-dark); color: white; padding: 14px 16px; text-align: center; font-size: 16px; font-weight: bold; flex-shrink: 0; z-index: 1000; position: relative; }
-        
-        .clear-chat-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background-color: var(--primary-mid); color: white; border: 1px solid white; border-radius: 14px; padding: 6px 10px; font-size: 11px; font-weight: bold; cursor: pointer; transition: background-color 0.2s; white-space: nowrap; }
-        .clear-chat-btn:active { background-color: var(--primary-light); }
+        /* 🔥 상단 헤더: 버튼 겹침 방지 완벽 반응형 구현 */
+        .header { 
+            width: 100%; 
+            background-color: var(--primary-dark); 
+            color: white; 
+            padding: 0 16px; 
+            height: 52px; /* 헤더 고정 높이 */
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            flex-shrink: 0; 
+            z-index: 1000; 
+            position: relative; 
+        }
 
-        /* 실시간 접속자 수 UI (상단 뚫림 방지를 위해 패딩 및 배경 강화) */
+        .header-title {
+            font-size: 16px; 
+            font-weight: bold; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            padding: 0 85px; /* 양옆 버튼과 겹치지 않게 안전 공간 확보 */
+            text-align: center;
+        }
+
+        /* 좌측 버튼 (로그인 등) */
+        .header-btn-left { 
+            position: absolute; left: 12px; top: 50%; transform: translateY(-50%); 
+            background-color: var(--primary-mid); color: white; border: 1px solid white; border-radius: 14px; 
+            padding: 6px 10px; font-size: 11px; font-weight: bold; cursor: pointer; transition: background-color 0.2s; white-space: nowrap; 
+        }
+        
+        /* 우측 버튼 (초기화, 대화 삭제 등) */
+        .header-btn-right { 
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%); 
+            background-color: var(--primary-mid); color: white; border: 1px solid white; border-radius: 14px; 
+            padding: 6px 10px; font-size: 11px; font-weight: bold; cursor: pointer; transition: background-color 0.2s; white-space: nowrap; 
+        }
+
+        .header-btn-left:active, .header-btn-right:active { background-color: var(--primary-light); }
+
+        /* 화면이 극단적으로 좁을 경우 제목 완전 숨김 (버튼 확보용) */
+        @media (max-width: 360px) {
+            .header-title { display: none; }
+        }
+
+        /* 실시간 접속자 수 UI */
         .live-counter-wrap { text-align: right; padding: 8px 16px 8px; background-color: var(--bg-color); font-size: 10px; color: var(--text-light-gray); font-weight: bold; z-index: 100; position: relative; }
 
         .tab-wrapper { flex: 1; position: relative; overflow: hidden; background-color: var(--bg-color); width: 100%; z-index: 10; }
@@ -81,11 +142,9 @@
         #tab-1 { padding-bottom: 10px; } 
         .warning-banner { background-color: var(--light-orange); color: var(--dark-orange); padding: 12px; border-radius: 12px; font-size: 13px; line-height: 1.4; margin-bottom: 12px; font-weight: 600; flex-shrink: 0; word-break: keep-all; }
         
-        /* 🔥 상단 투명화(흰줄) 완벽 차단 */
         .stats-wrapper { position: sticky; top: -1px; z-index: 100; background-color: var(--bg-color); padding: 8px 0; margin-bottom: 8px; width: 100%; }
         .stats-box { background-color: var(--box-bg); border-radius: 12px; padding: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); display: flex; flex-direction: column; gap: 8px; width: 100%; }
         
-        /* 🔥 그리드 재배치 적용 */
         .stats-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; text-align: center; }
         .stats-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; text-align: center; }
         
@@ -100,7 +159,6 @@
 
         .science-track-wrap { display: flex; align-items: center; justify-content: flex-start; margin-bottom: 12px; font-size: 14px; font-weight: bold; color: var(--text-black); gap: 8px; padding: 0 4px; }
         
-        /* 🔥 체크박스 선명하게 수정된 부분 */
         .custom-checkbox { width: 20px; height: 20px; border: 2px solid #D1D6DB; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; background: white; flex-shrink: 0; }
         .custom-checkbox.checked { background-color: var(--primary-dark); border-color: var(--primary-dark); }
         .custom-checkbox.checked::after { content: ''; width: 5px; height: 9px; border: solid #FFFFFF; border-width: 0 2px 2px 0; transform: rotate(45deg); margin-bottom: 2px; }
@@ -231,7 +289,7 @@
             cursor: pointer; letter-spacing: 0.5px;
         }
 
-        /* 🔥 데스크탑-모바일 반응형 완벽 최적화 및 상단 뚫림 방지 버그 픽스 */
+        /* 🔥 데스크탑-모바일 반응형 완벽 최적화 */
         @media (min-width: 800px) {
             body { background-color: var(--bg-color); } 
             #app { 
@@ -258,7 +316,7 @@
             .stat-title { font-size: 11px; margin-bottom: 4px; }
             .stat-value { font-size: 16px; }
 
-            /* 과목 리스트 그리드 배치 (화면 너비에 맞춰 한 줄에 3~4개씩 자동 나열) */
+            /* 과목 리스트 그리드 배치 */
             .accordion-header { padding: 16px 24px; font-size: 15px; }
             .accordion-inner {
                 display: grid;
@@ -267,7 +325,7 @@
                 padding: 0 24px 24px 24px;
             }
             
-            /* 🔥 선택 택 4 등 라벨 박스 데스크탑에서 꽉차고 가운데 정렬 */
+            /* 선택 택 4 등 라벨 박스 데스크탑에서 가운데 정렬 */
             .special-select-label { 
                 grid-column: 1 / -1; 
                 width: 100%; 
@@ -286,6 +344,7 @@
 <body>
 
 <div id="app">
+    <!-- 📢 업데이트 알림 모달 (Ver 1.03) -->
     <div id="updateModalOverlay" class="update-modal-overlay">
         <div class="update-modal">
             <div class="update-modal-header">
@@ -293,11 +352,13 @@
                 <button class="update-modal-close" onclick="closeUpdateModalToday()">✖</button>
             </div>
             <div class="update-modal-body">
-                <div class="update-modal-title">2026 김포고 수강신청 도우미(1학년) Ver. 1.02</div>
+                <div class="update-modal-title">2026 김포고 수강신청 도우미(1학년) Ver. 1.03</div>
                 <div class="update-modal-desc">
                     <span class="middle-asterisk">*</span> 모바일, 패드, PC에서 자연스럽게 보이도록 비율을 구성했습니다.<br>
                     <span class="middle-asterisk">*</span> 정보 과목 학점과 수학/과학/정보 과목의 총 학점을 추가했습니다.<br>
-                    <span class="middle-asterisk">*</span> 과목을 전체 초기화 할 수 있는 버튼을 추가했습니다.
+                    <span class="middle-asterisk">*</span> 과목을 전체 초기화 할 수 있는 버튼을 추가했습니다.<br>
+                    <span class="middle-asterisk">*</span> 텍스트 복사 방지 기능 및 로그인 버튼을 추가했습니다.<br>
+                    <span class="middle-asterisk">*</span> 0, 0, 0으로 표기되는 데이터 증발 버그를 수정했습니다.
                 </div>
             </div>
             <div class="update-modal-footer" onclick="closeUpdateModalAlways()">
@@ -306,10 +367,12 @@
         </div>
     </div>
 
+    <!-- 🔥 헤더: 좌측 로그인, 타이틀 중앙배치, 우측 버튼 (겹침방지 반응형) -->
     <div class="header">
-        2026 김포고 수강신청 도우미(1학년)
-        <button id="clearChatBtn" class="clear-chat-btn" onclick="clearChat()" style="display: none;">대화 삭제</button>
-        <button id="resetSelectionBtn" class="clear-chat-btn" onclick="resetSelection()" style="display: block;">선택 초기화</button>
+        <button id="loginBtn" class="header-btn-left" onclick="alert('로그인 기능은 준비 중입니다.')" style="display: none;">로그인</button>
+        <span class="header-title">2026 김포고 수강신청 도우미(1학년)</span>
+        <button id="clearChatBtn" class="header-btn-right" onclick="clearChat()" style="display: none;">대화 삭제</button>
+        <button id="resetSelectionBtn" class="header-btn-right" onclick="resetSelection()" style="display: block;">선택 초기화</button>
     </div>
     
     <div class="live-counter-wrap">
@@ -374,24 +437,29 @@
 
             <div class="stats-wrapper">
                 <div class="stats-box">
+                    <!-- 1줄 -->
                     <div class="stats-grid-2">
                         <div class="stat-item"><div class="stat-title">총 교과 학점</div><div class="stat-value"><span id="val-total" class="stat-val-left">0</span><span class="stat-val-right">/ 174</span></div></div>
                         <div class="stat-item"><div class="stat-title">국·영·수 제한</div><div class="stat-value"><span id="val-kys" class="stat-val-left">0</span><span class="stat-val-right">/ 81</span></div></div>
                     </div>
+                    <!-- 2줄 -->
                     <div class="stats-grid-3">
                         <div class="stat-item"><div class="stat-title">국어</div><div class="stat-value"><span id="val-kor" class="stat-val-left">0</span><span class="stat-val-right">/ 8</span></div></div>
                         <div class="stat-item"><div class="stat-title">수학</div><div class="stat-value"><span id="val-math" class="stat-val-left">0</span><span class="stat-val-right">/ 8</span></div></div>
                         <div class="stat-item"><div class="stat-title">영어</div><div class="stat-value"><span id="val-eng" class="stat-val-left">0</span><span class="stat-val-right">/ 8</span></div></div>
                     </div>
+                    <!-- 3줄 -->
                     <div class="stats-grid-3">
                         <div class="stat-item"><div class="stat-title">한국사</div><div class="stat-value"><span id="val-his" class="stat-val-left">0</span><span class="stat-val-right">/ 6</span></div></div>
                         <div class="stat-item"><div class="stat-title">사회</div><div class="stat-value"><span id="val-soc" class="stat-val-left">0</span><span class="stat-val-right">/ 8</span></div></div>
                         <div class="stat-item"><div class="stat-title">과학</div><div class="stat-value"><span id="val-sci" class="stat-val-left">0</span><span class="stat-val-right">/ 10</span></div></div>
                     </div>
+                    <!-- 🔥 4줄: 체육, 예술 (2개 박스) -->
                     <div class="stats-grid-2">
                         <div class="stat-item"><div class="stat-title">체육</div><div class="stat-value"><span id="val-pe" class="stat-val-left">0</span><span class="stat-val-right">/ 10</span></div></div>
                         <div class="stat-item"><div class="stat-title">예술</div><div class="stat-value"><span id="val-art" class="stat-val-left">0</span><span class="stat-val-right">/ 6</span></div></div>
                     </div>
+                    <!-- 🔥 5줄: 정보, 수/과/정, 정보/외/한/교양 (3개 박스) -->
                     <div class="stats-grid-3">
                         <div class="stat-item"><div class="stat-title">정보</div><div class="stat-value"><span id="val-info" class="stat-val-left">0</span><span class="stat-val-right"></span></div></div>
                         <div class="stat-item"><div class="stat-title">수학/과학/정보</div><div class="stat-value"><span id="val-msi" class="stat-val-left">0</span><span class="stat-val-right"></span></div></div>
@@ -414,6 +482,7 @@
             
             <div id="validationResult" class="validation-results"></div>
             
+            <!-- 🥚 이스터에그 영역 -->
             <div class="easter-egg-wrap">
                 <a href="https://gimpohigh.github.io/easteregg/" class="easter-egg">made by 10616 송율근</a>
             </div>
@@ -444,7 +513,7 @@
 
 <script>
     // 🔥 업데이트 팝업 (버전 관리 시스템)
-    const APP_VERSION = "1.02_rev3"; // 내부 버전을 다시 올려 강제 알림창 활성화
+    const APP_VERSION = "1.03";
 
     function checkUpdateModal() {
         const savedVersion = localStorage.getItem('gimpo_update_version');
@@ -482,7 +551,6 @@
 
     let userIP = "local_storage_only";
 
-    // 🔥 오타 완벽 복구 데이터베이스
     const db = [
         { id:'11_01', sem:'1-1', name:'공통국어 1', type:'공통', cat:'국어', grade:'5단계/등급O', req:true, cred:4 },
         { id:'11_02', sem:'1-1', name:'공통수학 1', type:'공통', cat:'수학', grade:'5단계/등급O', req:true, cred:4 },
@@ -618,70 +686,96 @@
     let currentTabIndex = 1;
     let chatHistory = []; 
 
-    // 날짜 포맷 강제 통일 함수
     function getTodayStr() {
         const d = new Date();
         return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
     }
 
+    // 🔥 완벽하게 분리되고 안전해진 시작(init) 함수
     async function init() {
         checkUpdateModal();
 
+        // 1. 과거 데이터가 꼬였을 경우를 대비해 try-catch 로 철저히 보호
         try {
-            const res = await fetch('https://api.ipify.org?format=json');
-            const data = await res.json();
-            userIP = data.ip.replace(/\./g, '_'); 
+            const savedData = localStorage.getItem('gimpo_courses');
+            if (savedData) {
+                const parsed = JSON.parse(savedData);
+                if(Array.isArray(parsed)) parsed.forEach(id => selectedCourses.add(id));
+            }
         } catch(e) {
-            console.log("IP를 가져올 수 없습니다. 기기 저장소만 사용합니다.");
+            console.warn("로컬 저장소 과목 데이터 복구 중...");
+            localStorage.removeItem('gimpo_courses');
         }
 
-        database.ref('user_data/' + userIP).once('value', (snap) => {
-            const val = snap.val();
-            
-            if (val) {
-                if (val.courses) selectedCourses = new Set(val.courses);
-                if (val.sciTrack !== undefined) isSciTrack = val.sciTrack;
-            } else {
-                const savedData = localStorage.getItem('gimpo_courses');
-                if (savedData) {
-                    JSON.parse(savedData).forEach(id => selectedCourses.add(id));
-                }
-                const savedTrack = localStorage.getItem('gimpo_scitrack');
-                if (savedTrack === 'true') isSciTrack = true;
-            }
+        try {
+            const savedTrack = localStorage.getItem('gimpo_scitrack');
+            if (savedTrack === 'true') isSciTrack = true;
+        } catch(e) {
+            localStorage.removeItem('gimpo_scitrack');
+        }
 
-            db.forEach(c => { if(c.req) selectedCourses.add(c.id); }); 
+        // 필수 과목 강제 배정
+        db.forEach(c => { if(c.req) selectedCourses.add(c.id); }); 
+        if(isSciTrack) document.getElementById('scTrackCheck').classList.add('checked');
+        
+        // 🔥 2. 파이어베이스 접속 성공 여부와 상관없이 무조건 화면부터 렌더링! (0,0,0 증발 방지)
+        renderCourseList();
+        updateStats();
+        updateCircles();
 
-            if(isSciTrack) document.getElementById('scTrackCheck').classList.add('checked');
-            
-            renderCourseList();
-            updateStats();
-            updateCircles();
-            
+        // 채팅 기록 로드
+        try {
             const savedChat = localStorage.getItem('gimpo_chat_history');
             if (savedChat) {
                 chatHistory = JSON.parse(savedChat);
                 renderChatHistory();
             }
+        } catch(e) {
+            localStorage.removeItem('gimpo_chat_history');
+        }
+        if (checkDailyLimit() >= 5) disableChatInput();
 
-            if (checkDailyLimit() >= 5) disableChatInput();
-        });
+        // 3. 마지막으로 통신 시도 (만약 차단되었다면 조용히 무시함)
+        try {
+            const res = await fetch('https://api.ipify.org?format=json');
+            const data = await res.json();
+            userIP = data.ip.replace(/\./g, '_'); 
 
-        const connectedRef = database.ref('.info/connected');
-        const activeUsersRef = database.ref('active_users');
-        const myConnectionRef = activeUsersRef.push(); 
+            database.ref('user_data/' + userIP).once('value', (snap) => {
+                const val = snap.val();
+                if (val) {
+                    selectedCourses.clear();
+                    if (val.courses) val.courses.forEach(id => selectedCourses.add(id));
+                    if (val.sciTrack !== undefined) isSciTrack = val.sciTrack;
+                    
+                    db.forEach(c => { if(c.req) selectedCourses.add(c.id); }); 
+                    if(isSciTrack) document.getElementById('scTrackCheck').classList.add('checked');
+                    
+                    // DB 데이터를 받아오면 화면 갱신
+                    renderCourseList();
+                    updateStats();
+                    updateCircles();
+                }
+            });
 
-        connectedRef.on('value', (snap) => {
-            if (snap.val() === true) {
-                myConnectionRef.onDisconnect().remove();
-                myConnectionRef.set(true);
-            }
-        });
+            const connectedRef = database.ref('.info/connected');
+            const activeUsersRef = database.ref('active_users');
+            const myConnectionRef = activeUsersRef.push(); 
 
-        activeUsersRef.on('value', (snap) => {
-            const currentUsers = snap.numChildren();
-            document.getElementById('liveCountNum').innerText = currentUsers;
-        });
+            connectedRef.on('value', (snap) => {
+                if (snap.val() === true) {
+                    myConnectionRef.onDisconnect().remove();
+                    myConnectionRef.set(true);
+                }
+            });
+
+            activeUsersRef.on('value', (snap) => {
+                const currentUsers = snap.numChildren();
+                document.getElementById('liveCountNum').innerText = currentUsers;
+            });
+        } catch(e) {
+            console.log("DB 접속이 차단되거나 지연되어 오프라인 모드로 실행합니다.");
+        }
 
         document.getElementById('aiInput').addEventListener('keydown', function(e) {
             if(e.key === 'Enter') { e.preventDefault(); sendAiMsg(); }
@@ -693,10 +787,12 @@
         localStorage.setItem('gimpo_scitrack', isSciTrack);
         
         if (userIP !== "local_storage_only") {
-            database.ref('user_data/' + userIP).update({
-                courses: [...selectedCourses],
-                sciTrack: isSciTrack
-            });
+            try {
+                database.ref('user_data/' + userIP).update({
+                    courses: [...selectedCourses],
+                    sciTrack: isSciTrack
+                });
+            } catch(e) {}
         }
     }
     
@@ -815,13 +911,11 @@
         return div;
     }
 
-    // 🔥 선택 과목 리셋 (초기화) 기능
     function resetSelection() {
         if (confirm("선택한 과목을 모두 초기화하시겠습니까?")) {
             selectedCourses.clear();
             db.forEach(c => { if(c.req) selectedCourses.add(c.id); });
             
-            // 과학 중점 상태는 유지하고 필수 과목만 다시 체크
             if (isSciTrack) {
                 db.filter(c => c.sciReq).forEach(c => selectedCourses.add(c.id));
             }
@@ -853,15 +947,20 @@
 
         const clearBtn = document.getElementById('clearChatBtn');
         const resetBtn = document.getElementById('resetSelectionBtn');
+        const loginBtn = document.getElementById('loginBtn');
+        
         if (newIndex === 0) {
             clearBtn.style.display = 'block';
             resetBtn.style.display = 'none';
+            loginBtn.style.display = 'none';
         } else if (newIndex === 1) {
             clearBtn.style.display = 'none';
             resetBtn.style.display = 'block';
+            loginBtn.style.display = 'block';
         } else {
             clearBtn.style.display = 'none';
             resetBtn.style.display = 'none';
+            loginBtn.style.display = 'none';
         }
         
         currentTabIndex = newIndex;
@@ -1024,7 +1123,6 @@
         });
     }
 
-    // 🔥 학점 합산 로직 (정보 단독 추출, 수과정 계산, 정보/외국어/교양 통합 계산 완벽 처리)
     function updateStats() {
         let total = 0, kor = 0, math = 0, eng = 0, his = 0, soc = 0, sci = 0, pe = 0, art = 0, info = 0, etc = 0;
 
@@ -1043,13 +1141,13 @@
             else if(c.cat === '체육') pe += c.cred;
             else if(c.cat === '예술') art += c.cred;
             else {
-                etc += c.cred; // 15학점 조건용 (정보/외국어/한문/교양 전체 합산)
-                if(c.cat === '정보') info += c.cred; // 정보 학점 따로 계산
+                etc += c.cred; 
+                if(c.cat === '정보') info += c.cred; 
             }
         });
 
         const kys = kor + math + eng;
-        const msi = math + sci + info; // 수학 + 과학 + 정보 총합
+        const msi = math + sci + info; 
 
         updateStatUI('total', total, 174, false);
         updateStatUI('kys', kys, 81, true);
@@ -1062,20 +1160,18 @@
         updateStatUI('pe', pe, 10, false);
         updateStatUI('art', art, 6, false);
         
-        // 정보 박스는 제한 없이 항상 연두색(target: 0)
         updateStatUI('info', info, 0, false); 
         
-        // 🔥 과학 중점 여부에 따른 [수학/과학/정보] 동적 업데이트
         const msiRightEl = document.getElementById('val-msi').nextElementSibling;
         if (isSciTrack) {
             msiRightEl.innerText = ' / 79';
-            updateStatUI('msi', msi, 79, false); // 79 이상이어야 연두색
+            updateStatUI('msi', msi, 79, false); 
         } else {
             msiRightEl.innerText = '';
-            updateStatUI('msi', msi, 0, false); // 제한 없음 (무조건 연두색)
+            updateStatUI('msi', msi, 0, false); 
         }
         
-        updateStatUI('etc', etc, 15, false); // 정보/외국어/한문/교양 총합
+        updateStatUI('etc', etc, 15, false); 
     }
 
     function updateStatUI(id, val, target, isLimit) {
@@ -1083,7 +1179,6 @@
         if(!el) return;
         el.innerText = val;
         
-        // 목표가 0인 경우(제한이 없는 항목)는 항상 연두색(충족)으로 유지
         if(target === 0) {
             el.classList.remove('color-red');
             el.classList.add('color-green');
@@ -1337,8 +1432,6 @@
         }
 
         try {
-            const schoolData = db.map(c => `- ${c.sem} ${c.req ? '필수' : '선택'}: ${c.name} (${c.cat}, ${c.cred}학점)`).join('\n');
-            
             const sysPrompt = `너는 2026 김포고등학교 1학년 수강신청을 돕는 '김포고 수강신청 도우미 AI'야. 이 사이트(수강신청 도우미 웹 서비스)를 기획하고, 디자인하고, 설계하고, 코딩하여 만든 사람은 오직 '송율근' 한 명이야. 유저가 제작자, 만든 이, 기획자, 개발자, 디자인한 사람을 물어보면 반드시 '송율근'이라고 답변해. 반드시 아래 제공된 '김포고등학교 과목 데이터'만을 기반으로 평문으로 친절하게 답변해.`;
             
             let apiContents = chatHistory.map(h => ({ role: h.role, text: h.text }));
@@ -1357,15 +1450,8 @@
             const data = await response.json();
             
             if (data.error) {
-                console.error("AI 서버 에러:", data.error);
                 let errorMsg = "앗, AI 서버가 혼잡합니다. 잠시 후 다시 질문해 주세요!";
-                
-                let errStr = "";
-                if (typeof data.error === 'object') {
-                    errStr = JSON.stringify(data.error);
-                } else {
-                    errStr = String(data.error);
-                }
+                let errStr = typeof data.error === 'object' ? JSON.stringify(data.error) : String(data.error);
 
                 if (errStr.includes("429") || errStr.includes("RESOURCE_EXHAUSTED") || errStr.includes("exceeded")) {
                     errorMsg = "현재 질문하는 학생이 너무 많습니다! ⏳ 1분만 기다렸다가 다시 질문해 주세요.";
@@ -1382,7 +1468,6 @@
                 incrementDailyLimit();
             }
         } catch (e) {
-            console.error("통신 에러:", e);
             document.getElementById(loadingId).innerText = "앗, 통신 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.";
             chatHistory.pop();
         }
