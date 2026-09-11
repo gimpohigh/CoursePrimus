@@ -742,7 +742,14 @@
     const auth = firebase.auth();
     const storage = firebase.storage();
 
-    const GAS_AI_URL = "https://script.google.com/macros/s/AKfycbxR1hXKaq-LHKmUptx5eHIm98VMfzf5B9-lNiUyBM7_kEIvPQt6s9odbO_rqCcP1z7T/exec";
+    // AI 추천에 넣을 주소
+    const GAS_RECOMMEND_URL = "https://script.google.com/macros/s/AKfycbxUb2_o65r4SP7xzMVbzXpo4Gc5R76e2pH4OYzVi7rMiqQTu2qrPxvoEwdeFJ5IqFvN0g/exec";
+    
+    // AI 채팅에 넣을 주소
+    const GAS_AI_URL = "https://script.google.com/macros/s/AKfycbz8Sy_emFp3X_x22apTdEt-maJKAzo385XWCE1AqdJ1ez0badr04FYhGOsiMfpPhY_O/exec";
+
+    // Gmail 보내는 곳에 넣을 주소
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzHSzopZm8oQcPGqSmteuCJKanULIptcelUfvqG9OgGlz4vD019ZgndZnYNwGZy9EcMoA/exec";
 
     // 🔴 ImgBB 무료 이미지 API 키 연동 (대안 2)
     const IMGBB_API_KEY = "aa1fa62c3d6c1259d4b83394320ce47c";
@@ -2941,9 +2948,13 @@
             selectedInquiryFiles = [];
             renderInquiryPreview();
 
-            let displayInfo = auth.currentUser ? currentUserInfo : `익명 - ${senderName}`;
+            let displayInfo = auth.currentUser ? `1학년 ${currentUserInfo}` : `익명 - ${senderName}`;
             if (typeof GAS_URL !== 'undefined') {
-                fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ message: `[${displayInfo}]님의 새로운 문의 채팅: ${text || '(사진 전송)'}` }) });
+                fetch(GAS_URL, { 
+                    method: 'POST', 
+                    mode: 'no-cors', 
+                    body: JSON.stringify({ message: `[${displayInfo}] 님의 새로운 문의 채팅:\n${text || '(사진 전송)'}` }) 
+                });
             }
 
         } catch (error) {
