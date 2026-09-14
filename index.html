@@ -2949,12 +2949,37 @@
             renderInquiryPreview();
 
             let displayInfo = auth.currentUser ? `1학년 ${currentUserInfo}` : `익명 - ${senderName}`;
-            if (typeof GAS_URL !== 'undefined') {
-                fetch(GAS_URL, { 
-                    method: 'POST', 
-                    mode: 'no-cors', 
-                    body: JSON.stringify({ message: `[${displayInfo}] 님의 새로운 문의 채팅:\n${text || '(사진 전송)'}` }) 
-                });
+
+            // 🔥 GAS 이메일 전송
+            // GAS doPost가 e.parameter.message를 사용하거나 e.postData.contents(JSON)를 사용하더라도
+            // 둘 다 받을 수 있도록 message를 URL 파라미터와 JSON body에 함께 전달합니다.
+            if (typeof GAS_URL !== 'undefined' && GAS_URL) {
+                const inquiryMessage = `[${displayInfo}] 님의 새로운 문의 채팅:\n${text || '(사진 전송)'}`;
+                const inquiryPayload = {
+                    message: inquiryMessage,
+                    senderName: senderName || '',
+                    displayInfo: displayInfo || '',
+                    text: text || '',
+                    images: imageUrls || [],
+                    timestamp: new Date().toISOString()
+                };
+
+                // URL에는 짧은 핵심 메시지만 넣고, 전체 데이터는 JSON body로 전달합니다.
+                // no-cors + 단순 POST로 보내므로 브라우저의 CORS 사전 요청(preflight)을 피합니다.
+                const gasUrl = GAS_URL + (GAS_URL.includes('?') ? '&' : '?') +
+                    'message=' + encodeURIComponent(inquiryMessage);
+
+                try {
+                    await fetch(gasUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        body: JSON.stringify(inquiryPayload),
+                        keepalive: true
+                    });
+                } catch (gasError) {
+                    // 문의 자체는 이미 Firebase에 저장되었으므로 GAS 메일 실패가 문의 전송을 취소하지 않도록 합니다.
+                    console.warn('GAS 이메일 전송 실패:', gasError);
+                }
             }
 
         } catch (error) {
