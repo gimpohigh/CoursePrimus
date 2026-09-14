@@ -2951,29 +2951,29 @@
             let displayInfo = auth.currentUser ? `1학년 ${currentUserInfo}` : `익명 - ${senderName}`;
 
             // 🔥 GAS 이메일 전송
-            // GAS doPost가 e.parameter.message를 사용하거나 e.postData.contents(JSON)를 사용하더라도
-            // 둘 다 받을 수 있도록 message를 URL 파라미터와 JSON body에 함께 전달합니다.
             if (typeof GAS_URL !== 'undefined' && GAS_URL) {
                 const inquiryMessage = `[${displayInfo}] 님의 새로운 문의 채팅:\n${text || '(사진 전송)'}`;
-                const inquiryPayload = {
-                    message: inquiryMessage,
-                    senderName: senderName || '',
-                    displayInfo: displayInfo || '',
-                    text: text || '',
-                    images: imageUrls || [],
-                    timestamp: new Date().toISOString()
-                };
 
-                // URL에는 짧은 핵심 메시지만 넣고, 전체 데이터는 JSON body로 전달합니다.
-                // no-cors + 단순 POST로 보내므로 브라우저의 CORS 사전 요청(preflight)을 피합니다.
-                const gasUrl = GAS_URL + (GAS_URL.includes('?') ? '&' : '?') +
-                    'message=' + encodeURIComponent(inquiryMessage);
+                // GAS 웹앱에서 e.parameter로 안정적으로 받을 수 있도록
+                // application/x-www-form-urlencoded 형식으로 POST합니다.
+                // 익명 문의도 닉네임/메시지를 별도 파라미터로 함께 전달합니다.
+                const gasData = new URLSearchParams();
+                gasData.append('message', inquiryMessage);
+                gasData.append('senderName', senderName || '');
+                gasData.append('displayInfo', displayInfo || '');
+                gasData.append('text', text || '');
+                gasData.append('anonymous', auth.currentUser ? 'false' : 'true');
+                gasData.append('images', (imageUrls || []).join('\n'));
+                gasData.append('timestamp', new Date().toISOString());
 
                 try {
-                    await fetch(gasUrl, {
+                    await fetch(GAS_URL, {
                         method: 'POST',
                         mode: 'no-cors',
-                        body: JSON.stringify(inquiryPayload),
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+                        },
+                        body: gasData.toString(),
                         keepalive: true
                     });
                 } catch (gasError) {
