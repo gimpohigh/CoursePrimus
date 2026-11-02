@@ -435,6 +435,38 @@
             #printArea td, #printArea th { border: 1px solid #444; padding: 6px; text-align: left; }
             @page { size: A4; margin: 10mm; }
         }
+        /* One transform animation per tab; hidden is applied only after it finishes. */
+        .panel { transition: none; }
+        .panel.is-sliding { will-change: transform; }
+        .panel[inert] { pointer-events: none; }
+        .bottom-nav { overflow: hidden; }
+        .nav-indicator { transition: none; }
+
+        /* Snapshot both complete themes so text, cards, icons and dialogs fade together. */
+        :root[data-theme-transition],
+        :root[data-theme-transition] *,
+        :root[data-theme-transition] *::before,
+        :root[data-theme-transition] *::after,
+        :root[data-theme-transition] dialog::backdrop { transition: none !important; }
+        ::view-transition-group(root) { animation: none; }
+        ::view-transition-old(root), ::view-transition-new(root) {
+            animation-duration: 320ms;
+            animation-timing-function: ease-in-out;
+            animation-fill-mode: both;
+            mix-blend-mode: normal;
+        }
+        ::view-transition-old(root) { animation-name: theme-fade-out; }
+        ::view-transition-new(root) { animation-name: theme-fade-in; }
+        ::view-transition-image-pair(root) { isolation: isolate; }
+        @keyframes theme-fade-out { from { opacity: 1; } to { opacity: 0; } }
+        @keyframes theme-fade-in { from { opacity: 0; } to { opacity: 1; } }
+        :root[data-theme-transition^="fallback-"] { background-color: #FFFFFF !important; }
+        :root[data-theme-transition="fallback-out"] dialog::backdrop { animation: theme-fade-out 160ms ease-in-out both; }
+        :root[data-theme-transition="fallback-in"] dialog::backdrop { animation: theme-fade-in 160ms ease-in-out both; }
+        @media (prefers-reduced-motion: reduce) {
+            .tab-content, .nav-indicator { transition: none; }
+            ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+        }
     </style>
 </head>
 <body>
@@ -608,11 +640,17 @@ window.App = (() => {
   function error(e){const c=String(e?.code||''); if(c.includes('permission-denied')||c.includes('PERMISSION_DENIED'))return '접근 권한이 없습니다. 로그인 상태와 Firebase 보안 규칙을 확인해주세요.';if(c.includes('unauthenticated'))return '로그인이 필요합니다.';if(c.includes('resource-exhausted'))return '요청 한도에 도달했습니다. 잠시 후 다시 이용해주세요.';if(c.includes('popup-closed'))return '로그인 창이 닫혔습니다.';if(c.includes('credential')||c.includes('wrong-password')||c.includes('user-not-found'))return '이메일 또는 비밀번호를 확인해주세요.';if(c.includes('email-already'))return '이미 가입된 이메일입니다.';if(c.includes('network')||c.includes('unavailable'))return '서버에 연결할 수 없습니다. 연결 상태를 확인해주세요.';return e?.message||'요청을 처리하지 못했습니다. 다시 시도해주세요.';}
   const cache={read(key,fallback=null){try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}},write(key,value){try{localStorage.setItem(key,JSON.stringify(value));return true;}catch{toast('기기 저장 공간에 접근할 수 없습니다. 창을 닫기 전에 저장 상태를 확인해주세요.');return false;}},remove(key){try{localStorage.removeItem(key);}catch{}}};
   const demo=new URLSearchParams(location.search).get('demo')==='1';
-  const api={config,toast,error,cache,offline:demo||!window.firebase||!firebase.auth||!firebase.database||!firebase.storage||!firebase.functions,isMember:u=>Boolean(u&&!u.isAnonymous),releaseImages(container){container?.querySelectorAll('img').forEach(img=>{if(img.src.startsWith('blob:'))URL.revokeObjectURL(img.src);});}};
-  if(api.offline){api.auth={currentUser:null,onAuthStateChanged(fn){queueMicrotask(()=>fn(null));return ()=>{};}};api.ready=Promise.resolve(null);return api;}
+  const api={config,toast,error,cache,demo,offline:demo||!window.firebase||!firebase.auth||!firebase.database||!firebase.storage||!firebase.functions,isMember:u=>Boolean(u&&!u.isAnonymous),releaseImages(container){container?.querySelectorAll('img').forEach(img=>{if(img.src.startsWith('blob:'))URL.revokeObjectURL(img.src);});}};
+  if(api.offline){if(!demo)api.initializationError={code:'sdk/unavailable',message:'Firebase 연결 모듈을 불러오지 못했습니다. 인터넷 연결을 확인하고 새로고침해주세요.'};api.auth={currentUser:null,onAuthStateChanged(fn){queueMicrotask(()=>fn(null));return ()=>{};}};api.ready=Promise.resolve(null);return api;}
   firebase.initializeApp(config);api.auth=firebase.auth();api.db=firebase.database();api.storage=firebase.storage();api.functions=firebase.app().functions('asia-northeast3');
-  let signing=false,resolveReady;api.ready=new Promise(resolve=>resolveReady=resolve);
-  api.auth.onAuthStateChanged(async user=>{if(user){resolveReady(user);return;}if(signing)return;signing=true;try{const cred=await api.auth.signInAnonymously();resolveReady(cred.user);}catch(e){toast('기기 내 연습은 가능합니다. 서버 연결: '+error(e));resolveReady(null);}finally{signing=false;}});
+  let signing=null,resolveReady;api.ready=new Promise(resolve=>resolveReady=resolve);
+  api.retryAuthentication=()=>{
+    if(api.auth.currentUser)return Promise.resolve(api.auth.currentUser);
+    if(signing)return signing;
+    signing=api.auth.signInAnonymously().then(cred=>{api.authError=null;resolveReady(cred.user);return cred.user;}).catch(e=>{if(api.auth.currentUser){api.authError=null;resolveReady(api.auth.currentUser);return api.auth.currentUser;}api.authError={code:e.code||'auth/unknown',message:e.message||error(e)};window.dispatchEvent(new CustomEvent('app-auth-error',{detail:api.authError}));toast('기기 내 연습은 가능합니다. 서버 연결: '+error(e));resolveReady(null);throw e;}).finally(()=>{signing=null;});
+    return signing;
+  };
+  api.auth.onAuthStateChanged(user=>{if(user){api.authError=null;resolveReady(user);return;}api.retryAuthentication().catch(()=>{});});
   api.signInGoogle=async()=>{const provider=new firebase.auth.GoogleAuthProvider();return api.auth.signInWithPopup(provider);};
   api.signInEmail=(email,password)=>api.auth.signInWithEmailAndPassword(email.trim(),password);
   api.signOut=()=>api.auth.signOut();api.isAdmin=async()=>Boolean((await api.auth.currentUser?.getIdTokenResult(true))?.claims.admin);
@@ -790,6 +828,208 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
   return Object.freeze({version:DATA.version,courses:Object.freeze(courses),semesters:Object.freeze(semesters),normalize,analyze,canToggle,toggleTrack,recommend});
 });
 </script>
+<script>/* Presentation-only interactions. Data, authentication and saving live in course.js. */
+(() => {
+  'use strict';
+  const root=document.documentElement;
+  const panels=Array.from(document.querySelectorAll('.panel'));
+  const tabs=Array.from(document.querySelectorAll('[data-tab]'));
+  const indicator=document.getElementById('navIndicator');
+  const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
+  const duration=400, easing='cubic-bezier(0.2, 0.8, 0.2, 1)';
+  let current=2, requested=2, requestedDirection=1, sliding=false;
+  let motion=[], slideVersion=0, idleResolvers=[];
+  let themeTarget=App.cache.read('gimpo_v2_theme',false)===true;
+  let themeBusy=false, themeWork=Promise.resolve(), activeViewTransition=null;
+
+  function updateNavigation(index){
+    tabs.forEach((tab,i)=>{
+      const active=i===index;
+      tab.setAttribute('aria-controls',panels[i].id);
+      tab.setAttribute('aria-selected',String(active));
+      tab.classList.toggle('active',active);
+    });
+    document.getElementById('resetBtn').hidden=index!==2&&index!==3;
+    document.getElementById('clearAi').hidden=index!==0;
+  }
+
+  function settlePanels(index){
+    panels.forEach((panel,i)=>{
+      panel.hidden=i!==index;
+      panel.inert=i!==index;
+      panel.setAttribute('aria-hidden',String(i!==index));
+      panel.classList.toggle('tab-active',i===index);
+      panel.classList.toggle('tab-hidden-left',i<index);
+      panel.classList.toggle('tab-hidden-right',i>index);
+      panel.classList.remove('is-sliding');
+      panel.style.removeProperty('transform');
+    });
+    indicator.style.transform='translateX('+(index*100)+'%)';
+  }
+
+  function resolveIdle(){
+    const waiting=idleResolvers;idleResolvers=[];
+    waiting.forEach(resolve=>resolve());
+  }
+  function navigationIdle(){
+    return sliding?new Promise(resolve=>idleResolvers.push(resolve)):Promise.resolve();
+  }
+
+  function finishSlide(version){
+    if(version!==slideVersion)return;
+    settlePanels(current);
+    motion.forEach(animation=>animation.cancel());motion=[];
+    sliding=false;
+    if(requested!==current)startSlide(requested,requestedDirection);
+    else resolveIdle();
+  }
+
+  function startSlide(next,direction){
+    const previous=current,oldPanel=panels[previous],newPanel=panels[next];
+    const focused=document.activeElement;
+    // Keep focus out of a panel as soon as it becomes unavailable to keyboard users.
+    if(oldPanel.contains(focused))tabs[next].focus({preventScroll:true});
+    current=next;
+    updateNavigation(next);
+    if(reduceMotion.matches||typeof newPanel.animate!=='function'){
+      settlePanels(next);resolveIdle();return;
+    }
+    sliding=true;
+    const version=++slideVersion;
+    for(const panel of [oldPanel,newPanel]){
+      panel.hidden=false;panel.classList.add('is-sliding');
+      panel.classList.remove('tab-hidden-left','tab-hidden-right','tab-active');
+    }
+    oldPanel.inert=true;oldPanel.setAttribute('aria-hidden','true');
+    newPanel.inert=false;newPanel.setAttribute('aria-hidden','false');
+    newPanel.classList.add('tab-active');
+    oldPanel.style.transform='translateX(0%)';
+    newPanel.style.transform='translateX('+(direction*100)+'%)';
+    const timing={duration,easing,fill:'both'};
+    motion=[
+      oldPanel.animate([{transform:'translateX(0%)'},{transform:'translateX('+(-direction*100)+'%)'}],timing),
+      newPanel.animate([{transform:'translateX('+(direction*100)+'%)'},{transform:'translateX(0%)'}],timing)
+    ];
+    const wrapRight=previous===panels.length-1&&next===0&&direction>0;
+    const wrapLeft=previous===0&&next===panels.length-1&&direction<0;
+    const frames=wrapRight||wrapLeft?
+      [{transform:'translateX('+(previous*100)+'%)',offset:0},
+       {transform:'translateX('+(wrapRight?500:-100)+'%)',offset:.499},
+       {transform:'translateX('+(wrapRight?-100:500)+'%)',offset:.5},
+       {transform:'translateX('+(next*100)+'%)',offset:1}]:
+      [{transform:'translateX('+(previous*100)+'%)'},{transform:'translateX('+(next*100)+'%)'}];
+    motion.push(indicator.animate(frames,timing));
+    Promise.allSettled(motion.map(animation=>animation.finished)).then(()=>finishSlide(version));
+  }
+
+  function selectTab(index,direction){
+    if(!Number.isInteger(index)||index<0||index>=panels.length)return;
+    const previousRequest=requested;
+    requested=index;
+    const wrappedDirection=previousRequest===panels.length-1&&index===0?1:
+      previousRequest===0&&index===panels.length-1?-1:0;
+    requestedDirection=direction||wrappedDirection||(index>previousRequest?1:-1);
+    // A theme snapshot must not hide the response to a new navigation action.
+    if(activeViewTransition)activeViewTransition.skipTransition();
+    if(!sliding&&index!==current)startSlide(index,requestedDirection);
+  }
+
+  tabs.forEach((tab,index)=>tab.addEventListener('click',()=>selectTab(index)));
+  let composing=false;
+  document.addEventListener('compositionstart',()=>composing=true,true);
+  document.addEventListener('compositionend',()=>composing=false,true);
+  document.addEventListener('keydown',event=>{
+    if(event.key!=='ArrowLeft'&&event.key!=='ArrowRight')return;
+    if(event.defaultPrevented||composing||event.isComposing||event.keyCode===229)return;
+    if(event.ctrlKey||event.metaKey||event.altKey||event.shiftKey)return;
+    // An open modal owns keyboard interaction until it closes.
+    if(document.querySelector('dialog[open]'))return;
+    event.preventDefault();event.stopPropagation();
+    const direction=event.key==='ArrowRight'?1:-1;
+    selectTab((requested+direction+panels.length)%panels.length,direction);
+  },true);
+
+  function applyTheme(dark){
+    root.dataset.theme=dark?'dark':'light';
+    document.getElementById('themeBtn').textContent=dark?'라이트 모드':'다크 모드';
+  }
+
+  async function fadeTargets(keyframes){
+    // Modal dialogs paint in the top layer and do not inherit body opacity.
+    const targets=[document.body,...document.querySelectorAll('dialog[open]')];
+    const animations=targets.map(target=>target.animate(keyframes,{duration:160,easing:'ease-in-out',fill:'both'}));
+    // CSS owns ::backdrop; align its animation clock with the document and dialog fades.
+    const backdropName=root.dataset.themeTransition==='fallback-out'?'theme-fade-out':'theme-fade-in';
+    if(typeof document.getAnimations==='function'){
+      animations.push(...document.getAnimations().filter(animation=>animation.animationName===backdropName));
+    }
+    const start=document.timeline.currentTime;
+    animations.forEach(animation=>animation.startTime=start);
+    await Promise.allSettled(animations.map(animation=>animation.finished));
+    return animations;
+  }
+
+  async function fallbackTheme(dark){
+    if(typeof document.body.animate!=='function'){applyTheme(dark);return;}
+    let fadeOut=[],fadeIn=[];
+    try{
+      root.dataset.themeTransition='fallback-out';
+      fadeOut=await fadeTargets([{opacity:1},{opacity:0}]);
+      applyTheme(dark);
+      root.dataset.themeTransition='fallback-in';
+      fadeIn=await fadeTargets([{opacity:0},{opacity:1}]);
+    }finally{
+      [...fadeOut,...fadeIn].forEach(animation=>animation.cancel());
+      delete root.dataset.themeTransition;
+    }
+  }
+
+  async function transitionTheme(dark){
+    if(reduceMotion.matches){applyTheme(dark);return;}
+    if(typeof document.startViewTransition!=='function'){await fallbackTheme(dark);return;}
+    root.dataset.themeTransition='view';
+    try{
+      activeViewTransition=document.startViewTransition(()=>applyTheme(dark));
+      // A skipped transition still executes its update callback.
+      await activeViewTransition.updateCallbackDone;
+      await activeViewTransition.finished.catch(()=>{});
+    }catch{
+      // If capture fails, keep the theme usable without delaying a data operation.
+      applyTheme(dark);
+    }finally{
+      activeViewTransition=null;delete root.dataset.themeTransition;
+    }
+  }
+
+  function setTheme(dark){
+    themeTarget=dark===true;
+    App.cache.write('gimpo_v2_theme',themeTarget);
+    if(themeBusy)return themeWork;
+    themeBusy=true;
+    themeWork=(async()=>{
+      try{
+        while((root.dataset.theme==='dark')!==themeTarget){
+          await navigationIdle();
+          await transitionTheme(themeTarget);
+        }
+      }finally{themeBusy=false;}
+    })();
+    return themeWork;
+  }
+
+  document.getElementById('themeBtn').addEventListener('click',()=>setTheme(!themeTarget));
+  reduceMotion.addEventListener('change',()=>{
+    if(!reduceMotion.matches)return;
+    if(activeViewTransition)activeViewTransition.skipTransition();
+    if(sliding){
+      ++slideVersion;motion.forEach(animation=>animation.cancel());motion=[];
+      sliding=false;current=requested;updateNavigation(current);settlePanels(current);resolveIdle();
+    }
+  });
+  updateNavigation(current);settlePanels(current);applyTheme(themeTarget);
+  window.CourseUI={selectTab,setTheme,get currentTab(){return current;},get requestedTab(){return requested;},get isSliding(){return sliding;},get themeTransitioning(){return themeBusy;}};
+})();
+</script>
 <script>(() => {
 'use strict';
 const E=CourseEngine,$=id=>document.getElementById(id),stateKey=uid=>'gimpo_v2_state_'+uid;
@@ -798,12 +1038,36 @@ let saveGeneration=0,presenceGeneration=0;
 let state=E.normalize({}),uid='device',user=null,profile={},slots={},history=[],revision=0,dirty=false,saving=false,epoch=0,saveTimer,unsub=[],presence=null,aiBusy=false,inquiryBusy=false,selectedFiles=[],signup=false,readyForSave=false,conflict=false;
 let inquiryPending=null;
 const serverTime=()=>firebase.database.ServerValue.TIMESTAMP;
-function listen(ref,event,fn){ref.on(event,fn,e=>App.toast(App.error(e)));unsub.push(()=>ref.off(event,fn));}
-function localSave(){App.cache.write(stateKey(uid),{state,dirty,revision});}
+const connectionIssues=new Map();let retrying=false;
+const issueLabels={selections:'과목 선택',profiles:'프로필',history:'AI 대화',slots:'저장 구성',inquiries:'문의',statistics:'선택률',presenceRead:'접속 현황',presenceWrite:'내 접속 등록',connection:'DB 연결',auth:'로그인',sdk:'연결 모듈',save:'과목 저장'};
+const issuePaths={selections:'v2/selections/{내 UID}',profiles:'v2/profiles/{내 UID}',history:'v2/aiHistory/{내 UID}',slots:'v2/slots/{내 UID}',inquiries:'v2/inquiries/{내 UID}',statistics:'v2/statistics/public',presenceRead:'v2/presence',presenceWrite:'v2/presence/{내 UID}'};
+function issueKind(error){const code=String(error?.code||'unknown').toLowerCase();if(code.includes('permission')||code.includes('denied'))return 'permission';if(code.includes('auth/')||code.includes('unauth'))return 'auth';if(code.includes('timeout')||code.includes('unavailable')||code.includes('network')||code.includes('disconnect'))return 'network';return 'other';}
+const connectionNotice=make('button','','');connectionNotice.id='connectionNotice';connectionNotice.type='button';connectionNotice.hidden=true;connectionNotice.style.cssText='border:0;background:transparent;color:var(--dark-red);padding:0;font:inherit;text-align:left;cursor:pointer;overflow-wrap:anywhere';$('saveStatus').parentElement.append(connectionNotice);
+const serverDialog=make('dialog');serverDialog.id='serverDialog';serverDialog.setAttribute('aria-labelledby','serverDialogTitle');
+const serverModal=make('div','update-modal'),serverHeader=make('div','update-modal-header'),serverTitle=make('span','','서버 연결 확인'),serverClose=make('button','update-modal-close','✖'),serverDetails=make('div','update-modal-body'),retryButton=make('button','update-modal-footer','설정 적용 후 다시 연결');serverTitle.id='serverDialogTitle';serverClose.type='button';serverClose.setAttribute('aria-label','서버 연결 창 닫기');serverClose.onclick=()=>serverDialog.close();serverDetails.id='serverDetails';serverDetails.style.cssText='padding:20px;font-size:13px;line-height:1.6;overflow-wrap:anywhere';retryButton.id='retryConnection';retryButton.type='button';serverHeader.append(serverTitle,serverClose);serverModal.append(serverHeader,serverDetails,retryButton);serverDialog.append(serverModal);document.body.append(serverDialog);
+function renderConnectionIssues(){
+ connectionNotice.hidden=connectionIssues.size===0;connectionNotice.textContent=[...connectionIssues.values()].some(x=>issueKind(x)==='permission')?'서버 권한 확인 · 자세히':'서버 연결 확인 · 자세히';
+ serverDetails.replaceChildren();if(!connectionIssues.size){serverDetails.append(make('p','',retrying?'서버 연결을 다시 확인하고 있습니다.':'현재 확인된 연결 오류가 없습니다.'));return;}
+ for(const [key,error]of connectionIssues){const row=make('div'),code=String(error.code||'UNKNOWN');row.append(make('strong','',(issueLabels[key]||key)+' · '+code));if(issuePaths[key])row.append(make('div','',issuePaths[key]));const kind=issueKind(error);row.append(make('p','',kind==='permission'?'Firebase가 이 기능의 접근을 거부했습니다. 로그인한 본인의 v2 경로를 허용하는 Realtime Database 규칙이 운영 DB에 게시되어 있는지 확인해주세요.':kind==='auth'?'로그인 연결을 확인해주세요. 비회원 이용에는 Firebase의 익명 로그인 설정이 필요합니다.':kind==='network'?'연결이 끊겼거나 응답 시간이 초과되었습니다. 인터넷 연결을 확인한 뒤 다시 연결해주세요.':App.error(error)));serverDetails.append(row);}
+ serverDetails.append(make('p','','기기에 저장된 선택은 유지됩니다. 과목 읽기에 실패한 동안에는 서버에 선택을 덮어쓰지 않습니다.'));
+ const link=make('a','','Firebase Realtime Database 규칙 확인');link.href='https://console.firebase.google.com/project/gimpo-monitoring/database/gimpo-monitoring-default-rtdb/rules';link.target='_blank';link.rel='noopener noreferrer';serverDetails.append(link);
+}
+function reportConnectionIssue(key,error){connectionIssues.set(key,{code:error?.code||'UNKNOWN',message:error?.message||String(error)});renderConnectionIssues();}
+function clearConnectionIssue(key){if(connectionIssues.delete(key))renderConnectionIssues();}
+function showConnectionIssues(){renderConnectionIssues();if(!serverDialog.open)serverDialog.showModal();}
+connectionNotice.onclick=showConnectionIssues;
+function listen(ref,event,fn,key='connection'){
+ const version=epoch;const onValue=snap=>{if(version!==epoch)return;clearConnectionIssue(key);try{const result=fn(snap);if(result?.catch)result.catch(error=>{if(version===epoch)reportConnectionIssue(key,error);});}catch(error){reportConnectionIssue(key,error);}};
+ const onError=error=>{if(version!==epoch)return;if(key==='selections'){readyForSave=false;$('saveStatus').textContent='기기 저장 · 과목 읽기 권한 확인';}reportConnectionIssue(key,error);};
+ ref.on(event,onValue,onError);unsub.push(()=>ref.off(event,onValue));
+}
+function readOnce(ref){return new Promise((resolve,reject)=>{let done=false;const timer=setTimeout(()=>{if(done)return;done=true;reject(Object.assign(new Error('서버 응답 시간이 초과되었습니다.'),{code:'database/timeout'}));},15000);ref.once('value').then(value=>{if(done)return;done=true;clearTimeout(timer);resolve(value);},error=>{if(done)return;done=true;clearTimeout(timer);reject(error);});});}
+
+function localSave(){return App.cache.write(stateKey(uid),{state,dirty,revision});}
 function currentName(){return profile.name?(App.isMember(user)?`${profile.classNum}반 ${profile.studentNum}번 ${profile.name}`:profile.name):'익명 사용자';}
 function apply(next){$('recommendResult').textContent='';state=E.normalize(next);dirty=true;conflict=false;localSave();render();$('saveStatus').textContent=App.offline||!user?'기기에 저장됨':'기기 저장됨 · 서버 저장 대기';clearTimeout(saveTimer);saveTimer=setTimeout(()=>flush(),450);}
-async function flush(){clearTimeout(saveTimer);if(!dirty||saving||!readyForSave||conflict||!user||!App.db)return !dirty;const owner=uid,version=epoch,snapshot=JSON.stringify(state),expected=revision;const data=JSON.parse(snapshot),saveToken=++saveGeneration;saving=true;$('saveStatus').textContent='서버 저장 중';try{const result=await App.db.ref('v2/selections/'+owner).transaction(old=>{if((old?.revision||0)!==expected)return;return {...data,revision:expected+1,updatedAt:serverTime()};},undefined,false);if(version!==epoch)return false;if(!result.committed){conflict=true;$('saveStatus').textContent='다른 기기 변경과 충돌 · 여기를 눌러 해결';return false;}revision=expected+1;dirty=JSON.stringify(state)!==snapshot;localSave();$('saveStatus').textContent=dirty?'추가 변경 저장 대기':'서버 저장 완료';return !dirty;}catch(e){if(version===epoch)$('saveStatus').textContent='기기 저장됨 · 서버 저장 실패';App.toast(App.error(e));return false;}finally{if(saveToken===saveGeneration)saving=false;if(dirty&&!conflict&&version===epoch&&navigator.onLine)setTimeout(()=>{if($('saveStatus').textContent==='추가 변경 저장 대기')flush();},500);}}
-$('saveStatus').tabIndex=0;$('saveStatus').role='button';$('saveStatus').onclick=async()=>{if(!user)return;const owner=uid,ver=epoch;try{if(conflict){if(!confirm('다른 기기의 최신 선택을 불러오시겠습니까? 현재 기기 구성은 충돌 백업으로 남깁니다.'))return;App.cache.write('gimpo_v2_conflict_'+uid,{state,savedAt:Date.now()});const snap=await App.db.ref('v2/selections/'+owner).once('value');if(ver!==epoch||owner!==uid)return;const val=snap.val();state=E.normalize(val||{});revision=val?.revision||0;dirty=false;conflict=false;localSave();render();$('saveStatus').textContent='최신 구성 불러옴';}else await flush();}catch(error){if(ver===epoch)App.toast(App.error(error));}};$('saveStatus').onkeydown=e=>{if(e.key==='Enter')$('saveStatus').click();};
+async function flush(){clearTimeout(saveTimer);if(!dirty||saving||!readyForSave||conflict||!user||!App.db)return !dirty;const owner=uid,version=epoch,snapshot=JSON.stringify(state),expected=revision;const data=JSON.parse(snapshot),saveToken=++saveGeneration;saving=true;$('saveStatus').textContent='서버 저장 중';try{const result=await App.db.ref('v2/selections/'+owner).transaction(old=>{if((old?.revision||0)!==expected)return;return {...data,revision:expected+1,updatedAt:serverTime()};},undefined,false);if(version!==epoch)return false;if(!result.committed){conflict=true;$('saveStatus').textContent='다른 기기 변경과 충돌 · 여기를 눌러 해결';return false;}revision=expected+1;dirty=JSON.stringify(state)!==snapshot;localSave();clearConnectionIssue('save');$('saveStatus').textContent=dirty?'추가 변경 저장 대기':'서버 저장 완료';return !dirty;}catch(e){if(version===epoch){$('saveStatus').textContent='기기 저장됨 · 서버 저장 실패';reportConnectionIssue('save',e);App.toast(App.error(e));}return false;}finally{if(saveToken===saveGeneration)saving=false;if(dirty&&!conflict&&version===epoch&&navigator.onLine)setTimeout(()=>{if($('saveStatus').textContent==='추가 변경 저장 대기')flush();},500);}}
+$('saveStatus').tabIndex=0;$('saveStatus').role='button';$('saveStatus').onclick=async()=>{if(!conflict&&(connectionIssues.size||user&&!readyForSave)){showConnectionIssues();return;}if(!user)return;const owner=uid,ver=epoch;try{if(conflict){if(!confirm('다른 기기의 최신 선택을 불러오시겠습니까? 현재 기기 구성은 충돌 백업으로 남깁니다.'))return;App.cache.write('gimpo_v2_conflict_'+uid,{state,savedAt:Date.now()});const snap=await readOnce(App.db.ref('v2/selections/'+owner));if(ver!==epoch||owner!==uid)return;const val=snap.val();state=E.normalize(val||{});revision=val?.revision||0;dirty=false;conflict=false;localSave();render();$('saveStatus').textContent='최신 구성 불러옴';}else await flush();}catch(error){if(ver===epoch)App.toast(App.error(error));}};$('saveStatus').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('saveStatus').click();}};
 function render(){
  const a=E.analyze(state);document.querySelectorAll('.track').forEach(x=>x.checked=state.sciTrack);
  const rows=[[['total','총 교과 학점',174],['kys','국·영·수 제한',81]],[['kor','국어',8],['math','수학',8],['eng','영어',8]],[['his','한국사',6],['soc','사회',8],['sci','과학',10]],[['pe','체육',10],['art','예술',6]],[['info','정보',0],['msi','수학/과학/정보',state.sciTrack?79:0],['etc','정보/외국어/한문/교양',15]]];
@@ -842,8 +1106,6 @@ function renderCourses(target,recommend,a=E.analyze(state)){
 function renderRates(stats={}){const nodes=[];for(const sem of E.semesters.filter(x=>x.limit)){const section=make('div','accordion open rate-accordion'),title=make('div','accordion-header',sem.title),wrap=make('div','accordion-content'),grid=make('div','accordion-inner');wrap.style.maxHeight='none';for(const c of E.courses.filter(c=>c.sem===sem.key&&!c.req).sort((a,b)=>(stats.courses?.[b.id]||0)-(stats.courses?.[a.id]||0))){const count=stats.courses?.[c.id]||0,total=stats.totalUsers||0,card=make('div','stat-rate-card'),right=make('div','stat-rate-right');right.append(make('div','stat-rate-percent',(total?count/total*100:0).toFixed(1)+'%'),make('div','stat-rate-fraction',total+'명 중 '+count+'명 선택'));card.append(courseInfo(c,true),right);grid.append(card);}wrap.append(grid);section.append(title,wrap);nodes.push(section);}$('rates').replaceChildren(...nodes);}
 
 function validation(){const a=E.analyze(state);$('validation').replaceChildren();if(a.valid)$('validation').append(make('p','msg-success','모든 필수 조건을 충족합니다.'));a.errors.forEach(x=>$('validation').append(make('p','msg-error',x)));a.warnings.forEach(x=>$('validation').append(make('p','msg-warn',x)));return a;}
-function selectTab(index){document.querySelectorAll('.panel').forEach((p,i)=>{p.hidden=i!==index;p.classList.toggle('tab-active',i===index);p.classList.toggle('tab-hidden-left',i<index);p.classList.toggle('tab-hidden-right',i>index);});document.querySelectorAll('[data-tab]').forEach(b=>{const active=Number(b.dataset.tab)===index;b.setAttribute('aria-selected',String(active));b.classList.toggle('active',active);});$('navIndicator').style.transform='translateX('+(index*100)+'%)';$('resetBtn').hidden=index!==2&&index!==3;$('clearAi').hidden=index!==0;}
-document.querySelectorAll('[data-tab]').forEach(btn=>{btn.setAttribute('aria-controls','panel-'+btn.dataset.tab);btn.onclick=()=>selectTab(Number(btn.dataset.tab));btn.onkeydown=e=>{if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();const n=(Number(btn.dataset.tab)+(e.key==='ArrowRight'?1:4))%5;const b=document.querySelector('[data-tab="'+n+'"]');b.click();b.focus();}};});selectTab(2);
 
 document.querySelectorAll('.track').forEach(x=>x.onchange=()=>{const r=E.toggleTrack(state);if(r.ok)apply(r.state);else{App.toast(r.reason);render();}});
 $('resetBtn').onclick=()=>{if(confirm('선택과 고정 핀을 초기화하시겠습니까?'))apply(E.normalize({sciTrack:state.sciTrack}));};$('validateBtn').onclick=()=>{validation();$('validation').scrollIntoView({block:'nearest',behavior:'smooth'});};
@@ -900,30 +1162,69 @@ finally{inquiryBusy=false;$('inquirySend').disabled=false;$('attachBtn').disable
 };
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).close());
 for(let i=1;i<=12;i++)$('classNum').append(new Option(i+'반',i));for(let i=1;i<=35;i++)$('studentNum').append(new Option(i+'번',i));
-async function beforeAuth(){if(aiBusy||inquiryBusy){App.toast('전송을 마친 후 계정을 전환해주세요.');return false;}if(dirty){localSave();if(user){const ok=await flush();if(!ok){App.toast('현재 변경이 기기에 남아 있습니다. 저장 상태를 눌러 서버 저장을 완료해주세요.');return false;}}}return true;}
+async function beforeAuth(){
+ if(aiBusy||inquiryBusy||saving){App.toast('진행 중인 전송을 마친 후 계정을 전환해주세요.');return false;}
+ if(!dirty)return true;
+ if(localSave()===false){App.toast('현재 선택을 기기에 저장하지 못했습니다. 계정을 전환하기 전에 저장 상태를 확인해주세요.');return false;}
+ if(user&&readyForSave&&!conflict&&!connectionIssues.has('save')&&!connectionIssues.has('selections')){if(await flush())return true;}
+ App.toast('아직 서버에 저장하지 못한 선택은 이 기기의 현재 계정에 보관합니다.');return true;
+}
 $('authBtn').onclick=async()=>{if(!await beforeAuth())return;if(App.offline)return App.toast('로그인은 서버 연결이 필요합니다.');if(App.isMember(user)){if(confirm('로그아웃하시겠습니까? 계정별 서버 저장은 유지됩니다.')){try{await App.signOut();}catch(e){App.toast(App.error(e));}}}else $('authDialog').showModal();};
 $('profileBtn').onclick=()=>{$('studentName').value=profile.name||'';$('classNum').value=profile.classNum||'1';$('studentNum').value=profile.studentNum||'1';$('profileDialog').showModal();};
 $('profileForm').onsubmit=async e=>{e.preventDefault();if(!user)return App.toast('서버 연결 후 정보를 저장할 수 있습니다.');const data={name:$('studentName').value.trim(),classNum:$('classNum').value,studentNum:$('studentNum').value};if(!data.name)return;const ver=epoch;try{await App.db.ref('v2/profiles/'+uid).set(data);if(ver!==epoch)return;profile=data;$('profileLabel').textContent=currentName();$('profileDialog').close();App.toast('정보를 저장했습니다.');}catch(e){App.toast(App.error(e));}};
 async function authAction(fn){$('authSubmit').disabled=true;$('googleBtn').disabled=true;$('authError').textContent='';try{await fn();$('password').value='';$('authDialog').close();}catch(e){$('authError').textContent=App.error(e);}finally{$('authSubmit').disabled=false;$('googleBtn').disabled=false;}}
 $('authForm').onsubmit=e=>{e.preventDefault();if(!App.auth)return;authAction(()=>signup?App.auth.createUserWithEmailAndPassword($('email').value.trim(),$('password').value):App.signInEmail($('email').value,$('password').value));};$('googleBtn').onclick=()=>authAction(()=>App.signInGoogle());$('signupToggle').onclick=()=>{signup=!signup;$('authTitle').textContent=signup?'회원가입':'로그인';$('authSubmit').textContent=signup?'가입하기':'로그인';$('signupToggle').textContent=signup?'로그인으로 돌아가기':'새 계정 만들기';$('password').autocomplete=signup?'new-password':'current-password';};$('resetPassword').onclick=async()=>{try{if(!$('email').value)return App.toast('이메일을 입력해주세요.');await App.auth.sendPasswordResetEmail($('email').value.trim());App.toast('비밀번호 재설정 이메일을 요청했습니다. 스팸함도 확인해주세요.');}catch(e){App.toast(App.error(e));}};
-function setTheme(dark){document.documentElement.dataset.theme=dark?'dark':'light';$('themeBtn').textContent=dark?'라이트 모드':'다크 모드';App.cache.write('gimpo_v2_theme',dark);}setTheme(App.cache.read('gimpo_v2_theme',false));$('themeBtn').onclick=()=>setTheme(document.documentElement.dataset.theme!=='dark');
-function resetAccount(next){epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;for(const id of ['aiInput','inquiryInput','studentName','password'])$(id).value='';$('classNum').value='1';$('studentNum').value='1';$('previewContent').replaceChildren();for(const id of ['profileDialog','previewDialog','authDialog']){if($(id).open)$(id).close();}unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}App.releaseImages($('inquiryMessages'));clearTimeout(saveTimer);user=next;uid=next?.uid||'device';profile={};history=[];selectedFiles=[];slots=App.cache.read('gimpo_v2_slots_'+uid,{})||{};const saved=App.cache.read(stateKey(uid),{});state=E.normalize(saved.state||{});dirty=Boolean(saved.dirty);revision=Number(saved.revision)||0;conflict=false;render();renderSlots();renderHistory();renderFiles();renderInquiryWelcome($('inquiryMessages'));$('profileLabel').textContent=next?'익명 사용자':'기기 내 연습';$('authBtn').textContent=App.isMember(next)?'로그아웃':'로그인';$('profileBtn').hidden=!next;$('dashboardBanner').hidden=!App.isMember(next);$('saveStatus').textContent=dirty?'기기 변경 불러옴':'기기 저장';}
-async function connect(next){if(!next){resetAccount(null);return;}resetAccount(next);const ver=epoch;try{const [selection,p]=await Promise.all([App.db.ref('v2/selections/'+uid).once('value'),App.db.ref('v2/profiles/'+uid).once('value')]);if(ver!==epoch)return;profile=p.val()||{};$('profileLabel').textContent=currentName();const remote=selection.val();if(dirty&&(remote?.revision||0)!==revision){conflict=true;$('saveStatus').textContent='다른 기기 변경과 충돌 · 여기를 눌러 해결';}else if(!dirty){state=E.normalize(remote||{});revision=remote?.revision||0;localSave();render();$('saveStatus').textContent='서버 데이터 불러옴';}readyForSave=true;if(dirty&&!conflict)flush();listen(App.db.ref('v2/selections/'+uid),'value',s=>{if(ver!==epoch||saving)return;const v=s.val();if(!v||v.revision===revision)return;if(dirty){conflict=true;$('saveStatus').textContent='다른 기기 변경과 충돌 · 여기를 눌러 해결';}else{state=E.normalize(v);revision=v.revision;localSave();render();}});listen(App.db.ref('v2/slots/'+uid),'value',s=>{if(ver!==epoch)return;slots=s.val()||{};App.cache.write('gimpo_v2_slots_'+uid,slots);renderSlots();});const h=await App.db.ref('v2/aiHistory/'+uid).orderByKey().limitToLast(100).once('value');if(ver!==epoch)return;history=Object.values(h.val()||{});renderHistory();const messages=App.db.ref('v2/inquiries/'+uid).orderByKey().limitToLast(100);listen(messages,'value',s=>{if(ver!==epoch)return;const box=$('inquiryMessages');App.releaseImages(box);renderInquiryWelcome(box);s.forEach(child=>appendMessage(box,child.val()));box.scrollTop=box.scrollHeight;});listen(App.db.ref('v2/statistics/public'),'value',s=>renderRates(s.val()||{}));listen(App.db.ref('v2/presence'),'value',s=>{let n=0;s.forEach(u=>n+=u.numChildren());$('connectionCount').textContent='현재 연결 '+n+'개';});listen(App.db.ref('.info/connected'),'value',async s=>{
- if(ver!==epoch)return;const connectionToken=++presenceGeneration;
- if(!s.val()){$('connectionCount').textContent='서버 연결 끊김';return;}
- const ref=App.db.ref('v2/presence/'+next.uid).push();
+
+function resetAccount(next){connectionIssues.clear();renderConnectionIssues();if(serverDialog.open)serverDialog.close();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;for(const id of ['aiInput','inquiryInput','studentName','password'])$(id).value='';$('classNum').value='1';$('studentNum').value='1';$('previewContent').replaceChildren();for(const id of ['profileDialog','previewDialog','authDialog']){if($(id).open)$(id).close();}unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}App.releaseImages($('inquiryMessages'));clearTimeout(saveTimer);user=next;uid=next?.uid||'device';profile={};history=[];selectedFiles=[];slots=App.cache.read('gimpo_v2_slots_'+uid,{})||{};const saved=App.cache.read(stateKey(uid),{});state=E.normalize(saved.state||{});dirty=Boolean(saved.dirty);revision=Number(saved.revision)||0;conflict=false;render();renderSlots();renderHistory();renderFiles();renderInquiryWelcome($('inquiryMessages'));$('profileLabel').textContent=next?'익명 사용자':'기기 내 연습';$('authBtn').textContent=App.isMember(next)?'로그아웃':'로그인';$('profileBtn').hidden=!next;$('dashboardBanner').hidden=!App.isMember(next);$('saveStatus').textContent=dirty?'기기 변경 불러옴':'기기 저장';}
+async function connect(next,{retry=false}={}){
+ if(!next){resetAccount(null);if(App.authError)reportConnectionIssue('auth',App.authError);return;}
+ if(retry&&user?.uid===next.uid){
+  localSave();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;clearTimeout(saveTimer);unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}connectionIssues.clear();renderConnectionIssues();
+ }else resetAccount(next);
+ const ver=epoch,owner=next.uid,active=()=>ver===epoch&&owner===uid;
+ $('saveStatus').textContent=dirty?'기기 변경 보관 · 서버 확인 중':'서버 데이터 확인 중';
+ // Each feature subscribes independently: a denied profile or AI history must not stop inquiries/presence.
+ listen(App.db.ref('v2/slots/'+owner),'value',snap=>{slots=snap.val()||{};App.cache.write('gimpo_v2_slots_'+owner,slots);renderSlots();},'slots');
+ listen(App.db.ref('v2/inquiries/'+owner).orderByKey().limitToLast(100),'value',snap=>{const box=$('inquiryMessages');App.releaseImages(box);renderInquiryWelcome(box);snap.forEach(child=>appendMessage(box,child.val()));box.scrollTop=box.scrollHeight;},'inquiries');
+ listen(App.db.ref('v2/statistics/public'),'value',snap=>renderRates(snap.val()||{}),'statistics');
+ listen(App.db.ref('v2/presence'),'value',snap=>{let n=0;snap.forEach(u=>n+=u.numChildren());$('connectionCount').textContent='현재 연결 '+n+'개';},'presenceRead');
+ listen(App.db.ref('.info/connected'),'value',async snap=>{
+  const token=++presenceGeneration;if(!snap.val()){$('connectionCount').textContent='서버 연결 끊김';return;}
+  const ref=App.db.ref('v2/presence/'+owner).push();
+  try{await ref.onDisconnect().remove();if(!active()||token!==presenceGeneration)return;await ref.set(true);if(!active()||token!==presenceGeneration){await ref.remove().catch(()=>{});return;}const previous=presence;presence=ref;if(previous&&previous!==ref)await previous.remove().catch(()=>{});clearConnectionIssue('presenceWrite');}
+  catch(error){if(active()&&token===presenceGeneration)reportConnectionIssue('presenceWrite',error);}
+ },'connection');
+ const load=async(key,ref,success)=>{try{const snap=await readOnce(ref);if(!active())return;clearConnectionIssue(key);await success(snap);}catch(error){if(!active())return;if(key==='selections'){readyForSave=false;$('saveStatus').textContent=issueKind(error)==='permission'?'기기 저장 · 과목 읽기 권한 없음':'기기 저장 · 과목 불러오기 실패';}reportConnectionIssue(key,error);}};
+ await Promise.allSettled([
+  load('selections',App.db.ref('v2/selections/'+owner),snap=>{
+   const remote=snap.val();if(dirty&&(remote?.revision||0)!==revision){conflict=true;$('saveStatus').textContent='다른 기기 변경과 충돌 · 여기를 눌러 해결';}
+   else if(!dirty){state=E.normalize(remote||{});revision=remote?.revision||0;localSave();render();$('saveStatus').textContent='서버 데이터 불러옴';}
+   readyForSave=true;
+   listen(App.db.ref('v2/selections/'+owner),'value',snapshot=>{if(saving)return;const v=snapshot.val();if(!v||v.revision===revision)return;if(dirty){conflict=true;$('saveStatus').textContent='다른 기기 변경과 충돌 · 여기를 눌러 해결';}else{state=E.normalize(v);revision=v.revision;localSave();render();}},'selections');
+   if(dirty&&!conflict)flush();
+  }),
+  load('profiles',App.db.ref('v2/profiles/'+owner),snap=>{profile=snap.val()||{};$('profileLabel').textContent=currentName();if(App.isMember(next)&&!profile.name&&!retry){$('studentName').value='';$('profileDialog').showModal();}}),
+  load('history',App.db.ref('v2/aiHistory/'+owner).orderByKey().limitToLast(100),snap=>{history=Object.values(snap.val()||{});renderHistory();})
+ ]);
+}
+async function retryConnection(){
+ if(retrying)return;if(aiBusy||inquiryBusy||saving)return App.toast('진행 중인 전송을 마친 후 다시 연결해주세요.');
+ retrying=true;retryButton.disabled=true;retryButton.textContent='연결 확인 중…';const ver=epoch,owner=uid;
  try{
-  await ref.onDisconnect().remove();if(ver!==epoch||connectionToken!==presenceGeneration)return;
-  await ref.set(true);
-  if(ver!==epoch||connectionToken!==presenceGeneration){await ref.remove().catch(()=>{});return;}
-  const previous=presence;presence=ref;
-  if(previous&&previous!==ref)await previous.remove().catch(()=>{});
- }catch(e){if(ver===epoch&&connectionToken===presenceGeneration)App.toast(App.error(e));}
-});if(App.isMember(next)&&!profile.name){$('studentName').value='';$('profileDialog').showModal();}}catch(e){if(ver===epoch)$('saveStatus').textContent='기기 저장 · 서버 불러오기 실패';App.toast(App.error(e));}}
-render();renderHistory();renderSlots();renderRates();App.auth.onAuthStateChanged(next=>connect(next));if(App.offline){$('saveStatus').textContent='오프라인 연습';$('connectionCount').textContent='서버 연결 없음';}
+  let next=App.auth.currentUser;
+  if(!next){if(!App.retryAuthentication)throw Object.assign(new Error('페이지를 새로고침해 연결 모듈을 다시 불러와주세요.'),{code:'sdk/unavailable'});await App.retryAuthentication();return;}
+  if(next.getIdToken)await next.getIdToken(true);if(ver!==epoch||owner!==uid)return;
+  clearConnectionIssue('auth');await connect(next,{retry:true});
+ }catch(error){if(ver===epoch)reportConnectionIssue('auth',error);}
+ finally{retrying=false;retryButton.disabled=false;retryButton.textContent='설정 적용 후 다시 연결';renderConnectionIssues();}
+}
+retryButton.onclick=retryConnection;
+window.addEventListener('app-auth-error',event=>reportConnectionIssue('auth',event.detail));
+
+render();renderHistory();renderSlots();renderRates();App.auth.onAuthStateChanged(next=>connect(next));if(App.offline){$('saveStatus').textContent='오프라인 연습';$('connectionCount').textContent='서버 연결 없음';if(App.initializationError)reportConnectionIssue('sdk',App.initializationError);}
 window.addEventListener('pagehide',()=>{localSave();epoch++;saveGeneration++;presenceGeneration++;saving=false;clearTimeout(saveTimer);unsub.forEach(f=>f());unsub=[];const oldPresence=presence;presence=null;if(oldPresence)oldPresence.remove().catch(()=>{});});
 window.addEventListener('pageshow',event=>{if(event.persisted)connect(App.auth.currentUser);});
-window.addEventListener('online',()=>{if(user&&!readyForSave)connect(user);else flush();});window.addEventListener('beforeunload',e=>{if(dirty){localSave();e.preventDefault();e.returnValue='';}});
+window.addEventListener('online',()=>{if([...connectionIssues.values()].some(error=>issueKind(error)==='network'))retryConnection();else if(user&&readyForSave)flush();});window.addEventListener('beforeunload',e=>{if(dirty){localSave();e.preventDefault();e.returnValue='';}});
 const importButton=make('button','','기기 백업 불러오기');
 $('backupActions').append(importButton);
 importButton.onclick=()=>{
