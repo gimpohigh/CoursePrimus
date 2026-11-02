@@ -836,9 +836,15 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
   const tabs=Array.from(document.querySelectorAll('[data-tab]'));
   const indicator=document.getElementById('navIndicator');
   const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
-  const duration=400, easing='cubic-bezier(0.2, 0.8, 0.2, 1)';
+  const tapSlideMs = 400;
+  const holdThresholdMs = 175;
+  const heldSlideMs = 110;
+  const easing = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
   let current=2, requested=2, requestedDirection=1, sliding=false;
   let motion=[], slideVersion=0, idleResolvers=[];
+  let pressedArrow = null;
+  let repeatingArrow = false;
+  let arrowTimer = null;
   let themeTarget=App.cache.read('gimpo_v2_theme',false)===true;
   let themeBusy=false, themeWork=Promise.resolve(), activeViewTransition=null;
 
@@ -880,8 +886,12 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
     settlePanels(current);
     motion.forEach(animation=>animation.cancel());motion=[];
     sliding=false;
-    if(requested!==current)startSlide(requested,requestedDirection);
-    else resolveIdle();
+    if (requested !== current) {
+      startSlide(requested, requestedDirection);
+    } else {
+      resolveIdle();
+      if (repeatingArrow) stepHeldArrow();
+    }
   }
 
   function startSlide(next,direction){
@@ -905,7 +915,7 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
     newPanel.classList.add('tab-active');
     oldPanel.style.transform='translateX(0%)';
     newPanel.style.transform='translateX('+(direction*100)+'%)';
-    const timing={duration,easing,fill:'both'};
+    const timing = {duration: repeatingArrow ? heldSlideMs : tapSlideMs, easing, fill: 'both'};
     motion=[
       oldPanel.animate([{transform:'translateX(0%)'},{transform:'translateX('+(-direction*100)+'%)'}],timing),
       newPanel.animate([{transform:'translateX('+(direction*100)+'%)'},{transform:'translateX(0%)'}],timing)
@@ -934,20 +944,75 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
     if(!sliding&&index!==current)startSlide(index,requestedDirection);
   }
 
-  tabs.forEach((tab,index)=>tab.addEventListener('click',()=>selectTab(index)));
+  function stopHoldingArrow() {
+    clearTimeout(arrowTimer);
+    arrowTimer = null;
+    pressedArrow = null;
+    repeatingArrow = false;
+  }
+
+  function stepHeldArrow() {
+    if (!repeatingArrow) return;
+    if (document.hidden || document.querySelector('dialog[open]')) {
+      stopHoldingArrow();
+      return;
+    }
+    const direction = pressedArrow === 'ArrowRight' ? 1 : -1;
+    selectTab((current + direction + panels.length) % panels.length, direction);
+    // Animated steps continue from finishSlide. Instant steps need their own clock.
+    if (!sliding) arrowTimer = setTimeout(stepHeldArrow, heldSlideMs);
+  }
+
+  function beginHeldRepeat() {
+    if (!pressedArrow || document.hidden || document.querySelector('dialog[open]')) {
+      stopHoldingArrow();
+      return;
+    }
+    repeatingArrow = true;
+    if (!sliding) {
+      stepHeldArrow();
+      return;
+    }
+    // Accelerate the tap already on screen without resetting its position.
+    for (const animation of motion) {
+      if (animation.updatePlaybackRate) animation.updatePlaybackRate(6);
+      else animation.playbackRate = 6;
+    }
+  }
+
+  tabs.forEach((tab,index)=>tab.addEventListener('click',()=>{
+    stopHoldingArrow();
+    selectTab(index);
+  }));
   let composing=false;
-  document.addEventListener('compositionstart',()=>composing=true,true);
+  document.addEventListener('compositionstart',()=>{composing=true;stopHoldingArrow();},true);
   document.addEventListener('compositionend',()=>composing=false,true);
   document.addEventListener('keydown',event=>{
+    if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
+      stopHoldingArrow();
+      return;
+    }
     if(event.key!=='ArrowLeft'&&event.key!=='ArrowRight')return;
     if(event.defaultPrevented||composing||event.isComposing||event.keyCode===229)return;
-    if(event.ctrlKey||event.metaKey||event.altKey||event.shiftKey)return;
     // An open modal owns keyboard interaction until it closes.
     if(document.querySelector('dialog[open]'))return;
     event.preventDefault();event.stopPropagation();
+    if (event.repeat || pressedArrow === event.key) return;
+    stopHoldingArrow();
+    pressedArrow = event.key;
     const direction=event.key==='ArrowRight'?1:-1;
     selectTab((requested+direction+panels.length)%panels.length,direction);
+    arrowTimer = setTimeout(beginHeldRepeat, holdThresholdMs);
   },true);
+  document.addEventListener('keyup',event=>{
+    if (event.key === pressedArrow) stopHoldingArrow();
+  },true);
+  document.addEventListener('pointerdown',stopHoldingArrow,true);
+  window.addEventListener('blur',stopHoldingArrow);
+  window.addEventListener('pagehide',stopHoldingArrow);
+  document.addEventListener('visibilitychange',()=>{
+    if (document.hidden) stopHoldingArrow();
+  });
 
   function applyTheme(dark){
     root.dataset.theme=dark?'dark':'light';
@@ -1020,6 +1085,7 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
   document.getElementById('themeBtn').addEventListener('click',()=>setTheme(!themeTarget));
   reduceMotion.addEventListener('change',()=>{
     if(!reduceMotion.matches)return;
+    stopHoldingArrow();
     if(activeViewTransition)activeViewTransition.skipTransition();
     if(sliding){
       ++slideVersion;motion.forEach(animation=>animation.cancel());motion=[];
@@ -1045,12 +1111,49 @@ function issueKind(error){const code=String(error?.code||'unknown').toLowerCase(
 const connectionNotice=make('button','','');connectionNotice.id='connectionNotice';connectionNotice.type='button';connectionNotice.hidden=true;connectionNotice.style.cssText='border:0;background:transparent;color:var(--dark-red);padding:0;font:inherit;text-align:left;cursor:pointer;overflow-wrap:anywhere';$('saveStatus').parentElement.append(connectionNotice);
 const serverDialog=make('dialog');serverDialog.id='serverDialog';serverDialog.setAttribute('aria-labelledby','serverDialogTitle');
 const serverModal=make('div','update-modal'),serverHeader=make('div','update-modal-header'),serverTitle=make('span','','서버 연결 확인'),serverClose=make('button','update-modal-close','✖'),serverDetails=make('div','update-modal-body'),retryButton=make('button','update-modal-footer','설정 적용 후 다시 연결');serverTitle.id='serverDialogTitle';serverClose.type='button';serverClose.setAttribute('aria-label','서버 연결 창 닫기');serverClose.onclick=()=>serverDialog.close();serverDetails.id='serverDetails';serverDetails.style.cssText='padding:20px;font-size:13px;line-height:1.6;overflow-wrap:anywhere';retryButton.id='retryConnection';retryButton.type='button';serverHeader.append(serverTitle,serverClose);serverModal.append(serverHeader,serverDetails,retryButton);serverDialog.append(serverModal);document.body.append(serverDialog);
-function renderConnectionIssues(){
- connectionNotice.hidden=connectionIssues.size===0;connectionNotice.textContent=[...connectionIssues.values()].some(x=>issueKind(x)==='permission')?'서버 권한 확인 · 자세히':'서버 연결 확인 · 자세히';
- serverDetails.replaceChildren();if(!connectionIssues.size){serverDetails.append(make('p','',retrying?'서버 연결을 다시 확인하고 있습니다.':'현재 확인된 연결 오류가 없습니다.'));return;}
- for(const [key,error]of connectionIssues){const row=make('div'),code=String(error.code||'UNKNOWN');row.append(make('strong','',(issueLabels[key]||key)+' · '+code));if(issuePaths[key])row.append(make('div','',issuePaths[key]));const kind=issueKind(error);row.append(make('p','',kind==='permission'?'Firebase가 이 기능의 접근을 거부했습니다. 로그인한 본인의 v2 경로를 허용하는 Realtime Database 규칙이 운영 DB에 게시되어 있는지 확인해주세요.':kind==='auth'?'로그인 연결을 확인해주세요. 비회원 이용에는 Firebase의 익명 로그인 설정이 필요합니다.':kind==='network'?'연결이 끊겼거나 응답 시간이 초과되었습니다. 인터넷 연결을 확인한 뒤 다시 연결해주세요.':App.error(error)));serverDetails.append(row);}
- serverDetails.append(make('p','','기기에 저장된 선택은 유지됩니다. 과목 읽기에 실패한 동안에는 서버에 선택을 덮어쓰지 않습니다.'));
- const link=make('a','','Firebase Realtime Database 규칙 확인');link.href='https://console.firebase.google.com/project/gimpo-monitoring/database/gimpo-monitoring-default-rtdb/rules';link.target='_blank';link.rel='noopener noreferrer';serverDetails.append(link);
+function renderConnectionIssues() {
+ const hasDeniedAccess = [...connectionIssues.values()].some(error => issueKind(error) === 'permission');
+ connectionNotice.hidden = connectionIssues.size === 0;
+ connectionNotice.textContent = hasDeniedAccess ? '서버 권한 확인 · 자세히' : '서버 연결 확인 · 자세히';
+ serverDetails.replaceChildren();
+ if (!connectionIssues.size) {
+  serverDetails.append(make('p', '', retrying ? '서버 연결을 다시 확인하고 있습니다.' : '현재 확인된 연결 오류가 없습니다.'));
+  return;
+ }
+
+ if (hasDeniedAccess) {
+  serverDetails.append(make('strong', '', 'Firebase Realtime Database'),
+   make('div', '', '프로젝트 gimpo-monitoring · 인스턴스 gimpo-monitoring-default-rtdb'));
+  if (issueKind(connectionIssues.get('statistics')) === 'permission') {
+   serverDetails.append(make('p', '', '공개 선택률 읽기까지 거부되었습니다. 제공한 database.rules.json은 v2/statistics/public의 읽기를 공개합니다. 운영자는 이 인스턴스에 게시된 규칙의 v2 항목을 파일과 비교해주세요. 일치하면 Firebase App Check의 Realtime Database 적용 상태와 웹 앱의 인증 설정을 확인해주세요.'));
+  } else {
+   serverDetails.append(make('p', '', '운영자는 아래 경로와 이 인스턴스에 게시된 v2 규칙을 비교해주세요. 개인 자료는 로그인한 계정의 UID별로 접근하며, 접속 현황 읽기에는 Firebase 인증이 필요합니다.'));
+  }
+ }
+
+ const list = make('ul');
+ list.style.cssText = 'margin:0;padding-inline-start:18px';
+ for (const [key, error] of connectionIssues) {
+  const item = make('li');
+  item.append(make('strong', '', (issueLabels[key] || key) + ' · ' + (error.code || 'UNKNOWN')));
+  if (issuePaths[key]) item.append(make('div', '', issuePaths[key]));
+  switch (issueKind(error)) {
+   case 'permission': break; // Shared guidance above applies to each denied path.
+   case 'auth': item.append(make('div', '', '로그인 연결을 확인해주세요. 비회원 이용에는 Firebase의 익명 로그인 설정이 필요합니다.')); break;
+   case 'network': item.append(make('div', '', '인터넷 연결을 확인한 뒤 다시 연결해주세요.')); break;
+   default: item.append(make('div', '', App.error(error)));
+  }
+  list.append(item);
+ }
+ serverDetails.append(list);
+ if (connectionIssues.has('selections')) {
+  serverDetails.append(make('p', '', '현재 선택은 기기에 보관합니다. 과목을 다시 읽은 뒤 서버 저장을 재개합니다.'));
+ }
+ const link = make('a', '', 'Firebase Realtime Database 규칙 확인');
+ link.href = 'https://console.firebase.google.com/project/gimpo-monitoring/database/gimpo-monitoring-default-rtdb/rules';
+ link.target = '_blank';
+ link.rel = 'noopener noreferrer';
+ serverDetails.append(link);
 }
 function reportConnectionIssue(key,error){connectionIssues.set(key,{code:error?.code||'UNKNOWN',message:error?.message||String(error)});renderConnectionIssues();}
 function clearConnectionIssue(key){if(connectionIssues.delete(key))renderConnectionIssues();}
