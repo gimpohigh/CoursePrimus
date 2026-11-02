@@ -486,7 +486,7 @@
     </div>
     <div class="live-counter-wrap">
         <span id="saveStatus" role="status">불러오는 중</span>
-        <span id="connectionCount">실시간 접속자 수: 연결 확인 중</span>
+        <span id="connectionCount" role="status" aria-atomic="true" title="현재 사이트에 연결된 탭의 수">실시간 접속자 수: <span id="connectionCountValue">연결 확인 중</span></span>
     </div>
     <main class="tab-wrapper tabs">
         <section id="panel-0" class="panel tab-content chat" role="tabpanel" aria-label="AI 채팅" hidden>
@@ -1105,6 +1105,17 @@ let state=E.normalize({}),uid='device',user=null,profile={},slots={},history=[],
 let inquiryPending=null;
 const serverTime=()=>firebase.database.ServerValue.TIMESTAMP;
 const connectionIssues=new Map();let retrying=false;
+let presenceOnline = null;
+let tabCount = null;
+function renderVisitorCount() {
+ const readError = connectionIssues.get('presenceRead');
+ let value = '연결 확인 중';
+ if (App.offline) value = '서버 연결 없음';
+ else if (presenceOnline === false) value = '연결 끊김';
+ else if (readError) value = issueKind(readError) === 'permission' ? '조회 권한 없음' : '조회 실패';
+ else if (presenceOnline && tabCount !== null) value = String(tabCount);
+ $('connectionCountValue').textContent = value;
+}
 const issueLabels={selections:'과목 선택',profiles:'프로필',history:'AI 대화',slots:'저장 구성',inquiries:'문의',statistics:'선택률',presenceRead:'접속 현황',presenceWrite:'내 접속 등록',connection:'DB 연결',auth:'로그인',sdk:'연결 모듈',save:'과목 저장'};
 const issuePaths={selections:'v2/selections/{내 UID}',profiles:'v2/profiles/{내 UID}',history:'v2/aiHistory/{내 UID}',slots:'v2/slots/{내 UID}',inquiries:'v2/inquiries/{내 UID}',statistics:'v2/statistics/public',presenceRead:'v2/presence',presenceWrite:'v2/presence/{내 UID}'};
 function issueKind(error){const code=String(error?.code||'unknown').toLowerCase();if(code.includes('permission')||code.includes('denied'))return 'permission';if(code.includes('auth/')||code.includes('unauth'))return 'auth';if(code.includes('timeout')||code.includes('unavailable')||code.includes('network')||code.includes('disconnect'))return 'network';return 'other';}
@@ -1155,7 +1166,7 @@ function renderConnectionIssues() {
  link.rel = 'noopener noreferrer';
  serverDetails.append(link);
 }
-function reportConnectionIssue(key,error){connectionIssues.set(key,{code:error?.code||'UNKNOWN',message:error?.message||String(error)});renderConnectionIssues();}
+function reportConnectionIssue(key,error){connectionIssues.set(key,{code:error?.code||'UNKNOWN',message:error?.message||String(error)});if(key==='presenceRead')renderVisitorCount();renderConnectionIssues();}
 function clearConnectionIssue(key){if(connectionIssues.delete(key))renderConnectionIssues();}
 function showConnectionIssues(){renderConnectionIssues();if(!serverDialog.open)serverDialog.showModal();}
 connectionNotice.onclick=showConnectionIssues;
@@ -1280,6 +1291,9 @@ $('authForm').onsubmit=e=>{e.preventDefault();if(!App.auth)return;authAction(()=
 
 function resetAccount(next){connectionIssues.clear();renderConnectionIssues();if(serverDialog.open)serverDialog.close();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;for(const id of ['aiInput','inquiryInput','studentName','password'])$(id).value='';$('classNum').value='1';$('studentNum').value='1';$('previewContent').replaceChildren();for(const id of ['profileDialog','previewDialog','authDialog']){if($(id).open)$(id).close();}unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}App.releaseImages($('inquiryMessages'));clearTimeout(saveTimer);user=next;uid=next?.uid||'device';profile={};history=[];selectedFiles=[];slots=App.cache.read('gimpo_v2_slots_'+uid,{})||{};const saved=App.cache.read(stateKey(uid),{});state=E.normalize(saved.state||{});dirty=Boolean(saved.dirty);revision=Number(saved.revision)||0;conflict=false;render();renderSlots();renderHistory();renderFiles();renderInquiryWelcome($('inquiryMessages'));$('profileLabel').textContent=next?'익명 사용자':'기기 내 연습';$('authBtn').textContent=App.isMember(next)?'로그아웃':'로그인';$('profileBtn').hidden=!next;$('dashboardBanner').hidden=!App.isMember(next);$('saveStatus').textContent=dirty?'기기 변경 불러옴':'기기 저장';}
 async function connect(next,{retry=false}={}){
+ presenceOnline = null;
+ tabCount = null;
+ renderVisitorCount();
  if(!next){resetAccount(null);if(App.authError)reportConnectionIssue('auth',App.authError);return;}
  if(retry&&user?.uid===next.uid){
   localSave();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;clearTimeout(saveTimer);unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}connectionIssues.clear();renderConnectionIssues();
@@ -1290,9 +1304,18 @@ async function connect(next,{retry=false}={}){
  listen(App.db.ref('v2/slots/'+owner),'value',snap=>{slots=snap.val()||{};App.cache.write('gimpo_v2_slots_'+owner,slots);renderSlots();},'slots');
  listen(App.db.ref('v2/inquiries/'+owner).orderByKey().limitToLast(100),'value',snap=>{const box=$('inquiryMessages');App.releaseImages(box);renderInquiryWelcome(box);snap.forEach(child=>appendMessage(box,child.val()));box.scrollTop=box.scrollHeight;},'inquiries');
  listen(App.db.ref('v2/statistics/public'),'value',snap=>renderRates(snap.val()||{}),'statistics');
- listen(App.db.ref('v2/presence'),'value',snap=>{let n=0;snap.forEach(u=>n+=u.numChildren());$('connectionCount').textContent='현재 연결 '+n+'개';},'presenceRead');
+ listen(App.db.ref('v2/presence'),'value',snap=>{
+  let count = 0;
+  snap.forEach(userSnapshot => { count += userSnapshot.numChildren(); });
+  tabCount = count;
+  renderVisitorCount();
+ },'presenceRead');
  listen(App.db.ref('.info/connected'),'value',async snap=>{
-  const token=++presenceGeneration;if(!snap.val()){$('connectionCount').textContent='서버 연결 끊김';return;}
+  const token=++presenceGeneration;
+  presenceOnline = snap.val() === true;
+  if (!presenceOnline) tabCount = null;
+  renderVisitorCount();
+  if (!presenceOnline) return;
   const ref=App.db.ref('v2/presence/'+owner).push();
   try{await ref.onDisconnect().remove();if(!active()||token!==presenceGeneration)return;await ref.set(true);if(!active()||token!==presenceGeneration){await ref.remove().catch(()=>{});return;}const previous=presence;presence=ref;if(previous&&previous!==ref)await previous.remove().catch(()=>{});clearConnectionIssue('presenceWrite');}
   catch(error){if(active()&&token===presenceGeneration)reportConnectionIssue('presenceWrite',error);}
@@ -1324,7 +1347,7 @@ async function retryConnection(){
 retryButton.onclick=retryConnection;
 window.addEventListener('app-auth-error',event=>reportConnectionIssue('auth',event.detail));
 
-render();renderHistory();renderSlots();renderRates();App.auth.onAuthStateChanged(next=>connect(next));if(App.offline){$('saveStatus').textContent='오프라인 연습';$('connectionCount').textContent='서버 연결 없음';if(App.initializationError)reportConnectionIssue('sdk',App.initializationError);}
+render();renderHistory();renderSlots();renderRates();App.auth.onAuthStateChanged(next=>connect(next));if(App.offline){$('saveStatus').textContent='오프라인 연습';renderVisitorCount();if(App.initializationError)reportConnectionIssue('sdk',App.initializationError);}
 window.addEventListener('pagehide',()=>{localSave();epoch++;saveGeneration++;presenceGeneration++;saving=false;clearTimeout(saveTimer);unsub.forEach(f=>f());unsub=[];const oldPresence=presence;presence=null;if(oldPresence)oldPresence.remove().catch(()=>{});});
 window.addEventListener('pageshow',event=>{if(event.persisted)connect(App.auth.currentUser);});
 window.addEventListener('online',()=>{if([...connectionIssues.values()].some(error=>issueKind(error)==='network'))retryConnection();else if(user&&readyForSave)flush();});window.addEventListener('beforeunload',e=>{if(dirty){localSave();e.preventDefault();e.returnValue='';}});
