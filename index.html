@@ -494,7 +494,7 @@
             <div class="chat-bottom-wrapper">
                 <div id="faq" class="chat-examples" aria-label="자주 묻는 질문"></div>
                 <form id="aiForm" class="chat-input-area">
-                    <input id="aiInput" class="chat-input" type="text" maxlength="2000" aria-label="AI 질문" placeholder="자유롭게 질문을 입력하세요">
+                    <input id="aiInput" class="chat-input" type="text" maxlength="2000" aria-label="AI 질문" title="최근 AI 대화와 선택 과목이 Cloudflare의 OpenAI GPT-OSS로 전달됩니다." placeholder="자유롭게 질문을 입력하세요">
                     <button id="aiSend" class="chat-send" type="submit" aria-label="AI 질문 전송">➤</button>
                 </form>
             </div>
@@ -630,7 +630,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
 <script>/* Shared Firebase adapter, embedded into every standalone page by build.cjs. */
 window.App = (() => {
   'use strict';
@@ -640,9 +639,9 @@ window.App = (() => {
   function error(e){const c=String(e?.code||''); if(c.includes('permission-denied')||c.includes('PERMISSION_DENIED'))return '접근 권한이 없습니다. 로그인 상태와 Firebase 보안 규칙을 확인해주세요.';if(c.includes('unauthenticated'))return '로그인이 필요합니다.';if(c.includes('resource-exhausted'))return '요청 한도에 도달했습니다. 잠시 후 다시 이용해주세요.';if(c.includes('popup-closed'))return '로그인 창이 닫혔습니다.';if(c.includes('credential')||c.includes('wrong-password')||c.includes('user-not-found'))return '이메일 또는 비밀번호를 확인해주세요.';if(c.includes('email-already'))return '이미 가입된 이메일입니다.';if(c.includes('network')||c.includes('unavailable'))return '서버에 연결할 수 없습니다. 연결 상태를 확인해주세요.';return e?.message||'요청을 처리하지 못했습니다. 다시 시도해주세요.';}
   const cache={read(key,fallback=null){try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}},write(key,value){try{localStorage.setItem(key,JSON.stringify(value));return true;}catch{toast('기기 저장 공간에 접근할 수 없습니다. 창을 닫기 전에 저장 상태를 확인해주세요.');return false;}},remove(key){try{localStorage.removeItem(key);}catch{}}};
   const demo=new URLSearchParams(location.search).get('demo')==='1';
-  const api={config,toast,error,cache,demo,offline:demo||!window.firebase||!firebase.auth||!firebase.database||!firebase.storage||!firebase.functions,isMember:u=>Boolean(u&&!u.isAnonymous),releaseImages(container){container?.querySelectorAll('img').forEach(img=>{if(img.src.startsWith('blob:'))URL.revokeObjectURL(img.src);});}};
+  const api={config,toast,error,cache,demo,offline:demo||!window.firebase||!firebase.auth||!firebase.database||!firebase.storage,isMember:u=>Boolean(u&&!u.isAnonymous),releaseImages(container){container?.querySelectorAll('img').forEach(img=>{if(img.src.startsWith('blob:'))URL.revokeObjectURL(img.src);});}};
   if(api.offline){if(!demo)api.initializationError={code:'sdk/unavailable',message:'Firebase 연결 모듈을 불러오지 못했습니다. 인터넷 연결을 확인하고 새로고침해주세요.'};api.auth={currentUser:null,onAuthStateChanged(fn){queueMicrotask(()=>fn(null));return ()=>{};}};api.ready=Promise.resolve(null);return api;}
-  firebase.initializeApp(config);api.auth=firebase.auth();api.db=firebase.database();api.storage=firebase.storage();api.functions=firebase.app().functions('asia-northeast3');
+  firebase.initializeApp(config);api.auth=firebase.auth();api.db=firebase.database();api.storage=firebase.storage();if(firebase.functions)api.functions=firebase.app().functions('asia-northeast3');
   let signing=null,resolveReady;api.ready=new Promise(resolve=>resolveReady=resolve);
   api.retryAuthentication=()=>{
     if(api.auth.currentUser)return Promise.resolve(api.auth.currentUser);
@@ -1129,7 +1128,154 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
   window.CourseUI={selectTab,setTheme,get currentTab(){return current;},get requestedTab(){return requested;},get isSliding(){return sliding;},get themeTransitioning(){return themeBusy;}};
 })();
 </script>
-<script>(() => {
+<script>(function (root, factory) {
+  'use strict';
+  const client = factory();
+  if (typeof module === 'object' && module.exports) module.exports = client;
+  else root.GimpoFreeAI = client;
+})(typeof window === 'object' ? window : null, function () {
+  'use strict';
+  const MODEL = '@cf/openai/gpt-oss-20b';
+  const notice = {
+    setup: 'AI 서버 연결을 준비하고 있습니다. 잠시 후 다시 이용해주세요.',
+    authentication: '로그인 연결을 다시 확인한 뒤 질문을 보내주세요.',
+    changedAccount: '로그인 계정이 변경되어 답변 요청을 중단했습니다. 다시 질문해주세요.',
+    busy: '오늘의 무료 AI 이용 한도에 도달했거나 요청이 많습니다. 잠시 후 또는 다음 날 다시 이용해주세요.',
+    unavailable: 'AI 답변을 받지 못했습니다. 잠시 후 다시 보내주세요.',
+    invalid: '질문이 너무 길거나 형식이 올바르지 않습니다. 질문을 줄여 다시 보내주세요.',
+    timeout: '답변 시간이 길어지고 있습니다. 잠시 후 다시 보내주세요.'
+  };
+
+  class ChatError extends Error {
+    constructor(kind) {
+      super(notice[kind] || notice.unavailable);
+      this.code = 'ai/' + kind;
+    }
+  }
+
+  function validateWorkerURL(value) {
+    if (typeof value !== 'string' || !value) throw new ChatError('setup');
+    let endpoint;
+    try { endpoint = new URL(value); } catch { throw new ChatError('setup'); }
+    const label = '[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?';
+    const allowedHost = new RegExp('^' + label + '\\.' + label + '\\.workers\\.dev$');
+    if (endpoint.protocol !== 'https:' || !allowedHost.test(endpoint.hostname) ||
+        endpoint.port || endpoint.username || endpoint.password || endpoint.pathname !== '/chat' ||
+        endpoint.search || endpoint.hash) throw new ChatError('setup');
+    return endpoint.href;
+  }
+
+  function makeMessages(history, text) {
+    const recent = [...history.slice(-11), {role:'user', text}];
+    const result = [];
+    let length = 0;
+    for (let index = recent.length - 1; index >= 0; index--) {
+      const item = recent[index];
+      if (!item || !['user','assistant'].includes(item.role) || typeof item.text !== 'string') continue;
+      const content = item.text.trim().slice(0,4000);
+      if (!content) continue;
+      if (length + content.length > 16000) break;
+      result.unshift({role:item.role,text:content});
+      length += content.length;
+    }
+    return result;
+  }
+
+  function localAnswer(text) {
+    return /^(?:송율근|율근)(?:님|아|씨)?[!?\.~\s]*$/.test(text.trim())
+      ? '오우 안녕하세요! 저의 이름을 입력하셨군요!\n이스터에그를 찾으셨습니다. 사이트를 소중히 다뤄주세요! 😎'
+      : null;
+  }
+
+  function encodeBody(payload) {
+    if (!Array.isArray(payload?.messages) || !payload.messages.length || !Array.isArray(payload.courses)) throw new ChatError('invalid');
+    const data = {
+      messages:payload.messages.map(message=>({role:message.role,text:message.text})),
+      courses:payload.courses,
+      sciTrack:payload.sciTrack === true
+    };
+    const encoder = new TextEncoder();
+    let body = JSON.stringify(data);
+    while (encoder.encode(body).length > 32768 && data.messages.length > 1) {
+      data.messages.shift();
+      body = JSON.stringify(data);
+    }
+    if (encoder.encode(body).length > 32768) throw new ChatError('invalid');
+    return body;
+  }
+
+  function createClient({fetcher, pageURL, currentUser}) {
+    const page = new URL(pageURL);
+    const configURL = ['https:','http:'].includes(page.protocol) ? new URL('/course/ai-config.json', page.origin) : null;
+
+    async function readEndpoint() {
+      if (!configURL) throw new ChatError('setup');
+      let response;
+      try {
+        response = await fetcher(configURL.href, {
+          method:'GET', credentials:'omit', cache:'no-store', redirect:'error',
+          referrerPolicy:'no-referrer', signal:AbortSignal.timeout(10000)
+        });
+      } catch { throw new ChatError('unavailable'); }
+      if (!response.ok) throw new ChatError(response.status === 404 ? 'setup' : 'unavailable');
+      if (response.redirected) throw new ChatError('setup');
+      if (response.url && new URL(response.url).href !== configURL.href) throw new ChatError('setup');
+      let config;
+      try { config = await response.json(); } catch { throw new ChatError('setup'); }
+      if (!config || typeof config !== 'object' || Array.isArray(config) ||
+          Object.keys(config).some(key => key !== 'workerUrl')) throw new ChatError('setup');
+      return validateWorkerURL(config.workerUrl);
+    }
+
+    async function ask(payload, expectedUser) {
+      if (!expectedUser || currentUser()?.uid !== expectedUser.uid) throw new ChatError('authentication');
+      const body = encodeBody(payload);
+      // Only the repository's same-origin configuration chooses the recipient.
+      const endpoint = await readEndpoint();
+      if (currentUser()?.uid !== expectedUser.uid) throw new ChatError('changedAccount');
+      let token;
+      try { token = await expectedUser.getIdToken(); } catch { throw new ChatError('authentication'); }
+      if (typeof token !== 'string' || !token || /\s/.test(token)) throw new ChatError('authentication');
+      if (currentUser()?.uid !== expectedUser.uid) throw new ChatError('changedAccount');
+      let response;
+      try {
+        response = await fetcher(endpoint, {
+          method:'POST', mode:'cors', credentials:'omit', cache:'no-store', redirect:'error',
+          referrerPolicy:'no-referrer', signal:AbortSignal.timeout(60000),
+          headers:{'Content-Type':'application/json',Accept:'application/json',Authorization:'Bearer '+token},
+          body
+        });
+      } catch (error) {
+        throw new ChatError(['TimeoutError','AbortError'].includes(error?.name) ? 'timeout' : 'unavailable');
+      }
+      if (currentUser()?.uid !== expectedUser.uid) throw new ChatError('changedAccount');
+      if (response.redirected || response.url && response.url !== endpoint) throw new ChatError('unavailable');
+      if (!response.ok) {
+        if (response.status === 429) throw new ChatError('busy');
+        if ([401,403].includes(response.status)) throw new ChatError('authentication');
+        if ([400,413].includes(response.status)) throw new ChatError('invalid');
+        if (response.status === 504) throw new ChatError('timeout');
+        throw new ChatError('unavailable');
+      }
+      let result;
+      try { result = await response.json(); } catch { throw new ChatError('unavailable'); }
+      if (!result || result.model !== MODEL || typeof result.text !== 'string' ||
+          !result.text.trim() || result.text.length > 8000) throw new ChatError('unavailable');
+      return {text:result.text.trim(),model:MODEL};
+    }
+
+    async function configurationStatus() {
+      try {await readEndpoint();return 'ready';}
+      catch(error) {return error?.code === 'ai/setup' ? 'missing' : 'unavailable';}
+    }
+
+    return {ask,configurationStatus};
+  }
+
+  return {MODEL, ChatError, createClient, encodeBody, localAnswer, makeMessages, validateWorkerURL};
+});
+
+(() => {
 'use strict';
 const E=CourseEngine,$=id=>document.getElementById(id),stateKey=uid=>'gimpo_v2_state_'+uid;
 const make=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
@@ -1273,11 +1419,61 @@ function appendMessage(target,m){
  const row=make('div',m.role==='user'?'msg-row-user':'msg-row-ai'),bubble=make('div','chat-bubble '+(m.role==='user'?'chat-user':'chat-ai'),m.text||''),stamp=make('div','msg-time',new Date(time).toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'}));row.dataset.date=date;bubble.style.whiteSpace='pre-wrap';if(m.role==='user')row.append(stamp,bubble);else row.append(bubble,stamp);target.append(row);for(const image of(Array.isArray(m.images)?m.images:[])){App.imageElement(image).then(node=>{if(row.isConnected){node.classList.add('chat-image-wrap');node.querySelector('img')?.classList.add('chat-image');node.querySelector('a')?.classList.add('img-download-btn');bubble.append(node);target.scrollTop=target.scrollHeight;}else App.releaseImages(node);});}target.scrollTop=target.scrollHeight;return row;
 }
 function renderInquiryWelcome(box){box.replaceChildren();appendMessage(box,{role:'assistant',text:'안녕하세요! 개발자입니다.\n수강신청과 관련하여 궁금한 점이나 사이트 오류, 건의사항이 있다면 자유롭게 문의해 주세요.\n(확인하는 대로 최대한 빠르게 답변드리겠습니다!)'});}
-function renderHistory(){const box=$('aiMessages');box.replaceChildren();const welcome=appendMessage(box,{role:'assistant',timestamp:history[0]?.timestamp||Date.now()});welcome.querySelector('.chat-bubble').innerHTML='안녕하세요! 김포고 수강신청 AI 도우미입니다.<br><br>💡 <b>안내 사항</b><br>수강신청과 관련된 궁금한 점을 <b>자유롭게 질문해 주세요!</b><br>아래의 <b>자주 묻는 질문(30개)</b>을 선택하시거나 직접 입력하셔도 됩니다.';history.forEach(m=>appendMessage(box,m));box.scrollTop=box.scrollHeight;}
+let aiAvailability='checking',aiProbeVersion=0,aiSessionMessages=[];
+function updateAIWelcome(bubble){
+ const description=aiAvailability==='ready'
+  ? '수강신청과 관련된 궁금한 점을 <b>자유롭게 질문해 주세요!</b><br>아래의 <b>자주 묻는 질문(30개)</b>을 선택하시거나 직접 입력하셔도 됩니다.'
+  : aiAvailability==='missing'
+   ? 'AI 서버 연결 전입니다. 아직 질문은 전송되지 않습니다.'
+   : aiAvailability==='unavailable'
+    ? 'AI 서버 연결 상태를 확인하지 못했습니다. 질문을 보낼 때 다시 확인합니다.'
+    : 'AI 서버 연결 상태를 확인하고 있습니다.';
+ bubble.innerHTML='안녕하세요! 김포고 수강신청 AI 도우미입니다.<br><br>💡 <b>안내 사항</b><br>'+description+'<br><br>질문을 보내면 최근 AI 대화와 선택 과목이 Cloudflare에서 실행하는 OpenAI GPT-OSS에 전달됩니다.';
+}
+function renderHistory(){const box=$('aiMessages');box.replaceChildren();const welcome=appendMessage(box,{role:'assistant',timestamp:history[0]?.timestamp||Date.now()});const bubble=welcome.querySelector('.chat-bubble');bubble.dataset.aiWelcome='true';updateAIWelcome(bubble);history.forEach(m=>appendMessage(box,m));box.scrollTop=box.scrollHeight;}
 const faqs=[{"q":"공대 희망하는데 2학년 과목 추천해줘","label":"💻 공학 계열 추천"},{"q":"의약계열/생명공학 필수 과목이 뭐야?","label":"⚕️ 의약/생명 계열 추천"},{"q":"경영학과 가고 싶은데 뭘 들어야 해?","label":"📈 경영/경제 추천"},{"q":"문과(인문학) 추천 과목 알려줘","label":"📚 인문학/어문계열 추천"},{"q":"사범대/교육학과 지망생 추천 과목은?","label":"🏫 교육/사범대 추천"},{"q":"미대나 체대 등 예체능 과목 추천해줘","label":"🎨 예체능 계열 추천"},{"q":"컴퓨터공학과/소프트웨어 추천 과목","label":"⌨️ SW/컴공 추천"},{"q":"간호학과 가려면 과학 뭐 선택해?","label":"🩺 간호학과 추천"},{"q":"미디어 커뮤니케이션/언론 지망생 추천","label":"🎥 미디어/언론 추천"},{"q":"심리학과 가려면 뭐 들어야 해?","label":"🧠 심리학과 추천"},{"q":"과학중점과정이 뭐야?","label":"🔬 과학중점과정 이란?"},{"q":"과중반 필수 조건이 어떻게 돼?","label":"📋 과중반 필수 조건"},{"q":"과중반 수학 선택은 어떻게 권장해?","label":"🔢 과중반 수학 선택"},{"q":"과중반 3학년 심화과목은 몇 개 들어야 해?","label":"📈 과중반 3학년 심화"},{"q":"국영수 제한 81학점이 무슨 뜻이야?","label":"🚫 국영수 81학점 제한"},{"q":"2학년 때 선택과목 몇 개 골라야 해?","label":"✌️ 2학년 선택과목 개수"},{"q":"3학년 때는 선택과목 몇 개 골라?","label":"🤟 3학년 선택과목 개수"},{"q":"수강신청은 어떻게 하고 언제까지야?","label":"📅 수강신청 방법/일정"},{"q":"총 이수 학점이 174학점이야?","label":"💯 총 교과 학점 안내"},{"q":"각 교과군별 필수 학점이 뭐야?","label":"📌 교과별 필수 학점"},{"q":"등급(9등급제) 안 나오는 과목도 있어?","label":"📊 등급 산출 안 되는 과목"},{"q":"P/F 과목이 무슨 뜻이야?","label":"✅ P/F 과목이란?"},{"q":"경제 수학이랑 전문 수학 차이가 뭐야?","label":"📐 경제수학 vs 전문수학"},{"q":"물리학 꼭 들어야 할까?","label":"⚡ 물리학 필수 여부"},{"q":"제2외국어 꼭 들어야 돼? 중국어/일본어 추천","label":"🗣️ 제2외국어 추천/필수"},{"q":"사회문제 탐구는 어떤 과목이야?","label":"🌍 사회문제 탐구 소개"},{"q":"진로 과목이랑 일반 과목 차이가 뭐야?","label":"🔖 일반 과목 vs 진로 과목"},{"q":"기후변화나 환경 관련 과목 추천해줘","label":"🌱 환경/기후 과목 추천"},{"q":"심화 국어/영어/수학 추천해줘","label":"📖 심화 교과 추천"},{"q":"수능에서 유리한 선택과목이 있을까?","label":"🎓 수능 유리한 과목"}];faqs.forEach(({q,label})=>{const b=make('button','example-chip',label);b.type='button';b.onclick=()=>{if(aiBusy)return;$('aiInput').value=q;$('aiForm').requestSubmit();};$('faq').append(b);});
 
-$('aiForm').onsubmit=async e=>{e.preventDefault();if(aiBusy)return;const text=$('aiInput').value.trim();if(!text)return;if(!user||!App.functions)return App.toast('AI 상담은 서버 연결 후 이용할 수 있습니다.');const owner=uid,ver=epoch,question={role:'user',text,timestamp:Date.now()};aiBusy=true;$('aiSend').disabled=true;$('clearAi').disabled=true;const pending=appendMessage($('aiMessages'),{role:'assistant',text:'답변을 준비하고 있습니다…'});try{const response=await App.functions.httpsCallable('askAssistant',{timeout:60000})({messages:[...history.slice(-11).map(({role,text})=>({role,text})),{role:'user',text}],courses:state.courses,sciTrack:state.sciTrack});if(ver!==epoch)return;const answer={role:'assistant',text:String(response.data.text),timestamp:Date.now()};const updates={};for(const msg of [question,answer])updates[App.db.ref(`v2/aiHistory/${owner}`).push().key]={...msg,timestamp:serverTime()};await App.db.ref(`v2/aiHistory/${owner}`).update(updates);if(ver!==epoch)return;history.push(question,answer);history=history.slice(-100);$('aiInput').value='';renderHistory();}catch(e){if(ver===epoch)App.toast(App.error(e));}finally{pending.remove();aiBusy=false;$('aiSend').disabled=false;$('clearAi').disabled=false;}};
-$('clearAi').onclick=async()=>{if(aiBusy||!confirm('현재 계정의 AI 대화를 삭제하시겠습니까?'))return;const owner=uid,ver=epoch;try{if(user)await App.db.ref('v2/aiHistory/'+owner).remove();if(ver!==epoch||owner!==uid)return;history=[];renderHistory();}catch(e){if(ver===epoch)App.toast(App.error(e));}};
+const freeAI=GimpoFreeAI.createClient({fetcher:(...args)=>fetch(...args),pageURL:location.href,currentUser:()=>App.auth?.currentUser});
+const initialAIProbe=aiProbeVersion;
+freeAI.configurationStatus().then(status=>{if(initialAIProbe!==aiProbeVersion)return;aiAvailability=status;const bubble=$('aiMessages').querySelector('[data-ai-welcome]');if(bubble)updateAIWelcome(bubble);});
+function mergeAIHistory(remote){
+ const saved=remote||{},keys=new Set(Object.keys(saved));
+ return [...Object.values(saved),...aiSessionMessages.filter(entry=>!entry.serverKey||!keys.has(entry.serverKey)).map(entry=>entry.message)].slice(-100);
+}
+function persistAIAnswer(entries,owner,version){
+ if(version!==epoch||owner!==uid)return;
+ let acknowledgement;
+ try{const updates={};for(const entry of entries){entry.serverKey=App.db.ref(`v2/aiHistory/${owner}`).push().key;updates[entry.serverKey]={...entry.message,timestamp:serverTime()};}acknowledgement=App.db.ref(`v2/aiHistory/${owner}`).update(updates);}
+ catch(error){if(version===epoch&&owner===uid)App.toast('답변은 이 화면에만 남아 있습니다. 서버 대화 저장에 실패했습니다.');return;}
+ const pendingNotice=setTimeout(()=>{if(version===epoch&&owner===uid)App.toast('답변은 표시했지만 서버 저장을 아직 확인하지 못했습니다. 연결이 복구되면 저장될 수 있습니다.');},10000);
+ Promise.resolve(acknowledgement).catch(()=>{if(version===epoch&&owner===uid)App.toast('답변은 이 화면에만 남아 있습니다. 서버 대화 저장에 실패했습니다.');}).finally(()=>clearTimeout(pendingNotice));
+}
+$('aiForm').onsubmit=async event=>{
+ event.preventDefault();
+ if(aiBusy)return;
+ const text=$('aiInput').value.trim();
+ if(!text)return;
+ const easteregg=GimpoFreeAI.localAnswer(text);
+ if(!easteregg&&!user)return App.toast('AI 상담은 로그인 연결 후 이용할 수 있습니다.');
+ if(!easteregg)aiProbeVersion++;
+ const owner=uid,ver=epoch,requestUser=user,question={role:'user',text,timestamp:Date.now()};
+ aiBusy=true;$('aiSend').disabled=true;$('clearAi').disabled=true;
+ const pending=appendMessage($('aiMessages'),{role:'assistant',text:'답변을 준비하고 있습니다…'});
+ try{
+  const response=easteregg?{text:easteregg}:await freeAI.ask({
+   messages:GimpoFreeAI.makeMessages(history,text),courses:state.courses,sciTrack:state.sciTrack
+  },requestUser);
+  if(ver!==epoch)return;
+  if(!easteregg)aiAvailability='ready';
+  const answer={role:'assistant',text:response.text,timestamp:Date.now()};
+  const sessionEntries=[question,answer].map(message=>({message,serverKey:null}));
+  aiSessionMessages=[...aiSessionMessages,...sessionEntries].slice(-100);
+  history.push(question,answer);history=history.slice(-100);$('aiInput').value='';renderHistory();
+  if(requestUser)persistAIAnswer(sessionEntries,owner,ver);
+ }catch(error){if(ver===epoch){if(!easteregg){aiAvailability=error.code==='ai/setup'?'missing':'unavailable';const bubble=$('aiMessages').querySelector('[data-ai-welcome]');if(bubble)updateAIWelcome(bubble);}App.toast(App.error(error));}}
+ finally{pending.remove();aiBusy=false;$('aiSend').disabled=false;$('clearAi').disabled=false;}
+};
+$('clearAi').onclick=async()=>{if(aiBusy||!confirm('현재 계정의 AI 대화를 삭제하시겠습니까?'))return;const owner=uid,ver=epoch;try{if(user)await App.db.ref('v2/aiHistory/'+owner).remove();if(ver!==epoch||owner!==uid)return;history=[];aiSessionMessages=[];renderHistory();}catch(e){if(ver===epoch)App.toast(App.error(e));}};
 let previewUrls=[];
 function renderFiles(){previewUrls.forEach(url=>URL.revokeObjectURL(url));previewUrls=[];$('attachments').replaceChildren(...selectedFiles.map((file,i)=>{const wrap=make('div','preview-img-wrap'),img=make('img','preview-img'),b=make('button','preview-del','×');img.src=URL.createObjectURL(file);previewUrls.push(img.src);img.alt=file.name;b.type='button';b.setAttribute('aria-label',file.name+' 첨부 삭제');b.disabled=inquiryBusy;b.onclick=()=>{selectedFiles.splice(i,1);renderFiles();};wrap.append(img,b);return wrap;}));$('attachments').hidden=selectedFiles.length===0;}
 
@@ -1324,6 +1520,7 @@ $('authForm').onsubmit=e=>{e.preventDefault();if(!App.auth)return;authAction(()=
 
 function resetAccount(next){connectionIssues.clear();renderConnectionIssues();if(serverDialog.open)serverDialog.close();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;for(const id of ['aiInput','inquiryInput','studentName','password'])$(id).value='';$('classNum').value='1';$('studentNum').value='1';$('previewContent').replaceChildren();for(const id of ['profileDialog','previewDialog','authDialog']){if($(id).open)$(id).close();}unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}App.releaseImages($('inquiryMessages'));clearTimeout(saveTimer);user=next;uid=next?.uid||'device';profile={};history=[];selectedFiles=[];slots=App.cache.read('gimpo_v2_slots_'+uid,{})||{};const saved=App.cache.read(stateKey(uid),{});state=E.normalize(saved.state||{});dirty=Boolean(saved.dirty);revision=Number(saved.revision)||0;conflict=false;render();renderSlots();renderHistory();renderFiles();renderInquiryWelcome($('inquiryMessages'));$('profileLabel').textContent=next?'익명 사용자':'기기 내 연습';$('authBtn').textContent=App.isMember(next)?'로그아웃':'로그인';$('profileBtn').hidden=!next;$('dashboardBanner').hidden=!App.isMember(next);$('saveStatus').textContent=dirty?'기기 변경 불러옴':'기기 저장';}
 async function connect(next,{retry=false}={}){
+ if(!retry||user?.uid!==next?.uid)aiSessionMessages=[];
  presenceOnline = null;
  tabCount = null;
  renderVisitorCount();
@@ -1363,7 +1560,7 @@ async function connect(next,{retry=false}={}){
    if(dirty&&!conflict)flush();
   }),
   load('profiles',App.db.ref('v2/profiles/'+owner),snap=>{profile=snap.val()||{};$('profileLabel').textContent=currentName();if(App.isMember(next)&&!profile.name&&!retry){$('studentName').value='';$('profileDialog').showModal();}}),
-  load('history',App.db.ref('v2/aiHistory/'+owner).orderByKey().limitToLast(100),snap=>{history=Object.values(snap.val()||{});renderHistory();})
+  load('history',App.db.ref('v2/aiHistory/'+owner).orderByKey().limitToLast(100),snap=>{history=mergeAIHistory(snap.val());renderHistory();})
  ]);
 }
 async function retryConnection(){
