@@ -1,0 +1,49 @@
+Firebase GPT 연결 준비본
+
+프런트엔드는 기존 asia-northeast3의 askAssistant callable을 그대로 호출합니다.
+이 폴더에는 API 키, 사용자 대화, 서비스 계정 파일이 없습니다.
+
+실행 전 확인
+* gimpo-monitoring 프로젝트의 Cloud Functions 배포에는 Blaze 요금제 연결이 필요합니다.
+* 운영자가 OpenAI 프로젝트의 실제 API 키를 준비해야 합니다.
+* 배포용 사용자 인증은 공식 Firebase CLI 또는 Google의 사용자 인증 흐름으로 진행합니다.
+
+Cloud Shell에서 GitHub의 현재 소스를 가져온 뒤 실행
+  git clone https://github.com/gimpohigh/course.git gimpo-gpt-deploy
+  cd gimpo-gpt-deploy/firebase
+  npx --yes firebase-tools@15.31.0 login --no-localhost
+
+키는 다음 공식 CLI의 숨김 입력에 사용자가 직접 붙여넣습니다.
+채팅·GitHub 파일·화면 공유에 키를 입력하지 않습니다.
+  npx --yes firebase-tools@15.31.0 functions:secrets:set OPENAI_API_KEY --project gimpo-monitoring
+
+의존성 설치와 GPT 함수만 배포
+  cd functions
+  npm ci --ignore-scripts
+  npm test
+  cd ..
+  npx --yes firebase-tools@15.31.0 deploy --only functions:askAssistant --project gimpo-monitoring
+
+OPENAI_MODEL 기본값은 gpt-6-luna입니다. Responses API의 reasoning.effort=none을 지원합니다.
+다른 모델로 바꾸면 해당 모델에서 지원하는 reasoning 옵션만 전송합니다.
+배포 런타임은 공식 지원 Node.js 22입니다.
+Firebase Admin 14.5.0과 Functions 7.4.0을 정확한 버전으로 고정했습니다.
+functions/package-lock.json과 npm ci를 사용합니다.
+API 응답은 Responses API로 받고 store:false를 사용합니다.
+일일/분당 이용 한도는 서버에서 검사합니다.
+
+운영 확인
+* 기존 사이트의 AI 채팅에서 합성 질문 한 건으로 실제 답변을 확인합니다.
+* API 키를 입력한 뒤에도 키와 대화 본문을 콘솔 로그나 GitHub에 추가하지 않습니다.
+* 이 준비본의 10개 검사는 합성 입력과 모의 OpenAI 응답을 사용했습니다.
+  실제 OpenAI 키나 과금 요청은 실행하지 않았습니다.
+* 로컬 SDK 로딩과 검사는 Node.js 24.22.1에서 수행했습니다. 운영의 Node.js 22 실행은 배포 후 점검합니다.
+* 준비 시 npm audit에서 알려진 취약점 0개를 확인했습니다.
+
+공식 문서
+https://firebase.google.com/docs/functions/get-started
+https://firebase.google.com/docs/functions/config-env
+https://developers.openai.com/api/reference/overview
+https://developers.openai.com/api/docs/models/gpt-6-luna
+https://firebase.google.com/docs/functions/manage-functions
+https://firebase.google.com/support/release-notes/admin/node
