@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "gimpo-course-ai",
+  "main": "worker.js",
+  "compatibility_date": "2026-11-03",
+  "workers_dev": true,
+  "ai": {"binding": "AI"},
+  "durable_objects": {"bindings": [{"name": "QUOTA", "class_name": "FreeChatQuota"}]},
+  "migrations": [{"tag": "v1", "new_sqlite_classes": ["FreeChatQuota"]}],
+  "observability": {"enabled": false},
+  "vars": {
+    "FIREBASE_PROJECT_ID": "gimpo-monitoring",
+    "ALLOWED_ORIGIN": "https://gimpohigh.github.io"
+  }
+}

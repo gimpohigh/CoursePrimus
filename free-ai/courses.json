@@ -1,0 +1,1223 @@
+{
+  "version": "2026-1-v2",
+  "courses": [
+    {
+      "id": "11_01",
+      "sem": "1-1",
+      "name": "공통국어 1",
+      "type": "공통",
+      "cat": "국어",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 4
+    },
+    {
+      "id": "11_02",
+      "sem": "1-1",
+      "name": "공통수학 1",
+      "type": "공통",
+      "cat": "수학",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 4
+    },
+    {
+      "id": "11_03",
+      "sem": "1-1",
+      "name": "공통영어 1",
+      "type": "공통",
+      "cat": "영어",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 3
+    },
+    {
+      "id": "11_04",
+      "sem": "1-1",
+      "name": "한국사 1",
+      "type": "공통",
+      "cat": "한국사",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 3
+    },
+    {
+      "id": "11_05",
+      "sem": "1-1",
+      "name": "통합사회 1",
+      "type": "공통",
+      "cat": "사회",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 3
+    },
+    {
+      "id": "11_06",
+      "sem": "1-1",
+      "name": "통합과학 1",
+      "type": "공통",
+      "cat": "과학",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 4
+    },
+    {
+      "id": "11_07",
+      "sem": "1-1",
+      "name": "과학탐구실험 1",
+      "type": "공통",
+      "cat": "과학",
+      "grade": "3단계/등급X",
+      "req": true,
+      "cred": 1
+    },
+    {
+      "id": "11_08",
+      "sem": "1-1",
+      "name": "체육 1",
+      "type": "공통",
+      "cat": "체육",
+      "grade": "3단계/등급X",
+      "req": true,
+      "cred": 2
+    },
+    {
+      "id": "11_09",
+      "sem": "1-1",
+      "name": "음악/미술",
+      "type": "공통",
+      "cat": "예술",
+      "grade": "3단계/등급X",
+      "req": true,
+      "cred": 2
+    },
+    {
+      "id": "11_10",
+      "sem": "1-1",
+      "name": "정보/한문",
+      "type": "공통",
+      "cat": "정보",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 3
+    },
+    {
+      "id": "12_01",
+      "sem": "1-2",
+      "name": "공통국어 2",
+      "type": "공통",
+      "cat": "국어",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 3
+    },
+    {
+      "id": "12_02",
+      "sem": "1-2",
+      "name": "공통수학 2",
+      "type": "공통",
+      "cat": "수학",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 4
+    },
+    {
+      "id": "12_03",
+      "sem": "1-2",
+      "name": "공통영어 2",
+      "type": "공통",
+      "cat": "영어",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 4
+    },
+    {
+      "id": "12_04",
+      "sem": "1-2",
+      "name": "한국사 2",
+      "type": "공통",
+      "cat": "한국사",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 3
+    },
+    {
+      "id": "12_05",
+      "sem": "1-2",
+      "name": "통합사회 2",
+      "type": "공통",
+      "cat": "사회",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 3
+    },
+    {
+      "id": "12_06",
+      "sem": "1-2",
+      "name": "통합과학 2",
+      "type": "공통",
+      "cat": "과학",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 4
+    },
+    {
+      "id": "12_07",
+      "sem": "1-2",
+      "name": "과학탐구실험 2",
+      "type": "공통",
+      "cat": "과학",
+      "grade": "3단계/등급X",
+      "req": true,
+      "cred": 1
+    },
+    {
+      "id": "12_08",
+      "sem": "1-2",
+      "name": "체육 2",
+      "type": "공통",
+      "cat": "체육",
+      "grade": "3단계/등급X",
+      "req": true,
+      "cred": 2
+    },
+    {
+      "id": "12_09",
+      "sem": "1-2",
+      "name": "미술/음악",
+      "type": "공통",
+      "cat": "예술",
+      "grade": "3단계/등급X",
+      "req": true,
+      "cred": 2
+    },
+    {
+      "id": "12_10",
+      "sem": "1-2",
+      "name": "한문/정보",
+      "type": "공통",
+      "cat": "한문",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 3
+    },
+    {
+      "id": "21_01",
+      "sem": "2-1",
+      "name": "문학",
+      "type": "일반",
+      "cat": "국어",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 4
+    },
+    {
+      "id": "21_02",
+      "sem": "2-1",
+      "name": "대수",
+      "type": "일반",
+      "cat": "수학",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 4
+    },
+    {
+      "id": "21_03",
+      "sem": "2-1",
+      "name": "영어 I",
+      "type": "일반",
+      "cat": "영어",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 4
+    },
+    {
+      "id": "21_04",
+      "sem": "2-1",
+      "name": "스포츠 생활 1",
+      "type": "융합",
+      "cat": "체육",
+      "grade": "3단계/등급X",
+      "req": true,
+      "cred": 2
+    },
+    {
+      "id": "21_s01",
+      "sem": "2-1",
+      "name": "주제 탐구 독서",
+      "type": "진로",
+      "cat": "국어",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "21_s02",
+      "sem": "2-1",
+      "name": "인공지능 수학",
+      "type": "진로",
+      "cat": "수학",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "21_s03",
+      "sem": "2-1",
+      "name": "영어 독해와 작문",
+      "type": "진로",
+      "cat": "영어",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "21_s04",
+      "sem": "2-1",
+      "name": "세계 시민과 지리",
+      "type": "일반",
+      "cat": "사회",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "21_s05",
+      "sem": "2-1",
+      "name": "세계사",
+      "type": "일반",
+      "cat": "사회",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "21_s06",
+      "sem": "2-1",
+      "name": "현대사회와 윤리",
+      "type": "일반",
+      "cat": "사회",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "21_s07",
+      "sem": "2-1",
+      "name": "정치",
+      "type": "진로",
+      "cat": "사회",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "21_s08",
+      "sem": "2-1",
+      "name": "경제",
+      "type": "진로",
+      "cat": "사회",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "21_s09",
+      "sem": "2-1",
+      "name": "물리학",
+      "type": "일반",
+      "cat": "과학",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "sciReq": true
+    },
+    {
+      "id": "21_s10",
+      "sem": "2-1",
+      "name": "화학",
+      "type": "일반",
+      "cat": "과학",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "sciReq": true
+    },
+    {
+      "id": "21_s11",
+      "sem": "2-1",
+      "name": "생명과학",
+      "type": "일반",
+      "cat": "과학",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "sciReq": true
+    },
+    {
+      "id": "21_s12",
+      "sem": "2-1",
+      "name": "지구과학",
+      "type": "일반",
+      "cat": "과학",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "sciReq": true
+    },
+    {
+      "id": "21_s13",
+      "sem": "2-1",
+      "name": "기초 체육 전공 실기",
+      "type": "진로",
+      "cat": "체육",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "pair": "체육실기1"
+    },
+    {
+      "id": "21_s14",
+      "sem": "2-1",
+      "name": "인공지능 기초",
+      "type": "진로",
+      "cat": "정보",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "21_s15",
+      "sem": "2-1",
+      "name": "일본어",
+      "type": "일반",
+      "cat": "제2외국어",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "21_s16",
+      "sem": "2-1",
+      "name": "중국어",
+      "type": "일반",
+      "cat": "제2외국어",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "22_01",
+      "sem": "2-2",
+      "name": "화법과 언어",
+      "type": "일반",
+      "cat": "국어",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 4
+    },
+    {
+      "id": "22_02",
+      "sem": "2-2",
+      "name": "미적분 I",
+      "type": "일반",
+      "cat": "수학",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 4
+    },
+    {
+      "id": "22_03",
+      "sem": "2-2",
+      "name": "영어 II",
+      "type": "일반",
+      "cat": "영어",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 4
+    },
+    {
+      "id": "22_04",
+      "sem": "2-2",
+      "name": "스포츠 생활 2",
+      "type": "융합",
+      "cat": "체육",
+      "grade": "3단계/등급X",
+      "req": true,
+      "cred": 2
+    },
+    {
+      "id": "22_s01",
+      "sem": "2-2",
+      "name": "문학과 영상",
+      "type": "진로",
+      "cat": "국어",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "22_s02",
+      "sem": "2-2",
+      "name": "기하",
+      "type": "진로",
+      "cat": "수학",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "22_s03",
+      "sem": "2-2",
+      "name": "영어 발표와 토론",
+      "type": "진로",
+      "cat": "영어",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "22_s04",
+      "sem": "2-2",
+      "name": "동아시아 역사 기행",
+      "type": "진로",
+      "cat": "사회",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "22_s05",
+      "sem": "2-2",
+      "name": "법과 사회",
+      "type": "진로",
+      "cat": "사회",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "22_s06",
+      "sem": "2-2",
+      "name": "윤리와 사상",
+      "type": "진로",
+      "cat": "사회",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "22_s07",
+      "sem": "2-2",
+      "name": "한국지리 탐구",
+      "type": "진로",
+      "cat": "사회",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "22_s08",
+      "sem": "2-2",
+      "name": "금융과 경제생활",
+      "type": "융합",
+      "cat": "사회",
+      "grade": "5단계/등급X",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "22_s09",
+      "sem": "2-2",
+      "name": "역학과 에너지",
+      "type": "진로",
+      "cat": "과학",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "sciAdv": true
+    },
+    {
+      "id": "22_s10",
+      "sem": "2-2",
+      "name": "물질과 에너지",
+      "type": "진로",
+      "cat": "과학",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "sciAdv": true
+    },
+    {
+      "id": "22_s11",
+      "sem": "2-2",
+      "name": "세포와 물질대사",
+      "type": "진로",
+      "cat": "과학",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "sciAdv": true
+    },
+    {
+      "id": "22_s12",
+      "sem": "2-2",
+      "name": "지구시스템 과학",
+      "type": "진로",
+      "cat": "과학",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "sciAdv": true
+    },
+    {
+      "id": "22_s13",
+      "sem": "2-2",
+      "name": "융합과학 탐구",
+      "type": "융합",
+      "cat": "과학",
+      "grade": "5단계/등급X",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "22_s14",
+      "sem": "2-2",
+      "name": "기초 체육 전공 실기",
+      "type": "진로",
+      "cat": "체육",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "pair": "체육실기1"
+    },
+    {
+      "id": "22_s15",
+      "sem": "2-2",
+      "name": "데이터 과학",
+      "type": "진로",
+      "cat": "정보",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "22_s16",
+      "sem": "2-2",
+      "name": "일본어 회화",
+      "type": "진로",
+      "cat": "제2외국어",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "22_s17",
+      "sem": "2-2",
+      "name": "중국 문화",
+      "type": "융합",
+      "cat": "제2외국어",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "31_01",
+      "sem": "3-1",
+      "name": "독서와 작문",
+      "type": "일반",
+      "cat": "국어",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 3
+    },
+    {
+      "id": "31_02",
+      "sem": "3-1",
+      "name": "확률과 통계",
+      "type": "일반",
+      "cat": "수학",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 3
+    },
+    {
+      "id": "31_03",
+      "sem": "3-1",
+      "name": "심화 영어 독해와 작문",
+      "type": "진로",
+      "cat": "영어",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 3
+    },
+    {
+      "id": "31_04",
+      "sem": "3-1",
+      "name": "스포츠 문화",
+      "type": "진로",
+      "cat": "체육",
+      "grade": "3단계/등급X",
+      "req": true,
+      "cred": 1
+    },
+    {
+      "id": "31_05",
+      "sem": "3-1",
+      "name": "고시외 과목",
+      "type": "융합",
+      "cat": "교양",
+      "grade": "P/F",
+      "req": true,
+      "cred": 1
+    },
+    {
+      "id": "31_s01",
+      "sem": "3-1",
+      "name": "언어생활 탐구",
+      "type": "융합",
+      "cat": "국어",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "31_s02",
+      "sem": "3-1",
+      "name": "미적분 II",
+      "type": "진로",
+      "cat": "수학",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "31_s03",
+      "sem": "3-1",
+      "name": "세계 문화와 영어",
+      "type": "융합",
+      "cat": "영어",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "31_s04",
+      "sem": "3-1",
+      "name": "도시의 미래 탐구",
+      "type": "진로",
+      "cat": "사회",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "31_s05",
+      "sem": "3-1",
+      "name": "사회와 문화",
+      "type": "일반",
+      "cat": "사회",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "31_s06",
+      "sem": "3-1",
+      "name": "인문학과 윤리",
+      "type": "진로",
+      "cat": "사회",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "31_s07",
+      "sem": "3-1",
+      "name": "역사로 탐구하는 현대 세계",
+      "type": "융합",
+      "cat": "사회",
+      "grade": "5단계/등급X",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "31_s08",
+      "sem": "3-1",
+      "name": "기후변화와 지속 가능한 세계",
+      "type": "융합",
+      "cat": "사회",
+      "grade": "5단계/등급X",
+      "req": false,
+      "cred": 3,
+      "pair": "기후지속"
+    },
+    {
+      "id": "31_s09",
+      "sem": "3-1",
+      "name": "전자기와 양자",
+      "type": "진로",
+      "cat": "과학",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "sciAdv": true,
+      "pair": "전자기"
+    },
+    {
+      "id": "31_s10",
+      "sem": "3-1",
+      "name": "화학 반응의 세계",
+      "type": "진로",
+      "cat": "과학",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "sciAdv": true,
+      "pair": "화학반응"
+    },
+    {
+      "id": "31_s11",
+      "sem": "3-1",
+      "name": "생물의 유전",
+      "type": "진로",
+      "cat": "과학",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "sciAdv": true,
+      "pair": "유전"
+    },
+    {
+      "id": "31_s12",
+      "sem": "3-1",
+      "name": "행성우주과학",
+      "type": "진로",
+      "cat": "과학",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "sciAdv": true,
+      "pair": "행성"
+    },
+    {
+      "id": "31_s13",
+      "sem": "3-1",
+      "name": "기후변화와 환경생태",
+      "type": "융합",
+      "cat": "과학",
+      "grade": "5단계/등급X",
+      "req": false,
+      "cred": 3,
+      "pair": "기후환경"
+    },
+    {
+      "id": "31_s14",
+      "sem": "3-1",
+      "name": "음악 연주와 창작",
+      "type": "진로",
+      "cat": "예술",
+      "grade": "3단계/등급X",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "31_s15",
+      "sem": "3-1",
+      "name": "미술 창작",
+      "type": "진로",
+      "cat": "예술",
+      "grade": "3단계/등급X",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "31_s16",
+      "sem": "3-1",
+      "name": "심화 체육 전공 실기",
+      "type": "진로",
+      "cat": "체육",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "pair": "체육실기2"
+    },
+    {
+      "id": "31_s17",
+      "sem": "3-1",
+      "name": "정보 과학",
+      "type": "진로",
+      "cat": "정보",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "31_s18",
+      "sem": "3-1",
+      "name": "일본 문화",
+      "type": "융합",
+      "cat": "제2외국어",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "31_s19",
+      "sem": "3-1",
+      "name": "관광 중국어",
+      "type": "진로",
+      "cat": "제2외국어",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3
+    },
+    {
+      "id": "31_s20",
+      "sem": "3-1",
+      "name": "논리와 사고",
+      "type": "진로",
+      "cat": "교양",
+      "grade": "P/F",
+      "req": false,
+      "cred": 3,
+      "pair": "논리"
+    },
+    {
+      "id": "32_01",
+      "sem": "3-2",
+      "name": "독서 토론과 글쓰기",
+      "type": "융합",
+      "cat": "국어",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 3
+    },
+    {
+      "id": "32_02",
+      "sem": "3-2",
+      "name": "수학과 문화",
+      "type": "융합",
+      "cat": "수학",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 3
+    },
+    {
+      "id": "32_03",
+      "sem": "3-2",
+      "name": "심화 영어",
+      "type": "진로",
+      "cat": "영어",
+      "grade": "5단계/등급O",
+      "req": true,
+      "cred": 3
+    },
+    {
+      "id": "32_04",
+      "sem": "3-2",
+      "name": "스포츠 과학",
+      "type": "진로",
+      "cat": "체육",
+      "grade": "3단계/등급X",
+      "req": true,
+      "cred": 1
+    },
+    {
+      "id": "32_05",
+      "sem": "3-2",
+      "name": "고시외 과목",
+      "type": "융합",
+      "cat": "교양",
+      "grade": "P/F",
+      "req": true,
+      "cred": 1
+    },
+    {
+      "id": "32_s01",
+      "sem": "3-2",
+      "name": "매체 의사소통",
+      "type": "융합",
+      "cat": "국어",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "g": 0
+    },
+    {
+      "id": "32_s02",
+      "sem": "3-2",
+      "name": "경제 수학",
+      "type": "진로",
+      "cat": "수학",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "g": 0
+    },
+    {
+      "id": "32_s03",
+      "sem": "3-2",
+      "name": "전문 수학",
+      "type": "진로",
+      "cat": "수학",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "g": 0
+    },
+    {
+      "id": "32_s04",
+      "sem": "3-2",
+      "name": "미디어 영어",
+      "type": "융합",
+      "cat": "영어",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "g": 0
+    },
+    {
+      "id": "32_s05",
+      "sem": "3-2",
+      "name": "윤리문제 탐구",
+      "type": "융합",
+      "cat": "사회",
+      "grade": "5단계/등급X",
+      "req": false,
+      "cred": 3,
+      "g": 0
+    },
+    {
+      "id": "32_s06",
+      "sem": "3-2",
+      "name": "여행지리",
+      "type": "융합",
+      "cat": "사회",
+      "grade": "5단계/등급X",
+      "req": false,
+      "cred": 3,
+      "g": 0
+    },
+    {
+      "id": "32_s07",
+      "sem": "3-2",
+      "name": "문화로 보는 한국사",
+      "type": "융합",
+      "cat": "사회",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "g": 0
+    },
+    {
+      "id": "32_s08",
+      "sem": "3-2",
+      "name": "전자기와 양자",
+      "type": "진로",
+      "cat": "과학",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "sciAdv": true,
+      "pair": "전자기",
+      "g": 0
+    },
+    {
+      "id": "32_s09",
+      "sem": "3-2",
+      "name": "화학 반응의 세계",
+      "type": "진로",
+      "cat": "과학",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "sciAdv": true,
+      "pair": "화학반응",
+      "g": 0
+    },
+    {
+      "id": "32_s10",
+      "sem": "3-2",
+      "name": "생물의 유전",
+      "type": "진로",
+      "cat": "과학",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "sciAdv": true,
+      "pair": "유전",
+      "g": 0
+    },
+    {
+      "id": "32_s11",
+      "sem": "3-2",
+      "name": "행성우주과학",
+      "type": "진로",
+      "cat": "과학",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "sciAdv": true,
+      "pair": "행성",
+      "g": 0
+    },
+    {
+      "id": "32_s12",
+      "sem": "3-2",
+      "name": "음악 감상과 비평",
+      "type": "진로",
+      "cat": "예술",
+      "grade": "3단계/등급X",
+      "req": false,
+      "cred": 3,
+      "g": 0
+    },
+    {
+      "id": "32_s13",
+      "sem": "3-2",
+      "name": "미술 감상과 비평",
+      "type": "진로",
+      "cat": "예술",
+      "grade": "3단계/등급X",
+      "req": false,
+      "cred": 3,
+      "g": 0
+    },
+    {
+      "id": "32_s14",
+      "sem": "3-2",
+      "name": "심화 체육 전공 실기",
+      "type": "진로",
+      "cat": "체육",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "pair": "체육실기2",
+      "g": 0
+    },
+    {
+      "id": "32_s15",
+      "sem": "3-2",
+      "name": "소프트웨어와 생활",
+      "type": "융합",
+      "cat": "정보",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "g": 0
+    },
+    {
+      "id": "32_s16",
+      "sem": "3-2",
+      "name": "심화 일본어",
+      "type": "진로",
+      "cat": "제2외국어",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "g": 0
+    },
+    {
+      "id": "32_s17",
+      "sem": "3-2",
+      "name": "중국어 회화",
+      "type": "진로",
+      "cat": "제2외국어",
+      "grade": "5단계/등급O",
+      "req": false,
+      "cred": 3,
+      "g": 0
+    },
+    {
+      "id": "32_s18",
+      "sem": "3-2",
+      "name": "논리와 사고",
+      "type": "진로",
+      "cat": "교양",
+      "grade": "P/F",
+      "req": false,
+      "cred": 3,
+      "pair": "논리",
+      "g": 0
+    },
+    {
+      "id": "32_s19",
+      "sem": "3-2",
+      "name": "기후변화와 지속 가능한 세계",
+      "type": "융합",
+      "cat": "사회",
+      "grade": "5단계/등급X",
+      "req": false,
+      "cred": 3,
+      "pair": "기후지속",
+      "g": 1
+    },
+    {
+      "id": "32_s20",
+      "sem": "3-2",
+      "name": "사회문제 탐구",
+      "type": "융합",
+      "cat": "사회",
+      "grade": "5단계/등급X",
+      "req": false,
+      "cred": 3,
+      "g": 1
+    },
+    {
+      "id": "32_s21",
+      "sem": "3-2",
+      "name": "과학의 역사와 문화",
+      "type": "융합",
+      "cat": "과학",
+      "grade": "5단계/등급X",
+      "req": false,
+      "cred": 3,
+      "g": 2
+    },
+    {
+      "id": "32_s22",
+      "sem": "3-2",
+      "name": "기후변화와 환경생태",
+      "type": "융합",
+      "cat": "과학",
+      "grade": "5단계/등급X",
+      "req": false,
+      "cred": 3,
+      "pair": "기후환경",
+      "g": 2
+    }
+  ],
+  "semesters": [
+    {
+      "key": "1-1",
+      "title": "1학년 1학기",
+      "limit": 0
+    },
+    {
+      "key": "1-2",
+      "title": "1학년 2학기",
+      "limit": 0
+    },
+    {
+      "key": "2-1",
+      "title": "2학년 1학기",
+      "limit": 5
+    },
+    {
+      "key": "2-2",
+      "title": "2학년 2학기",
+      "limit": 5
+    },
+    {
+      "key": "3-1",
+      "title": "3학년 1학기",
+      "limit": 6
+    },
+    {
+      "key": "3-2",
+      "title": "3학년 2학기",
+      "limit": 6
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "gimpo-free-school-ai",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=22"},
+  "scripts": {
+    "test": "node --test *.test.js",
+    "check": "wrangler deploy --dry-run --outdir .build",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {"jose": "6.2.15"},
+  "devDependencies": {"wrangler": "4.156.2"}
+}
