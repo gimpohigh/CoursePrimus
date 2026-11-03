@@ -59,3 +59,21 @@ test('certificate cache honors expiration, rotation cooldown and Google fetch fa
   failed = true;
   await assert.rejects(resolver('new-key'), {status:503});
 });
+
+test('certificate fetch uses workerd-compatible manual redirects and rejects every redirect', async () => {
+  let imported = 0;
+  const makeResolver = status => createCertificateResolver({
+    importer:async () => {imported++; return 'synthetic-key';},
+    fetcher:async (url, options) => {
+      // workerd rejects redirect:error before sending the request. Keep the supported mode explicit.
+      assert.equal(options.redirect, 'manual');
+      if (status >= 300 && status < 400) return new Response(null, {status, headers:{Location:'https://untrusted.invalid/keys'}});
+      return Response.json({'test-key':'synthetic-certificate'});
+    }
+  });
+  for (const status of [301, 302, 303, 307, 308]) {
+    await assert.rejects(makeResolver(status)('test-key'), {status:503});
+  }
+  assert.equal(imported, 0);
+  assert.equal(await makeResolver(200)('test-key'), 'synthetic-key');
+});

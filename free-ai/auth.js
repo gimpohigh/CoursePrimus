@@ -13,7 +13,8 @@ export function createCertificateResolver({fetcher = fetch, clock = Date.now, im
     pending = (async () => {
       lastRefresh = clock();
       let response;
-      try {response = await fetcher(CERTIFICATES, {redirect:'error', signal:AbortSignal.timeout(5000)});} catch {
+      // Workers supports manual redirects; the status check below rejects every 3xx.
+      try {response = await fetcher(CERTIFICATES, {redirect:'manual', signal:AbortSignal.timeout(5000)});} catch {
         throw new ApiError(503, 'auth-unavailable', '로그인 인증 서버에 연결하지 못했습니다.');
       }
       if (!response.ok) throw new ApiError(503, 'auth-unavailable', '로그인 인증 서버에 연결하지 못했습니다.');
