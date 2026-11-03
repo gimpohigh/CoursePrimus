@@ -1,0 +1,9 @@
+{
+  "name": "gimpo-course-backend",
+  "private": true,
+  "version": "2.0.0",
+  "main": "index.js",
+  "engines": { "node": "22" },
+  "scripts": { "test": "node --test test/*.test.cjs", "check": "node --check index.js && node --check logic.js" },
+  "dependencies": { "firebase-admin": "14.5.0", "firebase-functions": "7.4.0" }
+}
