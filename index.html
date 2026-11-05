@@ -481,7 +481,49 @@
             .header:has(#pinResetBtn:not([hidden])) .header-btn-left { top:12px;transform:none; }
         }
         @media (max-width:360px) { .header-selection-actions { right:8px; } }
-    </style>
+    /* Preserve the existing palette and component shapes, with intrinsic sizing. */
+.header,.header:has(#pinResetBtn:not([hidden])){display:grid;grid-template-columns:minmax(160px,1fr) minmax(0,3fr) minmax(160px,1fr);align-items:center;gap:8px;padding:10px 12px;min-height:52px;height:auto}
+.header .header-title,.header:has(#pinResetBtn:not([hidden])) .header-title{grid-column:2;grid-row:1;padding:0;min-width:0;max-width:100%;line-height:1.4;overflow-wrap:anywhere;word-break:keep-all}
+.header .header-btn-left,.header:has(#pinResetBtn:not([hidden])) .header-btn-left{position:static;transform:none;grid-column:1;grid-row:1;justify-self:start;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.header .header-selection-actions,.header:has(#pinResetBtn:not([hidden])) .header-selection-actions{position:static;transform:none;grid-column:3;grid-row:1;justify-self:end;display:flex;flex-wrap:wrap;justify-content:flex-end;max-width:100%}
+.header .header-btn-right{position:static;transform:none;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.header #clearAi{grid-column:3;grid-row:1;justify-self:end}
+.course-card{min-width:0;max-width:100%;height:auto;box-sizing:border-box}
+.course-card:has(.pin-box){padding-top:25px}
+.course-card .pin-box{top:4px;right:4px;transform:none}
+.course-card .pin-box.locked{pointer-events:auto}
+.course-main,.course-top,.stat-rate-main{min-width:0;max-width:100%}
+.course-name{white-space:normal;overflow-wrap:anywhere;word-break:keep-all;line-height:1.4;text-overflow:clip}
+.course-tags{flex-wrap:wrap;row-gap:4px;min-width:0;max-width:100%}
+.course-tags .tag,.course-right-info>div{white-space:normal;overflow-wrap:anywhere;max-width:100%}
+.course-right-info{flex-shrink:0;max-width:30%;min-width:42px}
+.custom-checkbox{flex-shrink:0}
+.accordion-header,.ai-semester-title,.stat-title,.warning-banner,.submit-desc,.save-slot-name{overflow-wrap:anywhere;word-break:keep-all;white-space:normal}
+.accordion-inner{min-width:0}.stat-item{min-width:0}.stat-value{flex-wrap:wrap;justify-content:center}
+.save-slot-actions,.save-actions,.ai-roll-section,.auth-row{min-width:0;flex-wrap:wrap}
+.save-actions>button,.save-slot-actions>button,.ai-roll-section>button{min-width:0;max-width:100%;height:auto;white-space:normal;overflow-wrap:anywhere}
+.ai-roll-input,.chat-input,input,textarea,select{min-width:0;max-width:100%;box-sizing:border-box}
+.chat-bubble{max-width:min(78%,720px);min-width:0}.msg-time{flex-shrink:0}
+.nav-item{min-width:0;overflow-wrap:anywhere;white-space:normal;line-height:1.25}
+.update-modal-title,.update-modal-desc,.update-modal-header,.update-modal-footer{overflow-wrap:anywhere;word-break:keep-all}
+.middle-asterisk{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;line-height:1;height:1em;position:relative;top:.08em}
+@media(max-width:600px){
+ .header,.header:has(#pinResetBtn:not([hidden])){grid-template-columns:auto minmax(0,1fr);gap:6px 10px;padding:8px 10px}
+ .header .header-title,.header:has(#pinResetBtn:not([hidden])) .header-title{grid-column:2;text-align:center;font-size:clamp(12px,3.5vw,16px)}
+ .header .header-selection-actions,.header:has(#pinResetBtn:not([hidden])) .header-selection-actions,.header #clearAi{grid-column:1/-1;grid-row:2}
+ .header:has(#resetBtn[hidden]):has(#clearAi[hidden]){grid-template-rows:auto}
+ .dashboard-banner:not([hidden]){display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:8px 10px}
+ .banner-inner{flex:1 1 200px;width:auto;max-width:100%;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-start}
+ .banner-user{flex:1 1 140px;display:flex;align-items:center;flex-wrap:wrap;gap:4px}.theme-toggle-btn{position:static;transform:none;flex-shrink:0;max-width:100%}
+ .save-slot-list-container{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
+ .chat-input-area{min-width:0;gap:8px}.chat-input{flex:1 1 0}.chat-send,.attach-btn{flex-shrink:0}
+ .ai-roll-input{flex:1 1 100%;width:100%}.ai-roll-section>button{flex:1 1 100%}
+ .stats-grid-2,.stats-grid-3{gap:5px}.stat-title{font-size:clamp(9px,2.8vw,12px)}
+}
+@media(min-width:601px) and (max-width:1024px){.accordion-inner{grid-template-columns:repeat(2,minmax(0,1fr))}.header-title{font-size:15px}}
+@media(max-width:360px){.course-right-info{max-width:27%}.course-card{gap:8px}.chat-bubble{max-width:82%}.nav-item{font-size:10px}}
+
+</style>
 </head>
 <body>
 <div id="app">
@@ -654,8 +696,10 @@ window.App = (() => {
   function toast(text){let box=document.getElementById('appToast');if(!box){box=document.createElement('div');box.id='appToast';box.setAttribute('role','status');box.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);max-width:90vw;width:max-content;background:#191f28;color:white;padding:12px 18px;border-radius:12px;z-index:999999;white-space:pre-wrap;overflow-wrap:anywhere';document.body.append(box);}box.textContent=text;box.hidden=false;clearTimeout(timer);timer=setTimeout(()=>box.hidden=true,6500);}
   function error(e){const c=String(e?.code||''); if(c.includes('permission-denied')||c.includes('PERMISSION_DENIED'))return '접근 권한이 없습니다. 로그인 상태와 Firebase 보안 규칙을 확인해주세요.';if(c.includes('unauthenticated'))return '로그인이 필요합니다.';if(c.includes('resource-exhausted'))return '요청 한도에 도달했습니다. 잠시 후 다시 이용해주세요.';if(c.includes('popup-closed'))return '로그인 창이 닫혔습니다.';if(c.includes('credential')||c.includes('wrong-password')||c.includes('user-not-found'))return '이메일 또는 비밀번호를 확인해주세요.';if(c.includes('email-already'))return '이미 가입된 이메일입니다.';if(c.includes('network')||c.includes('unavailable'))return '서버에 연결할 수 없습니다. 연결 상태를 확인해주세요.';return e?.message||'요청을 처리하지 못했습니다. 다시 시도해주세요.';}
   const cache={read(key,fallback=null){try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}},write(key,value){try{localStorage.setItem(key,JSON.stringify(value));return true;}catch{toast('기기 저장 공간에 접근할 수 없습니다. 창을 닫기 전에 저장 상태를 확인해주세요.');return false;}},remove(key){try{localStorage.removeItem(key);}catch{}}};
-  const demo=new URLSearchParams(location.search).get('demo')==='1';
-  const api={config,toast,error,cache,demo,offline:demo||!window.firebase||!firebase.auth||!firebase.database||!firebase.storage,isMember:u=>Boolean(u&&!u.isAnonymous),releaseImages(container){container?.querySelectorAll('img').forEach(img=>{if(img.src.startsWith('blob:'))URL.revokeObjectURL(img.src);});}};
+  const studioPreview=window.parent!==window&&new URLSearchParams(location.search).get('studio-preview')==='1';
+  if(studioPreview){const memory=new Map();cache.read=(key,fallback=null)=>memory.has(key)?memory.get(key):fallback;cache.write=(key,value)=>{memory.set(key,JSON.parse(JSON.stringify(value)));return true;};cache.remove=key=>memory.delete(key);}
+  const demo=studioPreview||new URLSearchParams(location.search).get('demo')==='1';
+  const api={config,toast,error,cache,demo,studioPreview,offline:demo||!window.firebase||!firebase.auth||!firebase.database||!firebase.storage,isMember:u=>Boolean(u&&!u.isAnonymous),releaseImages(container){container?.querySelectorAll('img').forEach(img=>{if(img.src.startsWith('blob:'))URL.revokeObjectURL(img.src);});}};
   if(api.offline){if(!demo)api.initializationError={code:'sdk/unavailable',message:'Firebase 연결 모듈을 불러오지 못했습니다. 인터넷 연결을 확인하고 새로고침해주세요.'};api.auth={currentUser:null,onAuthStateChanged(fn){queueMicrotask(()=>fn(null));return ()=>{};}};api.ready=Promise.resolve(null);return api;}
   firebase.initializeApp(config);api.auth=firebase.auth();api.db=firebase.database();api.storage=firebase.storage();if(firebase.functions)api.functions=firebase.app().functions('asia-northeast3');
   let signing=null,resolveReady;api.ready=new Promise(resolve=>resolveReady=resolve);
@@ -928,9 +972,11 @@ return {create,decodeRecord,signature,MAX_BYTES,MAX_SOURCE,MAX_EDGE};
 });
 </script>
 <script>(function(root,factory){if(typeof module === "object" && module.exports){module.exports=factory();}else{root.CourseEngine=factory();}})(typeof globalThis !== "undefined" ? globalThis : this,function(){"use strict";
+ function create(override){
 const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":"공통국어 1","type":"공통","cat":"국어","grade":"5단계/등급O","req":true,"cred":4},{"id":"11_02","sem":"1-1","name":"공통수학 1","type":"공통","cat":"수학","grade":"5단계/등급O","req":true,"cred":4},{"id":"11_03","sem":"1-1","name":"공통영어 1","type":"공통","cat":"영어","grade":"5단계/등급O","req":true,"cred":3},{"id":"11_04","sem":"1-1","name":"한국사 1","type":"공통","cat":"한국사","grade":"5단계/등급O","req":true,"cred":3},{"id":"11_05","sem":"1-1","name":"통합사회 1","type":"공통","cat":"사회","grade":"5단계/등급O","req":true,"cred":3},{"id":"11_06","sem":"1-1","name":"통합과학 1","type":"공통","cat":"과학","grade":"5단계/등급O","req":true,"cred":4},{"id":"11_07","sem":"1-1","name":"과학탐구실험 1","type":"공통","cat":"과학","grade":"3단계/등급X","req":true,"cred":1},{"id":"11_08","sem":"1-1","name":"체육 1","type":"공통","cat":"체육","grade":"3단계/등급X","req":true,"cred":2},{"id":"11_09","sem":"1-1","name":"음악/미술","type":"공통","cat":"예술","grade":"3단계/등급X","req":true,"cred":2},{"id":"11_10","sem":"1-1","name":"정보/한문","type":"공통","cat":"정보","grade":"5단계/등급O","req":true,"cred":3},{"id":"12_01","sem":"1-2","name":"공통국어 2","type":"공통","cat":"국어","grade":"5단계/등급O","req":true,"cred":3},{"id":"12_02","sem":"1-2","name":"공통수학 2","type":"공통","cat":"수학","grade":"5단계/등급O","req":true,"cred":4},{"id":"12_03","sem":"1-2","name":"공통영어 2","type":"공통","cat":"영어","grade":"5단계/등급O","req":true,"cred":4},{"id":"12_04","sem":"1-2","name":"한국사 2","type":"공통","cat":"한국사","grade":"5단계/등급O","req":true,"cred":3},{"id":"12_05","sem":"1-2","name":"통합사회 2","type":"공통","cat":"사회","grade":"5단계/등급O","req":true,"cred":3},{"id":"12_06","sem":"1-2","name":"통합과학 2","type":"공통","cat":"과학","grade":"5단계/등급O","req":true,"cred":4},{"id":"12_07","sem":"1-2","name":"과학탐구실험 2","type":"공통","cat":"과학","grade":"3단계/등급X","req":true,"cred":1},{"id":"12_08","sem":"1-2","name":"체육 2","type":"공통","cat":"체육","grade":"3단계/등급X","req":true,"cred":2},{"id":"12_09","sem":"1-2","name":"미술/음악","type":"공통","cat":"예술","grade":"3단계/등급X","req":true,"cred":2},{"id":"12_10","sem":"1-2","name":"한문/정보","type":"공통","cat":"한문","grade":"5단계/등급O","req":true,"cred":3},{"id":"21_01","sem":"2-1","name":"문학","type":"일반","cat":"국어","grade":"5단계/등급O","req":true,"cred":4},{"id":"21_02","sem":"2-1","name":"대수","type":"일반","cat":"수학","grade":"5단계/등급O","req":true,"cred":4},{"id":"21_03","sem":"2-1","name":"영어 I","type":"일반","cat":"영어","grade":"5단계/등급O","req":true,"cred":4},{"id":"21_04","sem":"2-1","name":"스포츠 생활 1","type":"융합","cat":"체육","grade":"3단계/등급X","req":true,"cred":2},{"id":"21_s01","sem":"2-1","name":"주제 탐구 독서","type":"진로","cat":"국어","grade":"5단계/등급O","req":false,"cred":3},{"id":"21_s02","sem":"2-1","name":"인공지능 수학","type":"진로","cat":"수학","grade":"5단계/등급O","req":false,"cred":3},{"id":"21_s03","sem":"2-1","name":"영어 독해와 작문","type":"진로","cat":"영어","grade":"5단계/등급O","req":false,"cred":3},{"id":"21_s04","sem":"2-1","name":"세계 시민과 지리","type":"일반","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"21_s05","sem":"2-1","name":"세계사","type":"일반","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"21_s06","sem":"2-1","name":"현대사회와 윤리","type":"일반","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"21_s07","sem":"2-1","name":"정치","type":"진로","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"21_s08","sem":"2-1","name":"경제","type":"진로","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"21_s09","sem":"2-1","name":"물리학","type":"일반","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciReq":true},{"id":"21_s10","sem":"2-1","name":"화학","type":"일반","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciReq":true},{"id":"21_s11","sem":"2-1","name":"생명과학","type":"일반","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciReq":true},{"id":"21_s12","sem":"2-1","name":"지구과학","type":"일반","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciReq":true},{"id":"21_s13","sem":"2-1","name":"기초 체육 전공 실기","type":"진로","cat":"체육","grade":"5단계/등급O","req":false,"cred":3,"pair":"체육실기1"},{"id":"21_s14","sem":"2-1","name":"인공지능 기초","type":"진로","cat":"정보","grade":"5단계/등급O","req":false,"cred":3},{"id":"21_s15","sem":"2-1","name":"일본어","type":"일반","cat":"제2외국어","grade":"5단계/등급O","req":false,"cred":3},{"id":"21_s16","sem":"2-1","name":"중국어","type":"일반","cat":"제2외국어","grade":"5단계/등급O","req":false,"cred":3},{"id":"22_01","sem":"2-2","name":"화법과 언어","type":"일반","cat":"국어","grade":"5단계/등급O","req":true,"cred":4},{"id":"22_02","sem":"2-2","name":"미적분 I","type":"일반","cat":"수학","grade":"5단계/등급O","req":true,"cred":4},{"id":"22_03","sem":"2-2","name":"영어 II","type":"일반","cat":"영어","grade":"5단계/등급O","req":true,"cred":4},{"id":"22_04","sem":"2-2","name":"스포츠 생활 2","type":"융합","cat":"체육","grade":"3단계/등급X","req":true,"cred":2},{"id":"22_s01","sem":"2-2","name":"문학과 영상","type":"진로","cat":"국어","grade":"5단계/등급O","req":false,"cred":3},{"id":"22_s02","sem":"2-2","name":"기하","type":"진로","cat":"수학","grade":"5단계/등급O","req":false,"cred":3},{"id":"22_s03","sem":"2-2","name":"영어 발표와 토론","type":"진로","cat":"영어","grade":"5단계/등급O","req":false,"cred":3},{"id":"22_s04","sem":"2-2","name":"동아시아 역사 기행","type":"진로","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"22_s05","sem":"2-2","name":"법과 사회","type":"진로","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"22_s06","sem":"2-2","name":"윤리와 사상","type":"진로","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"22_s07","sem":"2-2","name":"한국지리 탐구","type":"진로","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"22_s08","sem":"2-2","name":"금융과 경제생활","type":"융합","cat":"사회","grade":"5단계/등급X","req":false,"cred":3},{"id":"22_s09","sem":"2-2","name":"역학과 에너지","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true},{"id":"22_s10","sem":"2-2","name":"물질과 에너지","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true},{"id":"22_s11","sem":"2-2","name":"세포와 물질대사","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true},{"id":"22_s12","sem":"2-2","name":"지구시스템 과학","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true},{"id":"22_s13","sem":"2-2","name":"융합과학 탐구","type":"융합","cat":"과학","grade":"5단계/등급X","req":false,"cred":3},{"id":"22_s14","sem":"2-2","name":"기초 체육 전공 실기","type":"진로","cat":"체육","grade":"5단계/등급O","req":false,"cred":3,"pair":"체육실기1"},{"id":"22_s15","sem":"2-2","name":"데이터 과학","type":"진로","cat":"정보","grade":"5단계/등급O","req":false,"cred":3},{"id":"22_s16","sem":"2-2","name":"일본어 회화","type":"진로","cat":"제2외국어","grade":"5단계/등급O","req":false,"cred":3},{"id":"22_s17","sem":"2-2","name":"중국 문화","type":"융합","cat":"제2외국어","grade":"5단계/등급O","req":false,"cred":3},{"id":"31_01","sem":"3-1","name":"독서와 작문","type":"일반","cat":"국어","grade":"5단계/등급O","req":true,"cred":3},{"id":"31_02","sem":"3-1","name":"확률과 통계","type":"일반","cat":"수학","grade":"5단계/등급O","req":true,"cred":3},{"id":"31_03","sem":"3-1","name":"심화 영어 독해와 작문","type":"진로","cat":"영어","grade":"5단계/등급O","req":true,"cred":3},{"id":"31_04","sem":"3-1","name":"스포츠 문화","type":"진로","cat":"체육","grade":"3단계/등급X","req":true,"cred":1},{"id":"31_05","sem":"3-1","name":"고시외 과목","type":"융합","cat":"교양","grade":"P/F","req":true,"cred":1},{"id":"31_s01","sem":"3-1","name":"언어생활 탐구","type":"융합","cat":"국어","grade":"5단계/등급O","req":false,"cred":3},{"id":"31_s02","sem":"3-1","name":"미적분 II","type":"진로","cat":"수학","grade":"5단계/등급O","req":false,"cred":3},{"id":"31_s03","sem":"3-1","name":"세계 문화와 영어","type":"융합","cat":"영어","grade":"5단계/등급O","req":false,"cred":3},{"id":"31_s04","sem":"3-1","name":"도시의 미래 탐구","type":"진로","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"31_s05","sem":"3-1","name":"사회와 문화","type":"일반","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"31_s06","sem":"3-1","name":"인문학과 윤리","type":"진로","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"31_s07","sem":"3-1","name":"역사로 탐구하는 현대 세계","type":"융합","cat":"사회","grade":"5단계/등급X","req":false,"cred":3},{"id":"31_s08","sem":"3-1","name":"기후변화와 지속 가능한 세계","type":"융합","cat":"사회","grade":"5단계/등급X","req":false,"cred":3,"pair":"기후지속"},{"id":"31_s09","sem":"3-1","name":"전자기와 양자","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true,"pair":"전자기"},{"id":"31_s10","sem":"3-1","name":"화학 반응의 세계","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true,"pair":"화학반응"},{"id":"31_s11","sem":"3-1","name":"생물의 유전","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true,"pair":"유전"},{"id":"31_s12","sem":"3-1","name":"행성우주과학","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true,"pair":"행성"},{"id":"31_s13","sem":"3-1","name":"기후변화와 환경생태","type":"융합","cat":"과학","grade":"5단계/등급X","req":false,"cred":3,"pair":"기후환경"},{"id":"31_s14","sem":"3-1","name":"음악 연주와 창작","type":"진로","cat":"예술","grade":"3단계/등급X","req":false,"cred":3},{"id":"31_s15","sem":"3-1","name":"미술 창작","type":"진로","cat":"예술","grade":"3단계/등급X","req":false,"cred":3},{"id":"31_s16","sem":"3-1","name":"심화 체육 전공 실기","type":"진로","cat":"체육","grade":"5단계/등급O","req":false,"cred":3,"pair":"체육실기2"},{"id":"31_s17","sem":"3-1","name":"정보 과학","type":"진로","cat":"정보","grade":"5단계/등급O","req":false,"cred":3},{"id":"31_s18","sem":"3-1","name":"일본 문화","type":"융합","cat":"제2외국어","grade":"5단계/등급O","req":false,"cred":3},{"id":"31_s19","sem":"3-1","name":"관광 중국어","type":"진로","cat":"제2외국어","grade":"5단계/등급O","req":false,"cred":3},{"id":"31_s20","sem":"3-1","name":"논리와 사고","type":"진로","cat":"교양","grade":"P/F","req":false,"cred":3,"pair":"논리"},{"id":"32_01","sem":"3-2","name":"독서 토론과 글쓰기","type":"융합","cat":"국어","grade":"5단계/등급O","req":true,"cred":3},{"id":"32_02","sem":"3-2","name":"수학과 문화","type":"융합","cat":"수학","grade":"5단계/등급O","req":true,"cred":3},{"id":"32_03","sem":"3-2","name":"심화 영어","type":"진로","cat":"영어","grade":"5단계/등급O","req":true,"cred":3},{"id":"32_04","sem":"3-2","name":"스포츠 과학","type":"진로","cat":"체육","grade":"3단계/등급X","req":true,"cred":1},{"id":"32_05","sem":"3-2","name":"고시외 과목","type":"융합","cat":"교양","grade":"P/F","req":true,"cred":1},{"id":"32_s01","sem":"3-2","name":"매체 의사소통","type":"융합","cat":"국어","grade":"5단계/등급O","req":false,"cred":3,"g":0},{"id":"32_s02","sem":"3-2","name":"경제 수학","type":"진로","cat":"수학","grade":"5단계/등급O","req":false,"cred":3,"g":0},{"id":"32_s03","sem":"3-2","name":"전문 수학","type":"진로","cat":"수학","grade":"5단계/등급O","req":false,"cred":3,"g":0},{"id":"32_s04","sem":"3-2","name":"미디어 영어","type":"융합","cat":"영어","grade":"5단계/등급O","req":false,"cred":3,"g":0},{"id":"32_s05","sem":"3-2","name":"윤리문제 탐구","type":"융합","cat":"사회","grade":"5단계/등급X","req":false,"cred":3,"g":0},{"id":"32_s06","sem":"3-2","name":"여행지리","type":"융합","cat":"사회","grade":"5단계/등급X","req":false,"cred":3,"g":0},{"id":"32_s07","sem":"3-2","name":"문화로 보는 한국사","type":"융합","cat":"사회","grade":"5단계/등급O","req":false,"cred":3,"g":0},{"id":"32_s08","sem":"3-2","name":"전자기와 양자","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true,"pair":"전자기","g":0},{"id":"32_s09","sem":"3-2","name":"화학 반응의 세계","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true,"pair":"화학반응","g":0},{"id":"32_s10","sem":"3-2","name":"생물의 유전","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true,"pair":"유전","g":0},{"id":"32_s11","sem":"3-2","name":"행성우주과학","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true,"pair":"행성","g":0},{"id":"32_s12","sem":"3-2","name":"음악 감상과 비평","type":"진로","cat":"예술","grade":"3단계/등급X","req":false,"cred":3,"g":0},{"id":"32_s13","sem":"3-2","name":"미술 감상과 비평","type":"진로","cat":"예술","grade":"3단계/등급X","req":false,"cred":3,"g":0},{"id":"32_s14","sem":"3-2","name":"심화 체육 전공 실기","type":"진로","cat":"체육","grade":"5단계/등급O","req":false,"cred":3,"pair":"체육실기2","g":0},{"id":"32_s15","sem":"3-2","name":"소프트웨어와 생활","type":"융합","cat":"정보","grade":"5단계/등급O","req":false,"cred":3,"g":0},{"id":"32_s16","sem":"3-2","name":"심화 일본어","type":"진로","cat":"제2외국어","grade":"5단계/등급O","req":false,"cred":3,"g":0},{"id":"32_s17","sem":"3-2","name":"중국어 회화","type":"진로","cat":"제2외국어","grade":"5단계/등급O","req":false,"cred":3,"g":0},{"id":"32_s18","sem":"3-2","name":"논리와 사고","type":"진로","cat":"교양","grade":"P/F","req":false,"cred":3,"pair":"논리","g":0},{"id":"32_s19","sem":"3-2","name":"기후변화와 지속 가능한 세계","type":"융합","cat":"사회","grade":"5단계/등급X","req":false,"cred":3,"pair":"기후지속","g":1},{"id":"32_s20","sem":"3-2","name":"사회문제 탐구","type":"융합","cat":"사회","grade":"5단계/등급X","req":false,"cred":3,"g":1},{"id":"32_s21","sem":"3-2","name":"과학의 역사와 문화","type":"융합","cat":"과학","grade":"5단계/등급X","req":false,"cred":3,"g":2},{"id":"32_s22","sem":"3-2","name":"기후변화와 환경생태","type":"융합","cat":"과학","grade":"5단계/등급X","req":false,"cred":3,"pair":"기후환경","g":2}],"semesters":[{"key":"1-1","title":"1학년 1학기","limit":0},{"key":"1-2","title":"1학년 2학기","limit":0},{"key":"2-1","title":"2학년 1학기","limit":5},{"key":"2-2","title":"2학년 2학기","limit":5},{"key":"3-1","title":"3학년 1학기","limit":6},{"key":"3-2","title":"3학년 2학기","limit":6}]};
-  const courses = DATA.courses.map(c => Object.freeze(c));
-  const semesters = DATA.semesters.map(s => Object.freeze(s));
+  const effective=override||DATA;
+  const courses = effective.courses.map(c => Object.freeze(c));
+  const semesters = effective.semesters.map(s => Object.freeze(s));
   const byId = new Map(courses.map(c => [c.id, c]));
   const required = courses.filter(c => c.req).map(c => c.id);
   const baseScience = courses.filter(c => c.sciReq).map(c => c.id);
@@ -996,7 +1042,7 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
     for(const id of ids){const c=byId.get(id);if(!c)continue;
       if(['국어','수학','영어'].includes(c.cat))kys+=c.cred;
       if(c.req)continue;const key=groupOf(c),count=(counts.get(key)||0)+1;counts.set(key,count);
-      if(count>groupMap.get(key).limit)return '해당 학기 또는 선택 그룹의 과목 수 한도를 초과합니다.';
+      if(groupMap.has(key)&&count>groupMap.get(key).limit)return '해당 학기 또는 선택 그룹의 과목 수 한도를 초과합니다.';
       if(c.pair){if(pairs.has(c.pair))return c.name+' 과목이 다른 학기와 중복됩니다.';pairs.add(c.pair);}
     }
     if(kys>81)return '국·영·수 합계 81학점을 초과합니다.';
@@ -1103,7 +1149,9 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
     const missingPrimary=[...primary].filter(name=>!answer.courses.some(id=>byId.get(id).name===name));
     return {ok:true,state:normalize(answer),reason:targets.size?'이수 조건을 확인한 진로 맞춤 구성을 만들었습니다.':'이수 조건을 확인한 기본 구성을 만들었습니다. 진로 키워드를 입력하면 선호 과목을 반영합니다.',missingPrimary};
   }
-  return Object.freeze({version:DATA.version,courses:Object.freeze(courses),semesters:Object.freeze(semesters),normalize,analyze,canToggle,toggleTrack,recommend});
+  return Object.freeze({version:effective.version,courses:Object.freeze(courses),semesters:Object.freeze(semesters),normalize,analyze,canToggle,toggleTrack,recommend});
+ }
+ return Object.freeze({...create(),create});
 });
 </script>
 <script>/* Presentation-only interactions. Data, authentication and saving live in course.js. */
@@ -1150,6 +1198,7 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
       panel.style.removeProperty('transform');
     });
     indicator.style.transform='translateX('+(index*100)+'%)';
+    window.dispatchEvent(new CustomEvent('course-tab-visible',{detail:{index}}));
   }
 
   function resolveIdle(){
@@ -1378,7 +1427,7 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
     section.classList.toggle('open',opening);title.setAttribute('aria-expanded',String(opening));icon.textContent=opening?'▲':'▼';
     const settle=()=>{wrap.hidden=!opening;wrap.style.maxHeight=opening?'none':'0';};
     if(reduceMotion.matches||typeof wrap.animate!=='function'){settle();return;}
-    const animation=wrap.animate([{height:fromHeight+'px',opacity:fromOpacity},{height:(opening?wrap.scrollHeight:0)+'px',opacity:opening?1:.35}],{duration:220,easing,fill:'both'});
+    const animation=wrap.animate([{height:fromHeight+'px',opacity:fromOpacity},{height:(opening?wrap.scrollHeight:0)+'px',opacity:opening?1:.35}],{duration:400,easing,fill:'both'});
     semesterMotions.set(wrap,animation);
     animation.finished.then(()=>{if(semesterMotions.get(wrap)!==animation)return;settle();semesterMotions.delete(wrap);animation.cancel();},()=>{});
   }
@@ -1747,7 +1796,8 @@ return {HEARTBEAT_MS,EXPIRES_MS,countVisitors,start};
 
 (() => {
 'use strict';
-const E=CourseEngine,$=id=>document.getElementById(id),stateKey=uid=>'gimpo_v2_state_'+uid;
+let E=CourseEngine;const $=id=>document.getElementById(id),stateKey=uid=>'gimpo_v2_state_'+uid;
+window.CoursePresentation={applyCatalogue(data){E=CourseEngine.create(data);state=E.normalize(state);if(recommendation)recommendation=E.normalize(recommendation);render();renderRates();},refresh(){render();},getCatalogue(){return {version:E.version,courses:E.courses,semesters:E.semesters};},previewState(value){if(!App.studioPreview)return;state=E.normalize(value);render();}};
 const make=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
 let saveGeneration=0,presenceGeneration=0;
 let state=E.normalize({}),uid='device',user=null,profile={},slots={},history=[],revision=0,dirty=false,saving=false,epoch=0,saveTimer,unsub=[],presence=null,aiBusy=false,inquiryBusy=false,selectedFiles=[],signup=false,readyForSave=false,conflict=false;
@@ -1847,11 +1897,12 @@ function courseCard(c,recommend,preview=false){
  const current=recommend?recommendationState():state,checked=current.courses.includes(c.id),fixed=c.req||(current.sciTrack&&c.sciReq),pinned=current.pinned.includes(c.id),card=make('div','course-card');
  card.dataset.course=c.id;
  if(!preview){
-  const check=make('button','course-check custom-checkbox'+(checked?' checked':'')+(fixed?' disabled':''));check.type='button';check.setAttribute('aria-label',c.name+' '+(checked?'선택 해제':'선택'));check.setAttribute('aria-pressed',String(checked));check.disabled=fixed||(recommend&&pinned);
-  const toggle=()=>{const r=E.canToggle(current,c.id);r.ok?(recommend?draftSave(r.state):apply(r.state)):App.toast(r.reason);};check.onclick=e=>{e.stopPropagation();toggle();};card.onclick=()=>{if(!fixed&&!(recommend&&pinned))toggle();};card.append(check);
+  const check=make('button','course-check custom-checkbox'+(checked?' checked':'')+(fixed?' disabled':''));check.type='button';check.setAttribute('aria-label',c.name+' '+(checked?'선택 해제':'선택'));check.setAttribute('aria-pressed',String(checked));check.disabled=!recommend&&fixed;check.setAttribute('aria-disabled',String(fixed||(recommend&&pinned)));
+  const explainFixed=()=>c.req?'「'+c.name+'」은 학교에서 지정한 필수 이수 과목이므로 선택을 취소할 수 없습니다. 과학 중점 신청 여부와 관계없이 이수해야 합니다.':'「'+c.name+'」은 과학 중점 과정의 필수 과목입니다. 과학 중점 과정에서는 '+E.courses.filter(item=>item.sciReq).map(item=>item.name).join('·')+'을 모두 이수해야 하므로 선택을 취소할 수 없습니다. 일반 과정으로 변경하려면 과학 중점 신청 체크를 해제해 주세요.';
+  const toggle=()=>{if(recommend&&fixed)return App.toast(explainFixed());if(recommend&&pinned)return App.toast('직접 고정한 과목입니다. 이 과목의 핀을 먼저 해제하면 선택을 취소할 수 있습니다.');const r=E.canToggle(current,c.id);r.ok?(recommend?draftSave(r.state):apply(r.state)):App.toast(r.reason);};check.onclick=e=>{e.stopPropagation();toggle();};card.onclick=()=>{if(recommend||!fixed)toggle();};card.append(check);
  }
  card.append(courseInfo(c));const right=make('div','course-right-info');right.append(make('div','tag-select-type '+(c.req?'req':'elec'),c.req?'지정':'선택'),make('div','tag-credits',c.cred+'학점'));card.append(right);
- if(recommend&&!preview){const pin=make('button','pin-box'+(pinned||fixed?' pinned':'')+(fixed?' locked':''));pin.type='button';pin.disabled=fixed;pin.setAttribute('aria-label',c.name+' 고정');pin.setAttribute('aria-pressed',String(pinned||fixed));pin.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.222v6h1.556v-6H18v-2l-2-2z"/></svg>';pin.onclick=e=>{e.stopPropagation();if(pinned){draftSave({...current,pinned:current.pinned.filter(x=>x!==c.id)});return;}let next=current;if(!checked){const r=E.canToggle(current,c.id);if(!r.ok)return App.toast(r.reason);next=r.state;}draftSave({...next,pinned:[...next.pinned,c.id]});};card.append(pin);}
+ if(recommend&&!preview){const pin=make('button','pin-box'+(pinned||fixed?' pinned':'')+(fixed?' locked':''));pin.type='button';pin.setAttribute('aria-disabled',String(fixed));pin.setAttribute('aria-label',c.name+' 고정');pin.setAttribute('aria-pressed',String(pinned||fixed));pin.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.222v6h1.556v-6H18v-2l-2-2z"/></svg>';pin.onclick=e=>{e.stopPropagation();if(fixed){App.toast(c.req?'「'+c.name+'」은 학교 지정 필수 이수 과목이므로 고정을 해제할 수 없습니다.':'「'+c.name+'」은 과학 중점 과정에서 반드시 이수하는 기초 과학 과목입니다. 과학 중점을 신청한 동안에는 고정을 해제할 수 없습니다.');return;}if(pinned){draftSave({...current,pinned:current.pinned.filter(x=>x!==c.id)});return;}let next=current;if(!checked){const r=E.canToggle(current,c.id);if(!r.ok)return App.toast(r.reason);next=r.state;}draftSave({...next,pinned:[...next.pinned,c.id]});};card.append(pin);}
  return card;
 }
 function renderCourses(target,recommend,a=E.analyze(state)){
@@ -1921,7 +1972,11 @@ function updateAIWelcome(bubble){
     : 'AI 서버 연결 상태를 확인하고 있습니다.';
  bubble.innerHTML='안녕하세요! 김포고 수강신청 AI 도우미입니다.<br><br><b>안내 사항</b><br>'+description+'<br><br>질문을 보내면 최근 AI 대화와 선택 과목이 Cloudflare에서 실행하는 OpenAI GPT-OSS에 전달됩니다.';
 }
-function renderHistory(){const box=$('aiMessages');box.replaceChildren();const welcome=appendMessage(box,{role:'assistant',timestamp:history[0]?.timestamp||Date.now()});const bubble=welcome.querySelector('.chat-bubble');bubble.dataset.aiWelcome='true';updateAIWelcome(bubble);history.forEach(m=>appendMessage(box,m));box.scrollTop=box.scrollHeight;}
+let aiInitialScrollPending=false;
+function settleAIHistory(){const box=$('aiMessages');if(!aiInitialScrollPending||!box.clientHeight||!box.getClientRects().length)return;requestAnimationFrame(()=>{if(!aiInitialScrollPending||!box.clientHeight)return;box.scrollTop=box.scrollHeight;aiInitialScrollPending=false;});}
+window.addEventListener('course-tab-visible',event=>{if(event.detail.index===0)settleAIHistory();});
+if(typeof ResizeObserver==='function')new ResizeObserver(settleAIHistory).observe($('aiMessages'));
+function renderHistory(){aiInitialScrollPending=true;const box=$('aiMessages');box.replaceChildren();const welcome=appendMessage(box,{role:'assistant',timestamp:history[0]?.timestamp||Date.now()});const bubble=welcome.querySelector('.chat-bubble');bubble.dataset.aiWelcome='true';updateAIWelcome(bubble);history.forEach(m=>appendMessage(box,m));box.scrollTop=box.scrollHeight;settleAIHistory();}
 const faqs=[{"q":"공대 희망하는데 2학년 과목 추천해줘","label":"💻 공학 계열 추천"},{"q":"의약계열/생명공학 필수 과목이 뭐야?","label":"⚕️ 의약/생명 계열 추천"},{"q":"경영학과 가고 싶은데 뭘 들어야 해?","label":"📈 경영/경제 추천"},{"q":"문과(인문학) 추천 과목 알려줘","label":"📚 인문학/어문계열 추천"},{"q":"사범대/교육학과 지망생 추천 과목은?","label":"🏫 교육/사범대 추천"},{"q":"미대나 체대 등 예체능 과목 추천해줘","label":"🎨 예체능 계열 추천"},{"q":"컴퓨터공학과/소프트웨어 추천 과목","label":"⌨️ SW/컴공 추천"},{"q":"간호학과 가려면 과학 뭐 선택해?","label":"🩺 간호학과 추천"},{"q":"미디어 커뮤니케이션/언론 지망생 추천","label":"🎥 미디어/언론 추천"},{"q":"심리학과 가려면 뭐 들어야 해?","label":"🧠 심리학과 추천"},{"q":"과학중점과정이 뭐야?","label":"🔬 과학중점과정 이란?"},{"q":"과중반 필수 조건이 어떻게 돼?","label":"📋 과중반 필수 조건"},{"q":"과중반 수학 선택은 어떻게 권장해?","label":"🔢 과중반 수학 선택"},{"q":"과중반 2학년 2학기와 3학년 심화과목은 합쳐 몇 개 들어야 해?","label":"📈 과중반 심화 과목"},{"q":"국영수 제한 81학점이 무슨 뜻이야?","label":"🚫 국영수 81학점 제한"},{"q":"2학년 때 선택과목 몇 개 골라야 해?","label":"✌️ 2학년 선택과목 개수"},{"q":"3학년 때는 선택과목 몇 개 골라?","label":"🤟 3학년 선택과목 개수"},{"q":"수강신청은 어떻게 하고 언제까지야?","label":"📅 수강신청 방법/일정"},{"q":"총 이수 학점이 174학점이야?","label":"💯 총 교과 학점 안내"},{"q":"각 교과군별 필수 학점이 뭐야?","label":"📌 교과별 필수 학점"},{"q":"석차등급(5등급제)이 나오지 않는 과목도 있어?","label":"📊 등급 산출 안 되는 과목"},{"q":"P/F 과목이 무슨 뜻이야?","label":"✅ P/F 과목이란?"},{"q":"경제 수학이랑 전문 수학 차이가 뭐야?","label":"📐 경제수학 vs 전문수학"},{"q":"물리학 꼭 들어야 할까?","label":"⚡ 물리학 필수 여부"},{"q":"제2외국어 꼭 들어야 돼? 중국어/일본어 추천","label":"🗣️ 제2외국어 추천/필수"},{"q":"사회문제 탐구는 어떤 과목이야?","label":"🌍 사회문제 탐구 소개"},{"q":"진로 과목이랑 일반 과목 차이가 뭐야?","label":"🔖 일반 과목 vs 진로 과목"},{"q":"기후변화나 환경 관련 과목 추천해줘","label":"🌱 환경/기후 과목 추천"},{"q":"심화 국어/영어/수학 추천해줘","label":"📖 심화 교과 추천"},{"q":"수능에서 유리한 선택과목이 있을까?","label":"🎓 수능 유리한 과목"}];faqs.forEach(({q,label})=>{const b=make('button','example-chip',label);b.type='button';b.onclick=()=>{if(aiBusy)return;$('aiInput').value=q;$('aiForm').requestSubmit();};$('faq').append(b);});
 
 const freeAI=GimpoFreeAI.createClient({fetcher:(...args)=>fetch(...args),pageURL:location.href,currentUser:()=>App.auth?.currentUser});
@@ -2100,6 +2155,242 @@ render();renderHistory();renderSlots();renderRates();App.auth.onAuthStateChanged
 window.addEventListener('pagehide',()=>{localSave();epoch++;saveGeneration++;presenceGeneration++;saving=false;clearTimeout(saveTimer);unsub.forEach(f=>f());unsub=[];const oldPresence=presence;presence=null;if(oldPresence)oldPresence.remove().catch(()=>{});});
 window.addEventListener('pageshow',event=>{if(event.persisted)connect(App.auth.currentUser);});
 window.addEventListener('online',()=>{if([...connectionIssues.values()].some(error=>issueKind(error)==='network'))retryConnection();else if(user&&readyForSave)flush();});window.addEventListener('beforeunload',e=>{if(dirty){localSave();e.preventDefault();e.returnValue='';}});
+})();
+</script>
+<script>/* Declarative, JSON-only editor data. Shared by browser and authenticated server. */
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.StudioModel=factory();})(typeof globalThis!=='undefined'?globalThis:this,function(){
+'use strict';
+const MODES=['all','desktop','tablet','phone'],POLICIES=['legacy','visit','daily','interval'];
+const PALETTE=['#2A52BE','#678CEB','#E8F0FE','#B2C7E7','#FFFFFF','#F2F4F6','#191F28','#4E5968','#8B95A1','#D1D6DB','#B42331','#E53935','#FF5252','#FFF0F0','#222222'];
+const numeric={width:[1,100],height:[0,2000],fontSize:[8,100],lineHeight:[1,3],padding:[0,80],radius:[0,100],gap:[0,100],marginTop:[0,1000],marginBottom:[0,1000],marginLeft:[0,95],order:[-2000,2000]};
+const bad=message=>{throw Error(message);};
+const record=value=>value&&typeof value==='object'&&!Array.isArray(value)&&![Object.prototype,Array.prototype].includes(value);
+const own=(value,key)=>Object.prototype.hasOwnProperty.call(value,key);
+function text(value,max,label){if(typeof value!=='string'||value.length>max)return bad(label+' 형식 또는 길이를 확인해 주세요.');return value;}
+function key(value){if(typeof value!=='string'||!value.length||value.length>240||/[\u0000-\u001f]/.test(value)||['__proto__','constructor','prototype'].includes(value))bad('오브젝트 ID가 올바르지 않습니다.');return value;}
+function plain(value){if(Array.isArray(value))return value.map(plain);if(record(value)){const out={};for(const k of Object.keys(value).sort()){if(['__proto__','prototype','constructor'].includes(k))bad('지원하지 않는 속성입니다.');if(value[k]!==undefined)out[k]=plain(value[k]);}return out;}if(value===null||['string','boolean'].includes(typeof value)||typeof value==='number'&&Number.isFinite(value))return value;bad('저장할 수 없는 값입니다.');}
+const canonical=value=>JSON.stringify(plain(value));
+const clone=value=>JSON.parse(JSON.stringify(value));
+function styles(value={}){
+ if(!record(value))bad('스타일 형식이 올바르지 않습니다.');const result={};
+ for(const mode of Object.keys(value)){if(!MODES.includes(mode))bad('지원하지 않는 화면 구간입니다.');if(!record(value[mode]))bad('스타일 형식이 올바르지 않습니다.');const item={};
+  for(const [field,v]of Object.entries(value[mode])){
+   if(numeric[field]){const [min,max]=numeric[field];if(typeof v!=='number'||!Number.isFinite(v)||v<min||v>max)bad(field+' 값의 범위를 확인해 주세요.');item[field]=v;}
+   else if(['color','background','borderColor'].includes(field)){if(typeof v!=='string'||!/^#[0-9a-f]{6}$/i.test(v))bad('색상은 RGB 형식이어야 합니다.');item[field]=v.toUpperCase();}
+   else if(field==='align'){if(!['left','center','right'].includes(v))bad('정렬이 올바르지 않습니다.');item[field]=v;}
+   else if(field==='weight'){if(![400,500,600,700,800,900].includes(v))bad('글꼴 굵기를 확인해 주세요.');item[field]=v;}
+   else bad('지원하지 않는 스타일 속성: '+field);
+  }if(Object.keys(item).length)result[mode]=item;
+ }return result;
+}
+function object(value){if(!record(value))bad('오브젝트 형식을 확인해 주세요.');const result={};
+ for(const [field,v]of Object.entries(value)){
+  if(field==='text')result.text=text(v,10000,'텍스트');
+  else if(field==='hidden'){if(typeof v!=='boolean')bad('숨김 설정이 올바르지 않습니다.');if(v)result.hidden=true;}
+  else if(field==='styles'){const s=styles(v);if(Object.keys(s).length)result.styles=s;}
+  else if(field==='placements'){if(!record(v))bad('배치 형식을 확인해 주세요.');const p={};for(const [mode,placement]of Object.entries(v)){if(!MODES.includes(mode)||!record(placement))bad('배치 화면 구간을 확인해 주세요.');const item={};for(const [name,target]of Object.entries(placement)){if(!['parent','after'].includes(name))bad('배치 위치를 확인해 주세요.');item[name]=name==='after'&&target===null?null:key(target);}if(Object.keys(item).length)p[mode]=item;}if(Object.keys(p).length)result.placements=p;}
+  else if(['parent','after'].includes(field)){if(field==='after'&&v===null)result.after=null;else result[field]=key(v);}
+  else bad('지원하지 않는 오브젝트 속성: '+field);
+ }return result;
+}
+function blankCourse(){return{version:1,objects:{},extras:[],catalogue:{}};}
+function course(value){
+ if(!record(value)||value.version!==1)bad('편집 자료의 버전을 확인해 주세요.');const out=blankCourse();
+ if(!record(value.objects)||Object.keys(value.objects).length>3000)bad('오브젝트 수를 확인해 주세요.');
+ for(const [id,v]of Object.entries(value.objects)){const normalized=object(v);if(Object.keys(normalized).length)out.objects[key(id)]=normalized;}
+ if(!Array.isArray(value.extras)||value.extras.length>1000)bad('추가 오브젝트 수를 확인해 주세요.');const ids=new Set();
+ out.extras=value.extras.map(v=>{if(!record(v))bad('추가 오브젝트 형식을 확인해 주세요.');const id=key(v.id);if(ids.has(id))bad('중복 오브젝트 ID입니다.');ids.add(id);if(!['text','button','box','tag','ellipse','clone'].includes(v.kind))bad('지원하지 않는 도형입니다.');const n={id,kind:v.kind,...object(Object.fromEntries(Object.entries(v).filter(([k])=>!['id','kind','source'].includes(k))))};if(v.kind==='clone')n.source=key(v.source);return n;});
+ if(!record(value.catalogue))bad('과목표 형식을 확인해 주세요.');
+ for(const [id,v]of Object.entries(value.catalogue)){if(!/^(11|12|21|22|31|32)_(s)?\d\d$/.test(id)||!record(v))bad('과목 ID를 확인해 주세요.');const n={};for(const [field,x]of Object.entries(v)){
+  if(field==='name')n.name=text(x,120,'과목명');
+  else if(field==='cred'){if(!Number.isInteger(x)||x<0||x>30)bad('학점은 0~30 사이의 정수여야 합니다.');n.cred=x;}
+  else if(field==='cat'){if(!['국어','수학','영어','한국사','사회','과학','체육','예술','정보','제2외국어','한문','교양'].includes(x))bad('교과 영역을 확인해 주세요.');n.cat=x;}
+  else if(field==='type'){if(!['공통','일반','진로','융합'].includes(x))bad('과목 유형을 확인해 주세요.');n.type=x;}
+  else if(field==='grade'){if(!['5단계/등급O','5단계/등급X','3단계/등급X','P/F'].includes(x))bad('성취도와 등급 산출을 확인해 주세요.');n.grade=x;}
+  else if(['req','sciReq','sciAdv'].includes(field)){if(typeof x!=='boolean')bad('필수 과목 설정을 확인해 주세요.');n[field]=x;}
+  else if(field==='pair')n.pair=text(x,60,'중복 선택 그룹');
+  else if(field==='sem'){if(!['1-1','1-2','2-1','2-2','3-1','3-2'].includes(x))bad('학기를 확인해 주세요.');n.sem=x;}
+  else if(field==='g'){if(![0,1,2].includes(x))bad('3학년 2학기 선택 그룹을 확인해 주세요.');n.g=x;}
+  else bad('지원하지 않는 과목 속성입니다.');
+ }if(Object.keys(n).length)out.catalogue[id]=n;}return out;
+}
+function catalogue(base,edits){const known=new Set(base.courses.map(c=>c.id));for(const id of Object.keys(edits))if(!known.has(id))bad('원본에 없는 과목 ID입니다.');return{...clone(base),courses:base.courses.map(c=>{const n={...c,...edits[c.id]};if(n.sem==='3-2'&&!n.req&&![0,1,2].includes(n.g))n.g=0;return n;})};}
+function newNotice(id){return{id:key(id),header:'김포고 수강신청 도우미 공지',title:'새 공지',body:'공지 내용을 입력해 주세요.',dismissText:'다시 보지 않기',policy:'legacy',intervalDays:'1',styles:{},items:[]};}
+function notices(value){if(!Array.isArray(value)||value.length>100)bad('공지는 100개 이내로 작성해 주세요.');const ids=new Set();return value.map(item=>{
+ if(!record(item))bad('공지 형식을 확인해 주세요.');const id=key(item.id);if(ids.has(id))bad('공지 ID가 중복되었습니다.');ids.add(id);
+ const n={id,header:text(item.header,200,'공지 머리말'),title:text(item.title,300,'공지 제목'),body:text(item.body,30000,'공지 내용'),dismissText:text(item.dismissText,120,'다시 보지 않기 문구'),policy:item.policy,intervalDays:String(item.intervalDays||'1'),styles:{},items:[]};
+ if(!POLICIES.includes(n.policy))bad('공지 표시 방식을 선택해 주세요.');if(!/^[1-9]\d*$/.test(n.intervalDays))bad('일수는 1 이상의 정수로 입력해 주세요.');
+ if(!record(item.styles))bad('공지 색상 형식을 확인해 주세요.');for(const [k,v]of Object.entries(item.styles)){if(!['header','title','body','footer','box'].includes(k))bad('공지 요소를 확인해 주세요.');const style=styles(v);if(Object.keys(style).length)n.styles[k]=style;}
+ if(!Array.isArray(item.items)||item.items.length>100)bad('공지 오브젝트 수를 확인해 주세요.');const itemIds=new Set();n.items=item.items.map(v=>{const iid=key(v.id);if(itemIds.has(iid))bad('공지 오브젝트 ID가 중복되었습니다.');itemIds.add(iid);if(!['text','image','box','button','tag','ellipse'].includes(v.kind))bad('공지 오브젝트 종류를 확인해 주세요.');const r={id:iid,kind:v.kind,text:text(v.text||'',10000,'텍스트'),styles:styles(v.styles||{})};if(v.kind==='image'){if(typeof v.src!=='string'||v.src.length>750000||!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(v.src))bad('이미지는 JPG·PNG·WebP 형식으로 첨부해 주세요.');r.src=v.src;}return r;});return n;
+});}
+function section(kind,value){const result=kind==='course'?course(value):kind==='notices'?notices(value):bad('편집 종류를 확인해 주세요.');if(canonical(result).length>6000000)bad('편집 자료가 너무 큽니다. 이미지나 복사한 오브젝트를 줄여 주세요.');return result;}
+const breakpoint=width=>width<=600?'phone':width<=1024?'tablet':'desktop';
+const computedStyle=(value,width)=>({...value?.all,...value?.[breakpoint(width)]});
+const dayNumber=now=>Math.floor((Number(now)+9*60*60*1000)/86400000);
+function eligible(notice,receipt,version,now){
+ if(notice.policy==='visit')return true;
+ if(!receipt||!Number.isFinite(Number(receipt.seenAt)))return true;
+ if(notice.policy==='legacy'&&receipt.hiddenVersion===version)return false;
+ if(notice.policy==='legacy'&&receipt.version!==version)return true;
+ const elapsed=Math.max(0,dayNumber(now)-dayNumber(receipt.seenAt));
+ return notice.policy==='interval'?BigInt(elapsed)>=BigInt(notice.intervalDays):elapsed>=1;
+}
+function move(list,from,before){const next=list.slice(),index=next.findIndex(item=>item.id===from);if(index<0||from===before)return next;const [item]=next.splice(index,1),target=next.findIndex(v=>v.id===before);next.splice(target<0?next.length:target,0,item);return next;}
+const deletePhrase=scope=>({all:'정말로 모든 학생 정보를 삭제합니다',grade1:'정말로 1학년 학생 정보를 삭제합니다',grade2:'정말로 2학년 학생 정보를 삭제합니다',previous:'정말로 작년에 생성된 학생 계정과 정보를 삭제합니다'})[scope]||bad('삭제 범위를 확인해 주세요.');
+function creationYear(createdAt){const ts=Number(createdAt);return ts>0&&Number.isFinite(ts)?new Date(ts+9*60*60*1000).getUTCFullYear():null;}
+function selectedForDeletion(student,scope,now){if(student.privileged)return false;if(scope==='all')return true;if(scope==='grade1'||scope==='grade2')return Boolean(student.profile)&&Number(student.profile.grade||1)===Number(scope.slice(-1));if(scope==='previous')return creationYear(student.createdAt)===creationYear(now)-1;return false;}
+return{PALETTE,MODES,POLICIES,canonical,clone,styles,section,course,notices,blankCourse,newNotice,catalogue,breakpoint,computedStyle,dayNumber,eligible,move,deletePhrase,creationYear,selectedForDeletion};
+});
+
+/* Apply safe visual data to the existing live DOM; preview never writes student data. */
+(()=>{'use strict';
+const M=StudioModel,preview=App.studioPreview===true,baseCatalogue=CoursePresentation.getCatalogue();
+let documentData=M.blankCourse(),catalogueKey='',editing=false,selected=null,scheduled=false,applying=false,drag=null;
+const originals=new Map(),originalNodes=new WeakSet(),applied=new WeakMap(),added=new Map(),positions=new WeakMap();
+const cssNames={width:'width',height:'min-height',fontSize:'font-size',lineHeight:'line-height',padding:'padding',radius:'border-radius',gap:'gap',marginTop:'margin-top',marginBottom:'margin-bottom',marginLeft:'margin-inline-start',order:'order',color:'color',background:'background-color',borderColor:'border-color',align:'text-align',weight:'font-weight'};
+const styleValue=(k,v)=>String(v)+(['width','marginLeft'].includes(k)?'%':['height','fontSize','padding','radius','gap','marginTop','marginBottom'].includes(k)?'px':'');
+function send(type,payload={}){if(preview)parent.postMessage({channel:'gimpo-studio',type,...payload},location.origin);}
+function originKey(node){
+ if(node.dataset.studioId)return node.dataset.studioId;
+ if(node.id)return 'id:'+node.id;
+ if(node.classList.contains('course-card'))return (node.closest('#recommendList')?'recommend':'practice')+':course:'+node.dataset.course;
+ if(node.dataset.sem)return (node.closest('#recommendList')?'recommend':'practice')+':semester:'+node.dataset.sem;
+ const parentNode=node.parentElement;if(!parentNode||parentNode===document.body)return 'root:'+node.tagName.toLowerCase();
+ const siblings=[...parentNode.children].filter(n=>n.tagName===node.tagName&&!n.dataset.studioExtra);
+ return originKey(parentNode)+'/'+node.tagName.toLowerCase()+':'+siblings.indexOf(node);
+}
+function register(){
+ for(const node of document.querySelectorAll('#app, #app *')){
+  if(node.closest('[data-studio-extra]')||['SVG','PATH','CIRCLE','RECT','LINE','POLYLINE','SCRIPT','STYLE','OPTION'].includes(node.tagName.toUpperCase()))continue;
+  if(!node.dataset.studioId){const id=originKey(node);if(id.length>240)continue;node.dataset.studioId=id;}
+  originals.set(node.dataset.studioId,node);originalNodes.add(node);
+  if(!positions.has(node))positions.set(node,{parent:node.parentElement,next:node.nextSibling});
+ }
+ for(const [id,node]of originals)if(!node.isConnected)originals.delete(id);
+}
+function ownText(node){return [...node.childNodes].filter(n=>n.nodeType===3&&n.textContent.trim()).map(n=>n.textContent).join(' ').trim();}
+function restore(node){const old=applied.get(node);if(!old)return;for(const [prop,value]of Object.entries(old.style))value?node.style.setProperty(prop,value):node.style.removeProperty(prop);for(const [text,value]of old.text)if(text.parentNode===node)text.textContent=value;applied.delete(node);}
+function decorate(node,data){
+ const hash=M.canonical(data)+'|'+M.breakpoint(innerWidth),old=applied.get(node);if(old?.hash===hash)return;
+ restore(node);const entry={hash,style:{},text:[]};
+ const change=(prop,value)=>{entry.style[prop]=node.style.getPropertyValue(prop);node.style.setProperty(prop,value);};
+ const style=M.computedStyle(data.styles,innerWidth);
+ for(const [k,v]of Object.entries(style))change(cssNames[k],styleValue(k,v));
+ if(style.width!==undefined){change('max-width','100%');change('box-sizing','border-box');if(node.closest('.accordion-inner'))change('justify-self','start');}
+ if(style.marginLeft!==undefined)change('max-width','calc(100% - '+style.marginLeft+'%)');
+ if(style.height!==undefined)change('height','auto');
+ if(data.hidden)change('display','none');
+ if(data.text!==undefined){const texts=[...node.childNodes].filter(n=>n.nodeType===3&&n.textContent.trim());if(texts.length){texts.forEach((n,i)=>{entry.text.push([n,n.textContent]);n.textContent=i?'':data.text;});}else if(!node.children.length){const t=document.createTextNode(data.text);node.append(t);entry.text.push([t,'']);}}
+ applied.set(node,entry);
+}
+function place(node,value){const data={parent:value.parent,after:value.after,...value.placements?.all,...value.placements?.[M.breakpoint(innerWidth)]};if(!data.parent)return;const container=originals.get(data.parent)||added.get(data.parent)?.node;if(!container||container===node||node.contains(container))return;const after=data.after&&(originals.get(data.after)||added.get(data.after)?.node);if(after===node)return;
+ if(after?.parentElement===container){if(after.nextSibling!==node)container.insertBefore(node,after.nextSibling);}
+ else if(data.after===undefined){if(node.parentElement!==container)container.append(node);}
+ else if(container.firstChild!==node)container.prepend(node);
+}
+function proxyClone(source){
+ const clone=source.cloneNode(true),from=[source,...source.querySelectorAll('*')],to=[clone,...clone.querySelectorAll('*')];
+ to.forEach((node,index)=>{node.removeAttribute('id');node.removeAttribute('for');node.removeAttribute('aria-controls');node.removeAttribute('aria-labelledby');node.removeAttribute('data-studio-id');node.removeAttribute('onclick');if(node.matches('button,input,select,textarea,a,[role="button"]')){
+  const original=from[index];
+  node.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();if(node instanceof HTMLInputElement||node instanceof HTMLSelectElement||node instanceof HTMLTextAreaElement){original.value=node.value;if('checked'in node)original.checked=node.checked;original.dispatchEvent(new Event('change',{bubbles:true}));}else original.click();schedule();});
+  for(const type of ['input','change'])node.addEventListener(type,event=>{event.stopPropagation();original.value=node.value;if('checked'in node)original.checked=node.checked;original.dispatchEvent(new Event(type,{bubbles:true}));});
+ }});
+ if(source.classList.contains('course-card'))clone.addEventListener('click',()=>source.click());
+ for(const form of [clone,...clone.querySelectorAll('form')].filter(n=>n.tagName==='FORM'))form.addEventListener('submit',event=>{event.preventDefault();const original=from[to.indexOf(form)];original?.requestSubmit?.();});
+ return clone;
+}
+function renderExtras(){
+ const used=new Set();for(const extra of documentData.extras){used.add(extra.id);const source=extra.kind==='clone'?originals.get(extra.source):null;if(extra.kind==='clone'&&!source)continue;
+  const signature=extra.kind==='clone'?source.outerHTML:M.canonical({kind:extra.kind,text:extra.text});let entry=added.get(extra.id);
+  if(!entry||entry.signature!==signature){entry?.node.remove();let node;
+   if(source)node=proxyClone(source);else{node=document.createElement(extra.kind==='button'?'button':extra.kind==='text'?'p':'div');node.textContent=extra.text||'';node.className=extra.kind==='button'?'submit-btn':extra.kind==='tag'?'tag tag-category':'studio-added';if(extra.kind==='button')node.type='button';if(['box','ellipse'].includes(extra.kind)){node.style.cssText='background:var(--light-blue);min-height:80px;border-radius:'+(extra.kind==='ellipse'?'50%':'12px');}}
+   node.dataset.studioExtra=extra.id;node.dataset.studioId=extra.id;node.style.maxWidth='100%';entry={node,signature};added.set(extra.id,entry);
+  }
+  if(!entry.node.isConnected)(originals.get(extra.parent)||document.getElementById('panel-2')).append(entry.node);
+  decorate(entry.node,extra);place(entry.node,extra);
+ }for(const [id,entry]of added)if(!used.has(id)){entry.node.remove();added.delete(id);}
+}
+function nodeStyle(node){const css=getComputedStyle(node),r=node.getBoundingClientRect(),parentWidth=node.parentElement?.clientWidth||innerWidth;const hex=value=>{const parts=value.match(/[\d.]+/g);return parts&&parts.length>=3?'#'+parts.slice(0,3).map(x=>Math.round(Number(x)).toString(16).padStart(2,'0')).join('').toUpperCase():'#FFFFFF';};return{width:Math.min(100,r.width/parentWidth*100),height:Math.round(r.height),fontSize:parseFloat(css.fontSize)||16,lineHeight:Math.max(1,(parseFloat(css.lineHeight)||parseFloat(css.fontSize)*1.5)/parseFloat(css.fontSize)),padding:parseFloat(css.paddingTop)||0,radius:parseFloat(css.borderRadius)||0,gap:parseFloat(css.gap)||0,marginLeft:(parseFloat(css.marginLeft)||0)/parentWidth*100,marginTop:parseFloat(css.marginTop)||0,align:['left','center','right'].includes(css.textAlign)?css.textAlign:'left',weight:Number(css.fontWeight)||400,color:hex(css.color),background:hex(css.backgroundColor),borderColor:hex(css.borderTopColor)};}
+function descriptors(){return [...originals,...[...added].map(([id,v])=>[id,v.node])].filter(([,n])=>n.isConnected&&n.getClientRects().length&&getComputedStyle(n).display!=='contents').map(([id,n])=>{
+ const r=n.getBoundingClientRect(),course=n.closest('[data-course]');return{id,label:(ownText(n)||n.getAttribute('aria-label')||n.classList[0]||n.tagName).slice(0,100),tag:n.tagName.toLowerCase(),style:nodeStyle(n),parent:n.parentElement?.dataset.studioId||null,text:ownText(n),course:course?.dataset.course||null,width:Math.round(r.width),height:Math.round(r.height),depth:id.split('/').length};
+ });}
+function report(){send('objects',{objects:descriptors(),selected,viewport:{width:innerWidth,height:innerHeight},catalogue:CoursePresentation.getCatalogue()});updateOutline();}
+let placementMode=M.breakpoint(innerWidth);
+function restorePositions(){for(const [id,node]of originals){const data=documentData.objects[id];if(data?.parent||data?.placements){const position=positions.get(node);if(position?.parent?.isConnected&&!node.contains(position.parent))position.parent.insertBefore(node,position.next?.parentNode===position.parent?position.next:null);}}}
+function apply(){scheduled=false;if(applying)return;applying=true;
+ try{register();const mode=M.breakpoint(innerWidth);if(mode!==placementMode){restorePositions();placementMode=mode;}for(const [id,node]of originals){const value=documentData.objects[id];if(value){decorate(node,value);place(node,value);}else restore(node);}renderExtras();}
+ finally{applying=false;}if(preview)report();
+}
+function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(apply);}
+function setData(input){
+ const data=M.course(input),nextKey=M.canonical(data.catalogue);
+ for(const [id,node]of originals){restore(node);if(documentData.objects[id]?.parent||documentData.objects[id]?.placements){const pos=positions.get(node);if(pos?.parent?.isConnected&&!node.contains(pos.parent))pos.parent.insertBefore(node,pos.next?.parentNode===pos.parent?pos.next:null);}}
+ documentData=data;
+ if(nextKey!==catalogueKey){catalogueKey=nextKey;CoursePresentation.applyCatalogue(M.catalogue(baseCatalogue,data.catalogue));}
+ schedule();
+}
+const observer=new MutationObserver(records=>{if(records.some(record=>![...record.addedNodes,...record.removedNodes].every(node=>node.nodeType===1&&node.dataset?.studioExtra)))schedule();});
+observer.observe(document.getElementById('app'),{childList:true,subtree:true});
+window.addEventListener('resize',schedule);window.addEventListener('course-tab-visible',schedule);register();
+let outline,handle;
+function updateOutline(){if(!preview||!outline)return;const node=originals.get(selected)||added.get(selected)?.node,r=node?.getBoundingClientRect();outline.hidden=!editing||!r||!r.width||!r.height;if(outline.hidden)return;outline.style.cssText='position:fixed;pointer-events:none;z-index:2147483600;border:2px solid #678ceb;box-sizing:border-box;left:'+r.x+'px;top:'+r.y+'px;width:'+r.width+'px;height:'+r.height+'px';}
+function patchSelected(patch){send('change',{id:selected,patch});}
+function pick(node){const element=node.closest?.('[data-studio-id]');if(!element||!element.closest('#app'))return null;return element;}
+if(preview){
+ outline=document.createElement('div');outline.dataset.studioOutline='true';outline.hidden=true;
+ handle=document.createElement('button');handle.type='button';handle.setAttribute('aria-label','선택 오브젝트 크기 조절');handle.style.cssText='position:absolute;right:-6px;bottom:-6px;width:13px;height:13px;min-width:0;padding:0;border:1px solid white;background:#2a52be;cursor:nwse-resize;pointer-events:auto;touch-action:none';outline.append(handle);document.body.append(outline);
+ window.addEventListener('scroll',updateOutline,true);
+ document.addEventListener('click',event=>{if(!editing||event.target===handle)return;const node=pick(event.target);if(!node)return;event.preventDefault();event.stopImmediatePropagation();selected=node.dataset.studioId;report();},true);
+ document.addEventListener('dblclick',event=>{if(!editing)return;const node=pick(event.target);if(!node)return;event.preventDefault();event.stopImmediatePropagation();selected=node.dataset.studioId;send('edit-text',{id:selected,text:ownText(node)});},true);
+ document.addEventListener('pointerdown',event=>{if(!editing||event.button!==0)return;const resize=event.target===handle,node=resize?(originals.get(selected)||added.get(selected)?.node):pick(event.target);if(!node)return;event.preventDefault();event.stopImmediatePropagation();selected=node.dataset.studioId;const rect=node.getBoundingClientRect();drag={node,resize,startX:event.clientX,startY:event.clientY,rect,dx:0,dy:0};report();},true);
+ window.addEventListener('pointermove',event=>{if(!drag)return;drag.dx=event.clientX-drag.startX;drag.dy=event.clientY-drag.startY;if(Math.abs(drag.dx)+Math.abs(drag.dy)<5)return;const {rect,resize,dx,dy}=drag;outline.style.left=(rect.x+(resize?0:dx))+'px';outline.style.top=(rect.y+(resize?0:dy))+'px';outline.style.width=Math.max(20,rect.width+(resize?dx:0))+'px';outline.style.height=Math.max(20,rect.height+(resize?dy:0))+'px';});
+ window.addEventListener('pointerup',event=>{if(!drag)return;const {node,resize,rect,dx,dy}=drag;drag=null;if(Math.abs(dx)+Math.abs(dy)<5)return;const parentNode=node.parentElement,mode=M.breakpoint(innerWidth),existing=documentData.objects[selected]||documentData.extras.find(v=>v.id===selected)||{},style={...existing.styles?.[mode]},parentWidth=parentNode.clientWidth||innerWidth;
+  if(resize){style.width=Math.max(1,Math.min(100,(rect.width+dx)/parentWidth*100));style.height=Math.max(0,Math.min(2000,rect.height+dy));patchSelected({styles:{...existing.styles,[mode]:style}});}
+  else{const target=pick(document.elementFromPoint(event.clientX,event.clientY));const cardTarget=target?.closest('.course-card,.accordion,.ai-semester-wrap');const targetNode=node.matches('.course-card,.accordion,.ai-semester-wrap')?cardTarget:target;
+   if(targetNode&&targetNode!==node&&targetNode.parentElement===parentNode){const before=event.clientY<targetNode.getBoundingClientRect().top+targetNode.clientHeight/2,previous=before?targetNode.previousElementSibling:targetNode;patchSelected({placements:{...existing.placements,[mode]:{parent:parentNode.dataset.studioId,after:previous&&previous!==node?previous.dataset.studioId:null}}});}
+   else{style.marginLeft=Math.max(0,Math.min(95,(style.marginLeft||0)+dx/parentWidth*100));style.marginTop=Math.max(0,Math.min(1000,(style.marginTop||0)+dy));patchSelected({styles:{...existing.styles,[mode]:style}});}
+  }updateOutline();
+ });
+ window.addEventListener('keydown',event=>{if(!editing||event.target.matches('input,textarea,[contenteditable]'))return;if((event.ctrlKey||event.metaKey)&&['c','v','z'].includes(event.key.toLowerCase())){event.preventDefault();send('shortcut',{key:event.key.toLowerCase(),id:selected,shift:event.shiftKey});}else if(event.key==='Delete'&&selected){event.preventDefault();send('shortcut',{key:'delete',id:selected});}});
+ window.addEventListener('message',event=>{if(event.source!==parent||event.origin!==location.origin||event.data?.channel!=='gimpo-studio')return;const data=event.data;
+  try{if(data.type==='configure'){editing=data.editing===true;setData(data.data);if(data.selected!==undefined)selected=data.selected;}
+   else if(data.type==='select'){selected=data.id;updateOutline();report();}
+   else if(data.type==='tab'&&Number.isInteger(data.index)&&data.index>=0&&data.index<=4)CourseUI.selectTab(data.index);
+   else if(data.type==='preview-state')CoursePresentation.previewState(data.value);
+   else if(data.type==='inspect')report();
+  }catch(error){send('error',{message:error.message});}
+ });
+ send('ready');report();
+}else if(App.db){
+ const ref=App.db.ref('v2/siteContent/course');ref.on('value',snapshot=>{const record=snapshot.val();try{setData(record?.dataJSON?JSON.parse(record.dataJSON):M.blankCourse());}catch{App.toast('저장된 화면 설정을 읽지 못해 기본 화면을 유지합니다.');}},()=>App.toast('화면 설정을 불러오지 못했습니다. 잠시 후 새로고침해 주세요.'));
+}
+})();
+
+/* Shared notice renderer and ordered, revision-aware display policy. */
+(()=>{'use strict';const M=StudioModel;
+const css=`.school-notice{width:420px;max-width:100%;background:var(--box-bg,#fff);color:var(--text-black,#191f28);border-radius:8px;overflow:hidden;box-shadow:0 8px 30px #0003;display:flex;flex-direction:column;box-sizing:border-box}.school-notice>*{min-width:0;box-sizing:border-box}.school-notice-header{background:#2a52be;color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:15px;font-weight:700;line-height:1.4;overflow-wrap:anywhere}.school-notice-header>span{min-width:0;flex:1}.school-notice-close{flex:0 0 24px;width:24px;height:24px;padding:0;border:1px solid #d1d6db;border-radius:4px;background:#fff;color:#191f28;font-size:13px;cursor:pointer}.school-notice-content{padding:30px 20px 40px;display:flex;flex-direction:column;gap:12px;overflow-wrap:anywhere;min-height:0;overflow:auto;max-height:calc(100dvh - 170px)}.school-notice-title{margin:0;font-size:22px;font-weight:900;line-height:1.3;word-break:keep-all}.school-notice-body{white-space:pre-wrap;font-size:15px;line-height:1.5;word-break:keep-all;margin:0}.school-notice-footer{background:#222;color:#fff;padding:14px;border:0;width:100%;font-size:14px;font-weight:700;cursor:pointer;overflow-wrap:anywhere}.school-notice-item{max-width:100%;min-width:0;box-sizing:border-box;overflow-wrap:anywhere;white-space:pre-wrap}.school-notice-item img{display:block;max-width:100%;height:auto;border-radius:6px}.school-notice .middle-asterisk{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;line-height:1;height:1em;position:relative;top:.08em}.school-notice-dialog{padding:0;border:0;background:transparent;width:min(420px,calc(100vw - 32px));max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);overflow:auto}.school-notice-dialog::backdrop{background:#0009}`;
+const style=document.createElement('style');style.textContent=css;document.head.append(style);
+const element=(tag,cls,text)=>{const node=document.createElement(tag);node.className=cls||'';if(text!==undefined)node.textContent=text;return node;};
+function richText(node,text){const parts=String(text).split('*');parts.forEach((part,index)=>{if(index)node.append(element('span','middle-asterisk','*'));node.append(document.createTextNode(part));});}
+function paint(node,style,width){const value=M.computedStyle(style,width),map={width:'width',height:'minHeight',fontSize:'fontSize',lineHeight:'lineHeight',padding:'padding',radius:'borderRadius',gap:'gap',marginTop:'marginTop',marginBottom:'marginBottom',marginLeft:'marginInlineStart',color:'color',background:'backgroundColor',borderColor:'borderColor',align:'textAlign',weight:'fontWeight',order:'order'};for(const [key,v]of Object.entries(value))node.style[map[key]]=String(v)+(['width','marginLeft'].includes(key)?'%':['height','fontSize','padding','radius','gap','marginTop','marginBottom'].includes(key)?'px':'');}
+function render(notice,{width=innerWidth,onClose=()=>{},onHide=()=>{},editor=false}={}){
+ const box=element('section','school-notice');box.dataset.noticePart='box';paint(box,notice.styles.box,width);
+ const header=element('div','school-notice-header'),label=element('span','',notice.header),close=element('button','school-notice-close','✖');header.dataset.noticePart='header';paint(header,notice.styles.header,width);close.type='button';close.setAttribute('aria-label','공지 닫기');close.onclick=onClose;header.append(label,close);
+ const body=element('div','school-notice-content'),title=element('h2','school-notice-title',notice.title),text=element('p','school-notice-body');title.dataset.noticePart='title';text.dataset.noticePart='body';richText(text,notice.body);paint(title,notice.styles.title,width);paint(text,notice.styles.body,width);body.append(title,text);
+ for(const item of notice.items){const node=element(item.kind==='button'?'button':'div','school-notice-item');node.dataset.noticeItem=item.id;if(item.kind==='image'){const image=element('img','');image.alt=item.text||'공지 첨부 이미지';image.src=item.src;node.append(image);}else richText(node,item.text);if(item.kind==='button'){node.type='button';node.style.cssText='background:#2a52be;color:white;border:0;border-radius:8px;padding:12px';}if(['box','ellipse'].includes(item.kind))node.style.cssText='background:#e8f0fe;min-height:70px;border-radius:'+(item.kind==='ellipse'?'50%':'10px');paint(node,item.styles,width);body.append(node);}
+ const footer=element('button','school-notice-footer',notice.dismissText);footer.dataset.noticePart='footer';footer.type='button';footer.onclick=onHide;footer.hidden=notice.policy!=='legacy';paint(footer,notice.styles.footer,width);
+ box.append(header,body,footer);if(editor){box.querySelectorAll('button').forEach(button=>button.tabIndex=-1);body.style.maxHeight='none';}return box;
+}
+window.SchoolNotices={render,paint,richText};
+if(!window.App||App.studioPreview||!document.getElementById('courseList')||!App.db)return;
+let queue=[],active=null,version='',loaded=false;const seen=new Set();
+const dialog=element('dialog','school-notice-dialog');dialog.setAttribute('aria-label','학교 공지');document.body.append(dialog);
+function receipt(id){return App.cache.read('gimpo_notice_'+id);}
+function dismiss(permanent=false){if(!active)return;const current=active;App.cache.write('gimpo_notice_'+current.id,{seenAt:Date.now(),version,hiddenVersion:permanent?version:null});seen.add(version+':'+current.id);active=null;dialog.close();next();}
+function next(){if(active||!loaded||document.querySelector('dialog[open]'))return;while(queue.length){const notice=queue.shift();if(seen.has(version+':'+notice.id)||!M.eligible(notice,receipt(notice.id),version,Date.now()))continue;active=notice;dialog.replaceChildren(render(notice,{onClose:()=>dismiss(false),onHide:()=>dismiss(true)}));dialog.showModal();break;}}
+dialog.addEventListener('cancel',event=>{event.preventDefault();dismiss(false);});
+document.addEventListener('close',()=>requestAnimationFrame(next),true);
+App.db.ref('v2/siteContent/notices').on('value',snapshot=>{try{const value=snapshot.val();queue=M.notices(value?.dataJSON?JSON.parse(value.dataJSON):[]);version=String(value?.revision||0);loaded=true;if(active){active=null;dialog.close();}next();}catch{App.toast('공지를 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.');}},()=>{});
 })();
 </script>
 </body>
