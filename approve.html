@@ -29,7 +29,7 @@
         const response=await fetch(endpoint,{method:'POST',mode:'cors',credentials:'omit',redirect:'follow',referrerPolicy:'no-referrer',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({action:'approve',token:token}),signal:controller.signal});
         if(!response.ok||response.type==='opaque')throw new Error('unreadable-response');
         const answer=await response.json();
-        if(answer&&answer.ok===true){completed=true;result.textContent='완료되었습니다.';}
+        if(answer&&answer.ok===true){completed=true;result.textContent='완료되었습니다.';setTimeout(()=>{try{window.close();}catch{}},500);}
         else{result.textContent=answer&&typeof answer.message==='string'?answer.message:'요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.';retry.hidden=false;}
       }catch(error){result.textContent='처리 결과를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.';retry.hidden=false;}
       finally{clearTimeout(timer);pending=false;}

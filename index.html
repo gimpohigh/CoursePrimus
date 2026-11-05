@@ -470,6 +470,17 @@
             .tab-content, .nav-indicator { transition: none; }
             ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
         }
+        .header-selection-actions { position:absolute;right:12px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:6px; }
+        .header-selection-actions .header-btn-right { position:static;transform:none; }
+        .header:has(#pinResetBtn:not([hidden])) .header-title { padding-inline:160px; }
+        #courseList .accordion-content { transition:none; }
+        @media (max-width:600px) {
+            .header:has(#pinResetBtn:not([hidden])) { padding-bottom:44px; }
+            .header:has(#pinResetBtn:not([hidden])) .header-title { padding-inline:72px; }
+            .header:has(#pinResetBtn:not([hidden])) .header-selection-actions { top:auto;bottom:8px;transform:none; }
+            .header:has(#pinResetBtn:not([hidden])) .header-btn-left { top:12px;transform:none; }
+        }
+        @media (max-width:360px) { .header-selection-actions { right:8px; } }
     </style>
 </head>
 <body>
@@ -478,7 +489,10 @@
         <button id="authBtn" class="header-btn-left" type="button">로그인</button>
         <h1 class="header-title">2026 김포고 수강신청 도우미(1학년)</h1>
         <button id="clearAi" class="header-btn-right" type="button" hidden>대화 삭제</button>
-        <button id="resetBtn" class="header-btn-right" type="button">선택 초기화</button>
+        <div class="header-selection-actions">
+            <button id="resetBtn" class="header-btn-right" type="button">선택 초기화</button>
+            <button id="pinResetBtn" class="header-btn-right" type="button" hidden>핀 초기화</button>
+        </div>
     </header>
     <div id="dashboardBanner" class="dashboard-banner" hidden>
         <div class="banner-inner">
@@ -1120,6 +1134,7 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
       tab.classList.toggle('active',active);
     });
     document.getElementById('resetBtn').hidden=index!==2&&index!==3;
+    document.getElementById('pinResetBtn').hidden=index!==3;
     document.getElementById('clearAi').hidden=index!==0;
   }
 
@@ -1353,6 +1368,21 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
     return themeWork;
   }
 
+  const semesterMotions=new WeakMap();
+  function toggleSemester(section,title,wrap,icon){
+    const opening=title.getAttribute('aria-expanded')!=='true';
+    const fromHeight=wrap.hidden?0:wrap.getBoundingClientRect().height;
+    const fromOpacity=wrap.hidden?0.35:Number(window.getComputedStyle(wrap).opacity);
+    semesterMotions.get(wrap)?.cancel();semesterMotions.delete(wrap);
+    wrap.hidden=false;wrap.style.maxHeight='none';wrap.inert=!opening;
+    section.classList.toggle('open',opening);title.setAttribute('aria-expanded',String(opening));icon.textContent=opening?'▲':'▼';
+    const settle=()=>{wrap.hidden=!opening;wrap.style.maxHeight=opening?'none':'0';};
+    if(reduceMotion.matches||typeof wrap.animate!=='function'){settle();return;}
+    const animation=wrap.animate([{height:fromHeight+'px',opacity:fromOpacity},{height:(opening?wrap.scrollHeight:0)+'px',opacity:opening?1:.35}],{duration:220,easing,fill:'both'});
+    semesterMotions.set(wrap,animation);
+    animation.finished.then(()=>{if(semesterMotions.get(wrap)!==animation)return;settle();semesterMotions.delete(wrap);animation.cancel();},()=>{});
+  }
+
   document.getElementById('themeBtn').addEventListener('click',()=>setTheme(!themeTarget));
   reduceMotion.addEventListener('change',()=>{
     if(!reduceMotion.matches)return;
@@ -1364,7 +1394,7 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
     }
   });
   updateNavigation(current);settlePanels(current);applyTheme(themeTarget);
-  window.CourseUI={selectTab,setTheme,get currentTab(){return current;},get requestedTab(){return requested;},get isSliding(){return sliding;},get themeTransitioning(){return themeBusy;}};
+  window.CourseUI={selectTab,setTheme,toggleSemester,get currentTab(){return current;},get requestedTab(){return requested;},get isSliding(){return sliding;},get themeTransitioning(){return themeBusy;}};
 })();
 </script>
 <script>/* Use persisted send time, never storage-key spelling, to order inquiry messages. */
@@ -1376,7 +1406,7 @@ function sorted(entries){return Array.from(entries).filter(([,value])=>value&&ty
 return {timestamp,compare,sorted};
 });
 
-/* Preserve reading position; follow an own send only when already near the end. */
+/* Preserve older reading positions; follow new messages when already near the end. */
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.ChatScroll=factory();})(typeof globalThis!=='undefined'?globalThis:this,function(){
 'use strict';
 function create({container,button,environment={}}){
@@ -1461,9 +1491,10 @@ function create({container,button,environment={}}){
   // Capture before replacing DOM, including before the browser clamps an emptied log.
   if(!initialPending&&visible())anchor=snapshot();
   const wasInitial=initialPending;
+  const followIncoming=!wasInitial&&incomingIds.length>0&&nearBottom();
   mutating=true;
   let result;
-  try{result=render();loaded=true;if(!wasInitial)for(const id of incomingIds)unread.add(String(id));}
+  try{result=render();loaded=true;if(!wasInitial)for(const id of incomingIds)unread.add(String(id));if(followIncoming)followId=rows().at(-1)?.dataset.messageId||null;}
   finally{mutating=false;observeRows();restore();schedule();}
   return result;
  }
@@ -1836,7 +1867,7 @@ function renderCourses(target,recommend,a=E.analyze(state)){
   section.append(title);
   if(recommend)section.append(grid);else{
    const icon=make('span','icon',open.has(sem.key)?'▲':'▼'),wrap=make('div','accordion-content');title.append(icon);wrap.id='course-sem-'+sem.key;wrap.hidden=!open.has(sem.key);wrap.style.maxHeight=wrap.hidden?'0':'none';title.setAttribute('aria-controls',wrap.id);title.setAttribute('aria-expanded',String(!wrap.hidden));wrap.append(grid);section.append(wrap);
-   title.onclick=()=>{wrap.hidden=!wrap.hidden;section.classList.toggle('open',!wrap.hidden);wrap.style.maxHeight=wrap.hidden?'0':'none';title.setAttribute('aria-expanded',String(!wrap.hidden));icon.textContent=wrap.hidden?'▼':'▲';};
+   title.onclick=()=>CourseUI.toggleSemester(section,title,wrap,icon);
   }nodes.push(section);
  }target.replaceChildren(...nodes);
 }
@@ -1845,6 +1876,7 @@ function renderRates(stats={}){const nodes=[];for(const sem of E.semesters.filte
 function validation(){const a=E.analyze(state);$('validation').replaceChildren();if(a.valid)$('validation').append(make('p','msg-success','모든 필수 조건을 충족합니다.'));a.errors.forEach(x=>$('validation').append(make('p','msg-error',x)));a.warnings.forEach(x=>$('validation').append(make('p','msg-warn',x)));return a;}
 
 document.querySelectorAll('.track').forEach(x=>x.onchange=()=>{const draft=x.closest('#panel-3')!==null;const r=E.toggleTrack(draft?recommendationState():state);if(r.ok){draft?draftSave(r.state):apply(r.state);if(r.reason)App.toast(r.reason);}else{App.toast(r.reason);render();}});
+$('pinResetBtn').onclick=()=>{draftSave({...recommendationState(),pinned:[]});App.toast('선택한 과목은 유지하고 고정 핀만 해제했습니다.');};
 $('resetBtn').onclick=()=>{if(confirm('선택한 과목과 고정 핀을 모두 초기화하시겠습니까?')){recommendation=null;App.cache.write(draftKey(),null);apply(E.normalize({sciTrack:state.sciTrack}));}};$('validateBtn').onclick=()=>{validation();$('validation').scrollIntoView({block:'nearest',behavior:'smooth'});};
 $('recommendForm').onsubmit=async e=>{e.preventDefault();const b=$('recommendBtn');b.disabled=true;b.textContent='조건 확인 중';const base=JSON.stringify(recommendationState()),requestEpoch=epoch,requestOwner=uid;await new Promise(r=>requestAnimationFrame(()=>r()));try{if(requestEpoch!==epoch||requestOwner!==uid)return;const r=E.recommend(recommendationState(),$('career').value);if(base!==JSON.stringify(recommendationState()))return App.toast('선택이 변경되어 추천을 다시 실행해주세요.');if(!r.ok){$('recommendResult').textContent=r.reason;return;}draftSave(r.state);apply(r.state);$('recommendResult').textContent=r.reason;}catch(e){App.toast(App.error(e));}finally{b.disabled=false;b.textContent='AI 추천 돌리기';}};
 const slotIcons={preview:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',rename:'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',remove:'<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>'};
