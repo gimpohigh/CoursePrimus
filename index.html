@@ -486,7 +486,7 @@
     </div>
     <div class="live-counter-wrap">
         <span id="saveStatus" role="status">불러오는 중</span>
-        <span id="connectionCount" role="status" aria-atomic="true" title="현재 사이트에 연결된 탭의 수">실시간 접속자 수: <span id="connectionCountValue">연결 확인 중</span></span>
+        <span id="connectionCount" role="status" aria-atomic="true" title="현재 사이트에 연결된 방문자 수 · 같은 계정의 여러 탭은 1명">실시간 접속자 수: <span id="connectionCountValue">연결 확인 중</span></span>
     </div>
     <main class="tab-wrapper tabs">
         <section id="panel-0" class="panel tab-content chat" role="tabpanel" aria-label="AI 채팅" hidden>
@@ -544,7 +544,6 @@
                 <div class="save-actions">
                     <button class="saveSlot submit-btn" type="button">현재 과목 구성 저장하기</button>
                     <button class="printBtn submit-btn" type="button" title="인쇄 창에서 PDF로 저장할 수 있습니다.">과목 파일 다운받기</button>
-                    <span id="backupActions"></span>
                 </div>
                 <div id="slots" class="save-slot-list-container"></div>
             </div>
@@ -713,7 +712,8 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
     const sciTrack = input.sciTrack === true;
     if(sciTrack) baseScience.forEach(id=>chosen.add(id));
     return {courses:courses.filter(c=>chosen.has(c.id)).map(c=>c.id),
-      pinned:unique(input.pinned).filter(id=>chosen.has(id)&&!byId.get(id).req),sciTrack};
+      // Recommendation pins are preferences. They do not select or lock practice courses.
+      pinned:unique(input.pinned).filter(id=>byId.has(id)&&!byId.get(id).req),sciTrack};
   }
   function analyze(input = {}) {
     input = input && typeof input === 'object' ? input : {};
@@ -750,9 +750,8 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
       if(totals.msi<79)errors.push('과학중점 수학·과학·정보 합계는 79학점 이상이어야 합니다. (현재 '+totals.msi+'학점)');
       if(mathElectives<4)warnings.push('과학중점 과정은 수학 선택과목 4과목 이상을 권장합니다.');
     }
-    const links=[['21_s09',['22_s09','31_s09','32_s08']],['21_s10',['22_s10','31_s10','32_s09']],['21_s11',['22_s11','31_s11','32_s10']],['21_s12',['22_s12','31_s12','32_s11']]];
-    for(const [base,advancedIds]of links)if(!chosen.has(base)&&advancedIds.some(id=>chosen.has(id)))warnings.push(byId.get(base).name+'과 연계되는 심화 과목을 골랐습니다. 기초 과목 이수를 권장합니다.');
-    if(unique(input.pinned).some(id=>!chosen.has(id)||!byId.has(id)))errors.push('선택하지 않은 과목이 고정 목록에 있습니다.');
+    const links=[['21_s09',['22_s09'],'역학과 에너지'],['21_s10',['22_s10'],'물질과 에너지'],['21_s11',['22_s11'],'세포와 물질대사'],['21_s12',['22_s12'],'지구시스템 과학'],['21_s09',['31_s09','32_s08'],'전자기와 양자'],['21_s10',['31_s10','32_s09'],'화학 반응의 세계'],['21_s11',['31_s11','32_s10'],'생물의 유전'],['21_s12',['31_s12','32_s11'],'행성우주과학']];
+    for(const [base,advancedIds,name]of links)if(!chosen.has(base)&&advancedIds.some(id=>chosen.has(id)))warnings.push(name+((name.charCodeAt(name.length-1)-0xAC00)%28===0?'는 ':'은 ')+byId.get(base).name+'과 연계되므로 '+byId.get(base).name+'을 듣는 것을 권장드립니다.');
     return {valid:errors.length===0,errors,warnings,totals,counts,groups,advanced,mathElectives};
   }
   function partialError(ids) {
@@ -767,95 +766,105 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
     return '';
   }
   function canToggle(input,id) {
-    const state=normalize(input), c=byId.get(id);
+    const state=normalize(input),c=byId.get(id);
     if(!c)return {ok:false,reason:'존재하지 않는 과목입니다.',state};
-    if(c.req || state.sciTrack&&c.sciReq)return {ok:false,reason:'현재 과정의 필수 과목은 해제할 수 없습니다.',state};
+    if(c.req)return {ok:false,reason:'지정된 과목은 취소할 수 없습니다.',state};
+    if(state.sciTrack&&c.sciReq)return {ok:false,reason:'과학 중점 과정 필수 과목입니다.',state};
     const selected=new Set(state.courses);
-    if(selected.has(id)){
-      if(state.pinned.includes(id))return {ok:false,reason:'고정 핀을 먼저 해제해주세요.',state};
-      selected.delete(id);
-    }else{selected.add(id);const reason=partialError(selected);if(reason)return {ok:false,reason,state};}
+    if(selected.has(id))selected.delete(id);
+    else{selected.add(id);const reason=partialError(selected);if(reason)return {ok:false,reason,state};}
     return {ok:true,reason:'',state:normalize({...state,courses:[...selected]})};
   }
   function toggleTrack(input) {
     const state=normalize(input);
-    if(state.sciTrack)return {ok:true,reason:'과학중점을 해제했습니다. 선택한 과목은 유지됩니다.',state:{...state,sciTrack:false}};
-    const fixed=new Set([...required,...state.pinned,...baseScience]);
-    const reason=partialError(fixed);if(reason)return {ok:false,reason:'고정 과목과 과학중점 필수 과목이 충돌합니다. 2학년 1학기 일반 고정을 최대 1개로 줄이고 중복·학점 제한을 확인해주세요.',state};
+    if(state.sciTrack)return {ok:true,reason:'',state:normalize({...state,sciTrack:false,courses:state.courses.filter(id=>!baseScience.includes(id))})};
     const selected=new Set([...state.courses,...baseScience]);
     const nonSci=courses.filter(c=>c.sem==='2-1'&&!c.req&&!c.sciReq&&selected.has(c.id));
-    let keep=1;
-    for(const c of nonSci.filter(c=>state.pinned.includes(c.id)))keep--;
-    for(const c of nonSci.filter(c=>!state.pinned.includes(c.id))){if(keep>0)keep--;else selected.delete(c.id);}
-    return {ok:true,reason:'과학중점 필수 과목을 반영했습니다.',state:normalize({...state,courses:[...selected],sciTrack:true})};
+    nonSci.slice(1).forEach(c=>selected.delete(c.id));
+    return {ok:true,reason:nonSci.length>1?'과학 중점 필수 지정으로 인해 기존 선택 과목이 취소되었습니다.':'',state:normalize({...state,courses:[...selected],sciTrack:true})};
   }
+  // Specific majors precede general words. In particular, 천문학 must not match 문학.
   const careerRules=[
-    {test:/컴공|컴퓨터|소프트|개발|공학|공대|로봇|전기|전자|\bit\b|\bai\b/i,names:['물리학','인공지능 수학','인공지능 기초','정보 과학','데이터 과학','미적분 II','소프트웨어와 생활','기하','역학과 에너지','전자기와 양자']},
-    {test:/의학|의대|의약|간호|생명|약대|보건|의사/,names:['생명과학','화학','세포와 물질대사','생물의 유전','미적분 II','화학 반응의 세계','물질과 에너지']},
-    {test:/경영|경제|회계|금융/,names:['경제','경제 수학','금융과 경제생활','사회문제 탐구','확률과 통계','데이터 과학']},
-    {test:/심리|상담/,names:['생명과학','현대사회와 윤리','사회문제 탐구','논리와 사고','확률과 통계']},
-    {test:/언론|미디어|신문|방송|영상/,names:['매체 의사소통','문학과 영상','미디어 영어','사회문제 탐구','정치','현대사회와 윤리']},
-    {test:/사범|교육|교사/,names:['현대사회와 윤리','사회문제 탐구','윤리문제 탐구','논리와 사고','주제 탐구 독서']},
-    {test:/인문|문과|어문|문학|국어|역사|철학/,names:['주제 탐구 독서','세계사','현대사회와 윤리','언어생활 탐구','인문학과 윤리','논리와 사고','역사로 탐구하는 현대 세계','문화로 보는 한국사']},
-    {test:/예체능|미술|미대|디자인/,names:['미술 창작','미술 감상과 비평','문학과 영상','매체 의사소통']},
-    {test:/음악|음대/,names:['음악 연주와 창작','음악 감상과 비평']},
-    {test:/체대|체육|스포츠/,names:['기초 체육 전공 실기','심화 체육 전공 실기']},
-    {test:/환경|기후|지구|지리/,names:['지구과학','지구시스템 과학','행성우주과학','기후변화와 지속 가능한 세계','기후변화와 환경생태','세계 시민과 지리']}
+    {test:/천문|천체|우주|항공우주|astronom|astrophys/i,primary:['지구과학','물리학','지구시스템 과학','행성우주과학'],names:['기하','미적분 II','역학과 에너지','전자기와 양자','인공지능 수학','데이터 과학','정보 과학']},
+    {test:/컴공|컴퓨터|소프트|개발|로봇|전기|전자|정보보안|\bit\b|\bai\b/i,primary:['물리학','인공지능 수학','인공지능 기초'],names:['정보 과학','데이터 과학','미적분 II','소프트웨어와 생활','기하','역학과 에너지','전자기와 양자']},
+    {test:/의학|의대|의약|간호|생명|약대|보건|의사|약학/,primary:['생명과학','화학'],names:['세포와 물질대사','생물의 유전','미적분 II','화학 반응의 세계','물질과 에너지']},
+    {test:/경영|경제|회계|금융/,primary:['경제','경제 수학','금융과 경제생활'],names:['사회문제 탐구','확률과 통계','데이터 과학','미적분 II']},
+    {test:/심리|상담/,primary:['생명과학','현대사회와 윤리'],names:['사회문제 탐구','논리와 사고','확률과 통계']},
+    {test:/언론|미디어|신문|방송|영상/,primary:['매체 의사소통','문학과 영상'],names:['미디어 영어','사회문제 탐구','정치','현대사회와 윤리']},
+    {test:/사범|교육|교사/,primary:['현대사회와 윤리'],names:['사회문제 탐구','윤리문제 탐구','논리와 사고','주제 탐구 독서']},
+    {test:/예체능|미술|미대|디자인/,primary:['미술 창작','미술 감상과 비평'],names:['문학과 영상','매체 의사소통']},
+    {test:/음악|음대/,primary:['음악 연주와 창작','음악 감상과 비평'],names:[]},
+    {test:/체대|체육|스포츠/,primary:['기초 체육 전공 실기','심화 체육 전공 실기'],names:[]},
+    {test:/환경|기후|지구|지리/,primary:['지구과학','지구시스템 과학'],names:['행성우주과학','기후변화와 지속 가능한 세계','기후변화와 환경생태','세계 시민과 지리']},
+    {test:/물리|기계|항공/,primary:['물리학','역학과 에너지'],names:['전자기와 양자','기하','미적분 II','인공지능 수학','데이터 과학']},
+    {test:/화학|화공|신소재/,primary:['화학','물질과 에너지','화학 반응의 세계'],names:['물리학','미적분 II','생명과학']},
+    {test:/수학|통계/,primary:['인공지능 수학','기하','미적분 II'],names:['전문 수학','경제 수학','데이터 과학','물리학']},
+    {test:/공학|공대/,primary:['물리학','기하'],names:['미적분 II','역학과 에너지','전자기와 양자','인공지능 수학','데이터 과학']},
+    {test:/인문|문과|어문|문학|국어|역사|철학/,primary:['주제 탐구 독서','세계사','현대사회와 윤리'],names:['언어생활 탐구','인문학과 윤리','논리와 사고','역사로 탐구하는 현대 세계','문화로 보는 한국사']}
   ];
   function recommend(input,keyword='') {
     const state=normalize(input),fixed=new Set([...required,...state.pinned,...(state.sciTrack?baseScience:[])]);
     const conflict=partialError(fixed);if(conflict)return {ok:false,state,reason:'고정 과목을 유지하면 '+conflict};
-    const targets=new Set();const text=String(keyword).slice(0,500);
-    careerRules.forEach(r=>{if(r.test.test(text))r.names.forEach(n=>targets.add(n));});
+    const text=String(keyword).slice(0,500),matched=careerRules.find(r=>r.test.test(text));
+    const primary=new Set(matched?.primary||[]),targets=new Set([...(matched?.primary||[]),...(matched?.names||[])]);
     const pairNames=[...new Set(courses.filter(c=>c.pair).map(c=>c.pair))];
-    const pairBit=c=>c.pair?(1<<pairNames.indexOf(c.pair)):0;
-    const metric=c=>({kys:['국어','수학','영어'].includes(c.cat)?c.cred:0,soc:c.cat==='사회'?c.cred:0,
-      art:c.cat==='예술'?c.cred:0,etc:['정보','제2외국어','한문','교양'].includes(c.cat)?c.cred:0,
-      msi:['수학','과학','정보'].includes(c.cat)?c.cred:0,adv:c.sciAdv?1:0});
-    const metrics=['kys','soc','art','etc','msi','adv'];
-    const zero=()=>Object.fromEntries(metrics.map(k=>[k,0]));
-    const add=(a,b)=>Object.fromEntries(metrics.map(k=>[k,a[k]+b[k]]));
-    const base=required.reduce((sum,id)=>add(sum,metric(byId.get(id))),zero());
-    const minima={soc:8,art:6,etc:15,msi:state.sciTrack?79:0,adv:state.sciTrack?6:0};
-    const score=c=>(targets.has(c.name)?100:0)+(state.sciTrack&&c.sciAdv?12:0)+(state.sciTrack&&c.cat==='수학'?5:0);
+    const pairBit=c=>c.pair?1<<pairNames.indexOf(c.pair):0;
+    const fixedPairs=new Set([...fixed].map(id=>byId.get(id).pair).filter(Boolean));
+    // The existing school's validation criteria are unchanged.
+    const metric=c=>[['국어','수학','영어'].includes(c.cat)?c.cred:0,c.cat==='사회'?c.cred:0,c.cat==='예술'?c.cred:0,['정보','제2외국어','한문','교양'].includes(c.cat)?c.cred:0,['수학','과학','정보'].includes(c.cat)?c.cred:0,c.sciAdv?1:0];
+    const add=(a,b)=>a.map((v,i)=>v+b[i]);
+    const base=required.reduce((sum,id)=>add(sum,metric(byId.get(id))),Array(6).fill(0));
+    const minima=[0,8,6,15,state.sciTrack?79:0,state.sciTrack?6:0];
+    const score=c=>(primary.has(c.name)?5000:targets.has(c.name)?500:0)+(state.sciTrack&&c.sciAdv?20:0)+(state.sciTrack&&c.cat==='수학'?10:0);
+    const prepared=new Map(courses.map(c=>[c.id,{c,bit:pairBit(c),m:metric(c),score:score(c)-(targets.has(c.name)?0:metric(c)[0])}]));
     const tasks=groupDefs.map(g=>{
+      const sem=g.sem,limit=g.limit;
       const all=courses.filter(c=>!c.req&&groupOf(c)===g.key),mandatory=all.filter(c=>fixed.has(c.id));
-      const optional=all.filter(c=>!fixed.has(c.id)),need=g.limit-mandatory.length,options=[];
-      function emit(chosen){let mask=0,m=zero(),value=0,unpreferredKys=0;
-        for(const c of chosen){const bit=pairBit(c);if(bit&&(mask&bit))return;mask|=bit;const cm=metric(c);m=add(m,cm);value+=score(c);if(!targets.has(c.name))unpreferredKys+=cm.kys;}
-        if(base.kys+m.kys>81)return;
-        options.push({ids:chosen.map(c=>c.id),mask,m,score:value,unpreferredKys});
+      const optional=all.filter(c=>!fixed.has(c.id)&&(!c.pair||!fixedPairs.has(c.pair))).map(c=>prepared.get(c.id)),need=limit-mandatory.length,options=new Map();
+      let initialMask=0,initialMetrics=Array(6).fill(0),initialValue=0;
+      for(const c of mandatory){const p=prepared.get(c.id);initialMask|=p.bit;initialMetrics=add(initialMetrics,p.m);initialValue+=p.score;}
+      function emit(chosen,mask,m,value){
+        // No future semester can distinguish candidates with the same constraints.
+        // Keep the better career choice before searching combinations of semesters.
+        const key=mask+'|'+m.join(','),previous=options.get(key);
+        if(!previous||value>previous.score)options.set(key,{ids:[...mandatory.map(c=>c.id),...chosen],mask,m,score:value});
       }
-      function combine(start,left,chosen){if(left===0){emit([...mandatory,...chosen]);return;}
-        for(let i=start;i<=optional.length-left;i++)combine(i+1,left-1,[...chosen,optional[i]]);}
-      if(need>=0)combine(0,need,[]);
-      // Reserve the limited Korean/English/math credit budget for matching career courses.
-      options.sort((a,b)=>b.score-a.score||(state.sciTrack?b.m.adv-a.m.adv:0)||a.unpreferredKys-b.unpreferredKys||a.ids.join().localeCompare(b.ids.join()));
-      return {key:g.key,options};
+      function combine(start,left,chosen,mask,m,value){if(left===0){emit(chosen,mask,m,value);return;}
+        for(let i=start;i<=optional.length-left;i++){const p=optional[i];if(mask&p.bit)continue;const next=add(m,p.m);
+          if(base[0]+next[0]>81)continue;
+          chosen.push(p.c.id);combine(i+1,left-1,chosen,mask|p.bit,next,value+p.score);chosen.pop();
+        }}
+      if(need>=0)combine(0,need,[],initialMask,initialMetrics,initialValue);
+      return {key:sem,options:[...options.values()].sort((a,b)=>b.score-a.score||a.ids.join().localeCompare(b.ids.join()))};
     });
-    if(tasks.some(t=>t.options.length===0))return {ok:false,state,reason:'고정 과목과 학기별 선택 개수를 동시에 만족할 수 없습니다.'};
-    // Small groups first make exclusions visible early; large groups are searched last.
+    if(tasks.some(t=>!t.options.length))return {ok:false,state,reason:'고정 과목과 학기별 선택 개수를 동시에 만족할 수 없습니다.'};
     tasks.sort((a,b)=>a.options.length-b.options.length);
-    const remaining=[];remaining[tasks.length]={max:zero(),min:zero()};
-    for(let i=tasks.length-1;i>=0;i--){const task=tasks[i],next=remaining[i+1];remaining[i]={max:zero(),min:zero()};
-      for(const k of metrics){remaining[i].max[k]=next.max[k]+Math.max(...task.options.map(o=>o.m[k]));remaining[i].min[k]=next.min[k]+Math.min(...task.options.map(o=>o.m[k]));}}
-    let nodes=0,answer=null,limited=false;const MAX_NODES=160000,failed=new Set();
-    function search(index,mask,total,ids){
-      if(++nodes>MAX_NODES){limited=true;return false;}
-      if(total.kys+remaining[index].min.kys>81)return false;
-      for(const [k,min]of Object.entries(minima))if(total[k]+remaining[index].max[k]<min)return false;
-      if(index===tasks.length){const candidate={courses:[...required,...ids],pinned:[...state.pinned],sciTrack:state.sciTrack};
-        if(analyze(candidate).valid){answer=candidate;return true;}return false;}
-      const key=index+':'+mask+':'+total.kys+':'+Object.entries(minima).map(([k,min])=>Math.min(total[k],min)).join(',');
-      if(failed.has(key))return false;
-      for(const option of tasks[index].options){if(mask&option.mask)continue;
-        if(search(index+1,mask|option.mask,add(total,option.m),[...ids,...option.ids]))return true;
-        if(limited)return false;}
-      failed.add(key);return false;
+    const remaining=[];remaining[tasks.length]={max:Array(6).fill(0),min:Array(6).fill(0),score:0};
+    for(let i=tasks.length-1;i>=0;i--){const task=tasks[i],next=remaining[i+1];const max=Array(6).fill(-Infinity),min=Array(6).fill(Infinity);
+      for(const option of task.options)for(let k=0;k<6;k++){max[k]=Math.max(max[k],option.m[k]);min[k]=Math.min(min[k],option.m[k]);}
+      remaining[i]={max:add(max,next.max),min:add(min,next.min),score:task.options[0].score+next.score};
     }
-    search(0,0,base,[]);
+    let nodes=0,answer=null,bestScore=-Infinity,lastImprovement=0,limited=false;const MAX_NODES=350000,IMPROVEMENT_BUDGET=10000,visited=new Map();
+    function search(index,mask,total,ids,value){
+      // Bound both the initial feasibility search and extra work after a valid result.
+      // A bounded result is never described as a globally optimal configuration.
+      if(++nodes>MAX_NODES||answer&&nodes-lastImprovement>IMPROVEMENT_BUDGET){limited=true;return;}
+      if(value+remaining[index].score<=bestScore||total[0]+remaining[index].min[0]>81)return;
+      for(let k=1;k<6;k++)if(total[k]+remaining[index].max[k]<minima[k])return;
+      if(index===tasks.length){const candidate={courses:[...required,...ids],pinned:[...state.pinned],sciTrack:state.sciTrack};
+        if(analyze(candidate).valid){answer=candidate;bestScore=value;lastImprovement=nodes;}return;}
+      const key=index+':'+mask+':'+total[0]+':'+total.slice(1).map((v,i)=>Math.min(v,minima[i+1])).join(',');
+      if((visited.get(key)??-Infinity)>=value)return;visited.set(key,value);
+      for(const option of tasks[index].options){if(mask&option.mask)continue;
+        if(value+option.score+remaining[index+1].score<=bestScore)break;
+        search(index+1,mask|option.mask,add(total,option.m),[...ids,...option.ids],value+option.score);
+        if(limited)return;
+      }
+    }
+    search(0,0,base,[],0);
     if(!answer)return {ok:false,state,reason:limited?'정해진 탐색 범위에서 조건에 맞는 구성을 찾지 못했습니다. 고정 과목을 줄여 다시 시도해주세요.':'고정 과목을 유지하면서 모든 이수 조건을 만족하는 구성이 없습니다.'};
-    return {ok:true,state:normalize(answer),reason:targets.size?'이수 조건을 확인한 진로 맞춤 구성을 만들었습니다.':'이수 조건을 확인한 기본 구성을 만들었습니다. 진로 키워드를 입력하면 선호 과목을 반영합니다.'};
+    const missingPrimary=[...primary].filter(name=>!answer.courses.some(id=>byId.get(id).name===name));
+    return {ok:true,state:normalize(answer),reason:targets.size?'이수 조건을 확인한 진로 맞춤 구성을 만들었습니다.':'이수 조건을 확인한 기본 구성을 만들었습니다. 진로 키워드를 입력하면 선호 과목을 반영합니다.',missingPrimary};
   }
   return Object.freeze({version:DATA.version,courses:Object.freeze(courses),semesters:Object.freeze(semesters),normalize,analyze,canToggle,toggleTrack,recommend});
 });
@@ -1128,7 +1137,65 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
   window.CourseUI={selectTab,setTheme,get currentTab(){return current;},get requestedTab(){return requested;},get isSliding(){return sliding;},get themeTransitioning(){return themeBusy;}};
 })();
 </script>
-<script>(function (root, factory) {
+<script>/* Live visitors only. This module never reads Firebase Authentication's account list. */
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.CoursePresence=factory();})(typeof globalThis!=='undefined'?globalThis:this,function(){
+'use strict';
+const HEARTBEAT_MS=30000,EXPIRES_MS=120000,REFRESH_MS=5000;
+function countVisitors(value,now){
+ if(!value||typeof value!=='object'||!Number.isFinite(now))return 0;
+ return Object.values(value).reduce((total,connections)=>total+(connections&&typeof connections==='object'&&Object.values(connections).some(lastSeen=>typeof lastSeen==='number'&&Number.isFinite(lastSeen)&&lastSeen>now-EXPIRES_MS&&lastSeen<=now+5000)?1:0),0);
+}
+function start({db,uid=null,serverTimestamp,onCount=()=>{},onConnection=()=>{},onError=()=>{},onReadSuccess=()=>{},onWriteSuccess=()=>{},clock=Date.now,schedule=setInterval,unschedule=clearInterval,events=typeof window==='undefined'?null:window,documentObject=typeof document==='undefined'?null:document}){
+ let stopped=false,connected=null,loaded=false,offset=0,data=null,current=null,generation=0,joining=0,armed=false,writing=false,lastBeat=0;
+ const listeners=[],pending=new Set();
+ const time=()=>clock()+offset;
+ const active=(version,ref)=>!stopped&&connected&&version===generation&&ref===current;
+ const removeRef=ref=>{if(ref)Promise.resolve(ref.remove()).catch(()=>{});};
+ function render(){if(!stopped&&connected&&loaded)onCount(countVisitors(data,time()));}
+ function listen(path,success,key){const ref=db.ref(path),error=e=>{if(!stopped){if(key==='presenceRead'){loaded=false;data=null;onCount(null);}onError(key,e);}};ref.on('value',success,error);listeners.push(()=>ref.off('value',success));}
+ async function beat(version=generation,ref=current){
+  if(!ref||!active(version,ref)||!armed||writing)return;
+  writing=true;
+  try{await ref.set(serverTimestamp);if(active(version,ref)){lastBeat=time();onWriteSuccess();}else removeRef(ref);}
+  catch(error){if(active(version,ref))onError('presenceWrite',error);}
+  finally{if(version===generation)writing=false;}
+ }
+ async function join(){
+  if(!uid||stopped||!connected)return;
+  const version=++generation,ref=db.ref('v2/presence/'+uid).push();
+  const previous=current;current=ref;joining=version;armed=false;writing=false;lastBeat=0;removeRef(previous);pending.add(ref);
+  try{
+   // The server must acknowledge disconnect cleanup before publishing an online record.
+   await ref.onDisconnect().remove();
+   if(!active(version,ref)){removeRef(ref);return;}
+   armed=true;await beat(version,ref);
+  }catch(error){if(active(version,ref))onError('presenceWrite',error);}
+  finally{pending.delete(ref);if(joining===version)joining=0;}
+ }
+ listen('.info/serverTimeOffset',snap=>{if(stopped)return;offset=Number.isFinite(snap.val())?snap.val():0;render();},'connection');
+ listen('v2/presence',snap=>{if(stopped)return;data=snap.val();loaded=true;onReadSuccess();render();},'presenceRead');
+ listen('.info/connected',snap=>{
+  if(stopped)return;
+  const next=snap.val()===true;if(next===connected)return;
+  connected=next;onConnection(connected);
+  if(connected){render();join();}
+  else{generation++;joining=0;armed=false;writing=false;const previous=current;current=null;removeRef(previous);onCount(null);}
+ },'connection');
+ const refresh=schedule(render,REFRESH_MS);
+ const heartbeat=schedule(()=>{if(!connected||!uid)return;if(!armed){if(joining!==generation)join();}else if(current&&time()-lastBeat>=HEARTBEAT_MS)beat();},HEARTBEAT_MS);
+ const wake=()=>{if(connected){render();if(current)beat();}};
+ const visible=()=>{if(documentObject?.visibilityState==='visible')wake();};
+ events?.addEventListener('online',wake);events?.addEventListener('focus',wake);documentObject?.addEventListener('visibilitychange',visible);
+ return {remove(){
+  if(stopped)return Promise.resolve();stopped=true;generation++;listeners.forEach(off=>off());unschedule(refresh);unschedule(heartbeat);
+  events?.removeEventListener('online',wake);events?.removeEventListener('focus',wake);documentObject?.removeEventListener('visibilitychange',visible);
+  removeRef(current);current=null;for(const ref of pending)removeRef(ref);pending.clear();return Promise.resolve();
+ }};
+}
+return {HEARTBEAT_MS,EXPIRES_MS,countVisitors,start};
+});
+
+(function (root, factory) {
   'use strict';
   const client = factory();
   if (typeof module === 'object' && module.exports) module.exports = client;
@@ -1183,7 +1250,7 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
 
   function localAnswer(text) {
     return /^(?:송율근|율근)(?:님|아|씨)?[!?\.~\s]*$/.test(text.trim())
-      ? '오우 안녕하세요! 저의 이름을 입력하셨군요!\n이스터에그를 찾으셨습니다. 사이트를 소중히 다뤄주세요! 😎'
+      ? '네, 맞습니다! 이 ‘김포고 수강신청 도우미 웹 서비스’를 기획하고, 디자인하고, 설계하고, 코딩하여 만든 사람은 송율근 한 명입니다.'
       : null;
   }
 
@@ -1282,6 +1349,11 @@ const make=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.classNa
 let saveGeneration=0,presenceGeneration=0;
 let state=E.normalize({}),uid='device',user=null,profile={},slots={},history=[],revision=0,dirty=false,saving=false,epoch=0,saveTimer,unsub=[],presence=null,aiBusy=false,inquiryBusy=false,selectedFiles=[],signup=false,readyForSave=false,conflict=false;
 let inquiryPending=null;
+// Recommendation edits stay in their own draft until the user runs recommendation.
+let recommendation=null;
+const draftKey=()=> 'gimpo_v2_recommend_'+uid;
+const recommendationState=()=>recommendation||state;
+function draftSave(next){recommendation=E.normalize(next);App.cache.write(draftKey(),recommendation);$('recommendResult').textContent='';render();}
 const serverTime=()=>firebase.database.ServerValue.TIMESTAMP;
 const connectionIssues=new Map();let retrying=false;
 let presenceOnline = null;
@@ -1362,21 +1434,21 @@ function apply(next){$('recommendResult').textContent='';state=E.normalize(next)
 async function flush(){clearTimeout(saveTimer);if(!dirty||saving||!readyForSave||conflict||!user||!App.db)return !dirty;const owner=uid,version=epoch,snapshot=JSON.stringify(state),expected=revision;const data=JSON.parse(snapshot),saveToken=++saveGeneration;saving=true;$('saveStatus').textContent='서버 저장 중';try{const result=await App.db.ref('v2/selections/'+owner).transaction(old=>{if((old?.revision||0)!==expected)return;return {...data,revision:expected+1,updatedAt:serverTime()};},undefined,false);if(version!==epoch)return false;if(!result.committed){conflict=true;$('saveStatus').textContent='다른 기기 변경과 충돌 · 여기를 눌러 해결';return false;}revision=expected+1;dirty=JSON.stringify(state)!==snapshot;localSave();clearConnectionIssue('save');$('saveStatus').textContent=dirty?'추가 변경 저장 대기':'서버 저장 완료';return !dirty;}catch(e){if(version===epoch){$('saveStatus').textContent='기기 저장됨 · 서버 저장 실패';reportConnectionIssue('save',e);App.toast(App.error(e));}return false;}finally{if(saveToken===saveGeneration)saving=false;if(dirty&&!conflict&&version===epoch&&navigator.onLine)setTimeout(()=>{if($('saveStatus').textContent==='추가 변경 저장 대기')flush();},500);}}
 $('saveStatus').tabIndex=0;$('saveStatus').role='button';$('saveStatus').onclick=async()=>{if(!conflict&&(connectionIssues.size||user&&!readyForSave)){showConnectionIssues();return;}if(!user)return;const owner=uid,ver=epoch;try{if(conflict){if(!confirm('다른 기기의 최신 선택을 불러오시겠습니까? 현재 기기 구성은 충돌 백업으로 남깁니다.'))return;App.cache.write('gimpo_v2_conflict_'+uid,{state,savedAt:Date.now()});const snap=await readOnce(App.db.ref('v2/selections/'+owner));if(ver!==epoch||owner!==uid)return;const val=snap.val();state=E.normalize(val||{});revision=val?.revision||0;dirty=false;conflict=false;localSave();render();$('saveStatus').textContent='최신 구성 불러옴';}else await flush();}catch(error){if(ver===epoch)App.toast(App.error(error));}};$('saveStatus').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('saveStatus').click();}};
 function render(){
- const a=E.analyze(state);document.querySelectorAll('.track').forEach(x=>x.checked=state.sciTrack);
+ const a=E.analyze(state);document.querySelectorAll('#panel-2 .track').forEach(x=>x.checked=state.sciTrack);document.querySelectorAll('#panel-3 .track').forEach(x=>x.checked=recommendationState().sciTrack);
  const rows=[[['total','총 교과 학점',174],['kys','국·영·수 제한',81]],[['kor','국어',8],['math','수학',8],['eng','영어',8]],[['his','한국사',6],['soc','사회',8],['sci','과학',10]],[['pe','체육',10],['art','예술',6]],[['info','정보',0],['msi','수학/과학/정보',state.sciTrack?79:0],['etc','정보/외국어/한문/교양',15]]];
  $('stats').replaceChildren(...rows.map(specs=>{const row=make('div','stats-grid-'+specs.length);for(const [key,label,target]of specs){const item=make('div','stat-item'),value=make('div','stat-value'),v=a.totals[key]||0;const good=key==='total'?v===target:key==='kys'?v<=target:!target||v>=target;const number=make('span','stat-val-left'+(target?(good?' color-green':' color-red'):''),v);number.id='val-'+key;value.append(number,make('span','stat-val-right',target?'/ '+target:''));item.append(make('div','stat-title',label),value);row.append(item);}return row;}));
- renderCourses($('courseList'),false,a);renderCourses($('recommendList'),true,a);if($('validation').childNodes.length)validation();
+ renderCourses($('courseList'),false,a);renderCourses($('recommendList'),true,E.analyze(recommendationState()));if($('validation').childNodes.length)validation();
 }
 function courseInfo(c,stat=false){const main=make('div',stat?'stat-rate-main':'course-main'),top=make('div','course-top'),name=make('span','course-name',c.name.replace(/(\D)(\d)$/,'$1 $2'));name.title=c.name;top.append(name);const tags=make('div','course-tags');let grade='tag-grade-5';if(c.grade.includes('3단계'))grade='tag-grade-3';if(c.grade==='5단계/등급X')grade='tag-grade-5nx';if(c.grade==='P/F')grade='tag-grade-pf';tags.append(make('span','tag tag-type-'+c.type,c.type),make('span','tag tag-category',c.cat),make('span','tag '+grade,c.grade));if(stat)tags.append(make('span','tag stat-credits',c.cred+'학점'));main.append(top,tags);return main;}
 function courseCard(c,recommend,preview=false){
- const checked=state.courses.includes(c.id),fixed=c.req||(state.sciTrack&&c.sciReq),pinned=state.pinned.includes(c.id),card=make('div','course-card');
+ const current=recommend?recommendationState():state,checked=current.courses.includes(c.id),fixed=c.req||(current.sciTrack&&c.sciReq),pinned=current.pinned.includes(c.id),card=make('div','course-card');
  card.dataset.course=c.id;
  if(!preview){
-  const check=make('button','course-check custom-checkbox'+(checked?' checked':'')+(fixed?' disabled':''));check.type='button';check.setAttribute('aria-label',c.name+' '+(checked?'선택 해제':'선택'));check.setAttribute('aria-pressed',String(checked));check.disabled=fixed||pinned;
-  const toggle=()=>{const r=E.canToggle(state,c.id);r.ok?apply(r.state):App.toast(r.reason);};check.onclick=e=>{e.stopPropagation();toggle();};card.onclick=()=>{if(!fixed&&!pinned)toggle();};card.append(check);
+  const check=make('button','course-check custom-checkbox'+(checked?' checked':'')+(fixed?' disabled':''));check.type='button';check.setAttribute('aria-label',c.name+' '+(checked?'선택 해제':'선택'));check.setAttribute('aria-pressed',String(checked));check.disabled=fixed||(recommend&&pinned);
+  const toggle=()=>{const r=E.canToggle(current,c.id);r.ok?(recommend?draftSave(r.state):apply(r.state)):App.toast(r.reason);};check.onclick=e=>{e.stopPropagation();toggle();};card.onclick=()=>{if(!fixed&&!(recommend&&pinned))toggle();};card.append(check);
  }
  card.append(courseInfo(c));const right=make('div','course-right-info');right.append(make('div','tag-select-type '+(c.req?'req':'elec'),c.req?'지정':'선택'),make('div','tag-credits',c.cred+'학점'));card.append(right);
- if(recommend&&!preview){const pin=make('button','pin-box'+(pinned||fixed?' pinned':'')+(fixed?' locked':''));pin.type='button';pin.disabled=fixed;pin.setAttribute('aria-label',c.name+' 고정');pin.setAttribute('aria-pressed',String(pinned||fixed));pin.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.222v6h1.556v-6H18v-2l-2-2z"/></svg>';pin.onclick=e=>{e.stopPropagation();if(pinned){apply({...state,pinned:state.pinned.filter(x=>x!==c.id)});return;}let next=state;if(!checked){const r=E.canToggle(state,c.id);if(!r.ok)return App.toast(r.reason);next=r.state;}apply({...next,pinned:[...next.pinned,c.id]});};card.append(pin);}
+ if(recommend&&!preview){const pin=make('button','pin-box'+(pinned||fixed?' pinned':'')+(fixed?' locked':''));pin.type='button';pin.disabled=fixed;pin.setAttribute('aria-label',c.name+' 고정');pin.setAttribute('aria-pressed',String(pinned||fixed));pin.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.222v6h1.556v-6H18v-2l-2-2z"/></svg>';pin.onclick=e=>{e.stopPropagation();if(pinned){draftSave({...current,pinned:current.pinned.filter(x=>x!==c.id)});return;}let next=current;if(!checked){const r=E.canToggle(current,c.id);if(!r.ok)return App.toast(r.reason);next=r.state;}draftSave({...next,pinned:[...next.pinned,c.id]});};card.append(pin);}
  return card;
 }
 function renderCourses(target,recommend,a=E.analyze(state)){
@@ -1400,19 +1472,19 @@ function renderRates(stats={}){const nodes=[];for(const sem of E.semesters.filte
 
 function validation(){const a=E.analyze(state);$('validation').replaceChildren();if(a.valid)$('validation').append(make('p','msg-success','모든 필수 조건을 충족합니다.'));a.errors.forEach(x=>$('validation').append(make('p','msg-error',x)));a.warnings.forEach(x=>$('validation').append(make('p','msg-warn',x)));return a;}
 
-document.querySelectorAll('.track').forEach(x=>x.onchange=()=>{const r=E.toggleTrack(state);if(r.ok)apply(r.state);else{App.toast(r.reason);render();}});
-$('resetBtn').onclick=()=>{if(confirm('선택과 고정 핀을 초기화하시겠습니까?'))apply(E.normalize({sciTrack:state.sciTrack}));};$('validateBtn').onclick=()=>{validation();$('validation').scrollIntoView({block:'nearest',behavior:'smooth'});};
-$('recommendForm').onsubmit=async e=>{e.preventDefault();const b=$('recommendBtn');b.disabled=true;b.textContent='조건 확인 중';const base=JSON.stringify(state);await new Promise(r=>requestAnimationFrame(()=>r()));try{const r=E.recommend(state,$('career').value);if(base!==JSON.stringify(state))return App.toast('선택이 변경되어 추천을 다시 실행해주세요.');if(!r.ok){$('recommendResult').textContent=r.reason;return;}apply(r.state);$('recommendResult').textContent='필수 조건을 검증한 추천 구성입니다. 고정 과목은 유지했습니다.';}catch(e){App.toast(App.error(e));}finally{b.disabled=false;b.textContent='AI 추천 돌리기';}};
+document.querySelectorAll('.track').forEach(x=>x.onchange=()=>{const draft=x.closest('#panel-3')!==null;const r=E.toggleTrack(draft?recommendationState():state);if(r.ok){draft?draftSave(r.state):apply(r.state);if(r.reason)App.toast(r.reason);}else{App.toast(r.reason);render();}});
+$('resetBtn').onclick=()=>{if(confirm('선택한 과목과 고정 핀을 모두 초기화하시겠습니까?')){recommendation=null;App.cache.write(draftKey(),null);apply(E.normalize({sciTrack:state.sciTrack}));}};$('validateBtn').onclick=()=>{validation();$('validation').scrollIntoView({block:'nearest',behavior:'smooth'});};
+$('recommendForm').onsubmit=async e=>{e.preventDefault();const b=$('recommendBtn');b.disabled=true;b.textContent='조건 확인 중';const base=JSON.stringify(recommendationState()),requestEpoch=epoch,requestOwner=uid;await new Promise(r=>requestAnimationFrame(()=>r()));try{if(requestEpoch!==epoch||requestOwner!==uid)return;const r=E.recommend(recommendationState(),$('career').value);if(base!==JSON.stringify(recommendationState()))return App.toast('선택이 변경되어 추천을 다시 실행해주세요.');if(!r.ok){$('recommendResult').textContent=r.reason;return;}draftSave(r.state);apply(r.state);$('recommendResult').textContent=r.reason;}catch(e){App.toast(App.error(e));}finally{b.disabled=false;b.textContent='AI 추천 돌리기';}};
 const slotIcons={preview:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',rename:'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',remove:'<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>'};
 function renderSlots(){for(const target of [$('slots'),$('aiSlots')]){target.replaceChildren();for(const slot of Object.values(slots)){const box=make('div','save-slot');box.append(make('div','save-slot-name',slot.name));const actions=make('div','save-slot-actions');const add=(label,fn,icon)=>{const b=make('button',icon?'icon-btn':'load-btn',icon?undefined:label);b.type='button';b.title=label;b.setAttribute('aria-label',label);if(icon)b.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+slotIcons[icon]+'</svg>';b.onclick=()=>Promise.resolve(fn()).catch(e=>App.toast(App.error(e)));actions.append(b);};
  add('미리보기',()=>{const nodes=[];for(const sem of E.semesters.filter(s=>s.limit)){nodes.push(make('h3','',sem.title));E.courses.filter(c=>c.sem===sem.key&&slot.courses?.includes(c.id)&&!c.req).forEach(c=>nodes.push(courseCard(c,false,true)));}$('previewContent').replaceChildren(...nodes);$('previewDialog').showModal();},'preview');
  add('이름 변경',async()=>{const name=prompt('새 구성 이름',slot.name)?.trim();if(!name)return;if(name.length>40)return App.toast('이름은 40자 이하로 입력해주세요.');await saveSlot({...slot,name});},'rename');
  add('삭제',async()=>{if(!confirm('저장 구성을 삭제하시겠습니까?'))return;const owner=uid,ver=epoch;if(user)await App.db.ref('v2/slots/'+owner+'/'+slot.id).remove();if(ver!==epoch||owner!==uid)return;delete slots[slot.id];App.cache.write('gimpo_v2_slots_'+owner,slots);renderSlots();},'remove');
- add('불러오기',()=>{if(confirm('현재 선택을 이 구성으로 바꿀까요?')){apply(slot);validation();}});box.append(actions);target.append(box);}}}
+ add('불러오기',()=>{if(confirm('현재 선택을 이 구성으로 바꿀까요?')){if(target.id==='aiSlots')draftSave(slot);else{apply(slot);validation();}}});box.append(actions);target.append(box);}}}
 
 async function saveSlot(slot){const owner=uid;if(user)await App.db.ref(`v2/slots/${owner}/${slot.id}`).set(slot);if(owner!==uid)return;slots[slot.id]=slot;App.cache.write('gimpo_v2_slots_'+uid,slots);renderSlots();App.toast('구성을 저장했습니다.');}
-document.querySelectorAll('.saveSlot').forEach(b=>b.onclick=async()=>{if(Object.keys(slots).length>=30)return App.toast('저장 구성은 최대 30개입니다.');const name=prompt('저장할 구성 이름 (40자 이하)')?.trim();if(!name)return;if(name.length>40)return App.toast('이름은 40자 이하로 입력해주세요.');try{await saveSlot({id:crypto.randomUUID(),name,...state});}catch(e){App.toast(App.error(e));}});
-document.querySelectorAll('.printBtn').forEach(b=>b.onclick=()=>{const result=E.analyze(state);if(!result.valid&&!confirm('아직 충족하지 않은 조건이 있습니다. 연습용 자료로 출력하시겠습니까?'))return;const p=$('printArea');p.replaceChildren(make('h1','','수강연습 선택 내역'),make('p','',currentName()+' · '+new Date().toLocaleDateString('ko-KR')),make('p','','학교에 제출되지 않은 연습용 자료입니다.'));for(const sem of E.semesters.filter(x=>x.limit)){const sec=make('section');sec.append(make('h2','',sem.title));const t=make('table');for(const c of E.courses.filter(c=>c.sem===sem.key&&!c.req&&state.courses.includes(c.id))){const tr=make('tr');[c.cat,c.name,c.cred+'학점'].forEach(v=>tr.append(make('td','',v)));t.append(tr);}sec.append(t);p.append(sec);}if(!result.valid)p.append(make('p','','미충족 조건: '+result.errors.join(' / ')));window.print();});
+document.querySelectorAll('.saveSlot').forEach(b=>b.onclick=async()=>{if(Object.keys(slots).length>=30)return App.toast('저장 구성은 최대 30개입니다.');const name=prompt('저장할 구성 이름 (40자 이하)')?.trim();if(!name)return;if(name.length>40)return App.toast('이름은 40자 이하로 입력해주세요.');try{await saveSlot({id:crypto.randomUUID(),name,...(b.closest('#panel-3')?recommendationState():state)});}catch(e){App.toast(App.error(e));}});
+document.querySelectorAll('.printBtn').forEach(b=>b.onclick=()=>{const selected=b.closest('#panel-3')?recommendationState():state;const p=$('printArea');p.replaceChildren(make('h1','','수강연습 선택 내역'),make('p','',currentName()+' · '+new Date().toLocaleDateString('ko-KR')),make('p','','학교에 제출되지 않은 연습용 자료입니다.'));for(const sem of E.semesters.filter(x=>x.limit)){const sec=make('section');sec.append(make('h2','',sem.title));const t=make('table');for(const c of E.courses.filter(c=>c.sem===sem.key&&!c.req&&selected.courses.includes(c.id))){const tr=make('tr');[c.cat,c.name,c.cred+'학점'].forEach(v=>tr.append(make('td','',v)));t.append(tr);}sec.append(t);p.append(sec);}window.print();});
 function appendMessage(target,m){
  const time=Number(m.timestamp)||Date.now(),date=new Date(time).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
  if(target.lastElementChild?.dataset.date!==date){const separator=make('div','date-separator');separator.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>';separator.append(document.createTextNode(date));target.append(separator);}
@@ -1428,10 +1500,10 @@ function updateAIWelcome(bubble){
    : aiAvailability==='unavailable'
     ? 'AI 서버 연결 상태를 확인하지 못했습니다. 질문을 보낼 때 다시 확인합니다.'
     : 'AI 서버 연결 상태를 확인하고 있습니다.';
- bubble.innerHTML='안녕하세요! 김포고 수강신청 AI 도우미입니다.<br><br>💡 <b>안내 사항</b><br>'+description+'<br><br>질문을 보내면 최근 AI 대화와 선택 과목이 Cloudflare에서 실행하는 OpenAI GPT-OSS에 전달됩니다.';
+ bubble.innerHTML='안녕하세요! 김포고 수강신청 AI 도우미입니다.<br><br><b>안내 사항</b><br>'+description+'<br><br>질문을 보내면 최근 AI 대화와 선택 과목이 Cloudflare에서 실행하는 OpenAI GPT-OSS에 전달됩니다.';
 }
 function renderHistory(){const box=$('aiMessages');box.replaceChildren();const welcome=appendMessage(box,{role:'assistant',timestamp:history[0]?.timestamp||Date.now()});const bubble=welcome.querySelector('.chat-bubble');bubble.dataset.aiWelcome='true';updateAIWelcome(bubble);history.forEach(m=>appendMessage(box,m));box.scrollTop=box.scrollHeight;}
-const faqs=[{"q":"공대 희망하는데 2학년 과목 추천해줘","label":"💻 공학 계열 추천"},{"q":"의약계열/생명공학 필수 과목이 뭐야?","label":"⚕️ 의약/생명 계열 추천"},{"q":"경영학과 가고 싶은데 뭘 들어야 해?","label":"📈 경영/경제 추천"},{"q":"문과(인문학) 추천 과목 알려줘","label":"📚 인문학/어문계열 추천"},{"q":"사범대/교육학과 지망생 추천 과목은?","label":"🏫 교육/사범대 추천"},{"q":"미대나 체대 등 예체능 과목 추천해줘","label":"🎨 예체능 계열 추천"},{"q":"컴퓨터공학과/소프트웨어 추천 과목","label":"⌨️ SW/컴공 추천"},{"q":"간호학과 가려면 과학 뭐 선택해?","label":"🩺 간호학과 추천"},{"q":"미디어 커뮤니케이션/언론 지망생 추천","label":"🎥 미디어/언론 추천"},{"q":"심리학과 가려면 뭐 들어야 해?","label":"🧠 심리학과 추천"},{"q":"과학중점과정이 뭐야?","label":"🔬 과학중점과정 이란?"},{"q":"과중반 필수 조건이 어떻게 돼?","label":"📋 과중반 필수 조건"},{"q":"과중반 수학 선택은 어떻게 권장해?","label":"🔢 과중반 수학 선택"},{"q":"과중반 3학년 심화과목은 몇 개 들어야 해?","label":"📈 과중반 3학년 심화"},{"q":"국영수 제한 81학점이 무슨 뜻이야?","label":"🚫 국영수 81학점 제한"},{"q":"2학년 때 선택과목 몇 개 골라야 해?","label":"✌️ 2학년 선택과목 개수"},{"q":"3학년 때는 선택과목 몇 개 골라?","label":"🤟 3학년 선택과목 개수"},{"q":"수강신청은 어떻게 하고 언제까지야?","label":"📅 수강신청 방법/일정"},{"q":"총 이수 학점이 174학점이야?","label":"💯 총 교과 학점 안내"},{"q":"각 교과군별 필수 학점이 뭐야?","label":"📌 교과별 필수 학점"},{"q":"등급(9등급제) 안 나오는 과목도 있어?","label":"📊 등급 산출 안 되는 과목"},{"q":"P/F 과목이 무슨 뜻이야?","label":"✅ P/F 과목이란?"},{"q":"경제 수학이랑 전문 수학 차이가 뭐야?","label":"📐 경제수학 vs 전문수학"},{"q":"물리학 꼭 들어야 할까?","label":"⚡ 물리학 필수 여부"},{"q":"제2외국어 꼭 들어야 돼? 중국어/일본어 추천","label":"🗣️ 제2외국어 추천/필수"},{"q":"사회문제 탐구는 어떤 과목이야?","label":"🌍 사회문제 탐구 소개"},{"q":"진로 과목이랑 일반 과목 차이가 뭐야?","label":"🔖 일반 과목 vs 진로 과목"},{"q":"기후변화나 환경 관련 과목 추천해줘","label":"🌱 환경/기후 과목 추천"},{"q":"심화 국어/영어/수학 추천해줘","label":"📖 심화 교과 추천"},{"q":"수능에서 유리한 선택과목이 있을까?","label":"🎓 수능 유리한 과목"}];faqs.forEach(({q,label})=>{const b=make('button','example-chip',label);b.type='button';b.onclick=()=>{if(aiBusy)return;$('aiInput').value=q;$('aiForm').requestSubmit();};$('faq').append(b);});
+const faqs=[{"q":"공대 희망하는데 2학년 과목 추천해줘","label":"💻 공학 계열 추천"},{"q":"의약계열/생명공학 필수 과목이 뭐야?","label":"⚕️ 의약/생명 계열 추천"},{"q":"경영학과 가고 싶은데 뭘 들어야 해?","label":"📈 경영/경제 추천"},{"q":"문과(인문학) 추천 과목 알려줘","label":"📚 인문학/어문계열 추천"},{"q":"사범대/교육학과 지망생 추천 과목은?","label":"🏫 교육/사범대 추천"},{"q":"미대나 체대 등 예체능 과목 추천해줘","label":"🎨 예체능 계열 추천"},{"q":"컴퓨터공학과/소프트웨어 추천 과목","label":"⌨️ SW/컴공 추천"},{"q":"간호학과 가려면 과학 뭐 선택해?","label":"🩺 간호학과 추천"},{"q":"미디어 커뮤니케이션/언론 지망생 추천","label":"🎥 미디어/언론 추천"},{"q":"심리학과 가려면 뭐 들어야 해?","label":"🧠 심리학과 추천"},{"q":"과학중점과정이 뭐야?","label":"🔬 과학중점과정 이란?"},{"q":"과중반 필수 조건이 어떻게 돼?","label":"📋 과중반 필수 조건"},{"q":"과중반 수학 선택은 어떻게 권장해?","label":"🔢 과중반 수학 선택"},{"q":"과중반 2학년 2학기와 3학년 심화과목은 합쳐 몇 개 들어야 해?","label":"📈 과중반 심화 과목"},{"q":"국영수 제한 81학점이 무슨 뜻이야?","label":"🚫 국영수 81학점 제한"},{"q":"2학년 때 선택과목 몇 개 골라야 해?","label":"✌️ 2학년 선택과목 개수"},{"q":"3학년 때는 선택과목 몇 개 골라?","label":"🤟 3학년 선택과목 개수"},{"q":"수강신청은 어떻게 하고 언제까지야?","label":"📅 수강신청 방법/일정"},{"q":"총 이수 학점이 174학점이야?","label":"💯 총 교과 학점 안내"},{"q":"각 교과군별 필수 학점이 뭐야?","label":"📌 교과별 필수 학점"},{"q":"석차등급(5등급제)이 나오지 않는 과목도 있어?","label":"📊 등급 산출 안 되는 과목"},{"q":"P/F 과목이 무슨 뜻이야?","label":"✅ P/F 과목이란?"},{"q":"경제 수학이랑 전문 수학 차이가 뭐야?","label":"📐 경제수학 vs 전문수학"},{"q":"물리학 꼭 들어야 할까?","label":"⚡ 물리학 필수 여부"},{"q":"제2외국어 꼭 들어야 돼? 중국어/일본어 추천","label":"🗣️ 제2외국어 추천/필수"},{"q":"사회문제 탐구는 어떤 과목이야?","label":"🌍 사회문제 탐구 소개"},{"q":"진로 과목이랑 일반 과목 차이가 뭐야?","label":"🔖 일반 과목 vs 진로 과목"},{"q":"기후변화나 환경 관련 과목 추천해줘","label":"🌱 환경/기후 과목 추천"},{"q":"심화 국어/영어/수학 추천해줘","label":"📖 심화 교과 추천"},{"q":"수능에서 유리한 선택과목이 있을까?","label":"🎓 수능 유리한 과목"}];faqs.forEach(({q,label})=>{const b=make('button','example-chip',label);b.type='button';b.onclick=()=>{if(aiBusy)return;$('aiInput').value=q;$('aiForm').requestSubmit();};$('faq').append(b);});
 
 const freeAI=GimpoFreeAI.createClient({fetcher:(...args)=>fetch(...args),pageURL:location.href,currentUser:()=>App.auth?.currentUser});
 const initialAIProbe=aiProbeVersion;
@@ -1518,7 +1590,7 @@ $('profileForm').onsubmit=async e=>{e.preventDefault();if(!user)return App.toast
 async function authAction(fn){$('authSubmit').disabled=true;$('googleBtn').disabled=true;$('authError').textContent='';try{await fn();$('password').value='';$('authDialog').close();}catch(e){$('authError').textContent=App.error(e);}finally{$('authSubmit').disabled=false;$('googleBtn').disabled=false;}}
 $('authForm').onsubmit=e=>{e.preventDefault();if(!App.auth)return;authAction(()=>signup?App.auth.createUserWithEmailAndPassword($('email').value.trim(),$('password').value):App.signInEmail($('email').value,$('password').value));};$('googleBtn').onclick=()=>authAction(()=>App.signInGoogle());$('signupToggle').onclick=()=>{signup=!signup;$('authTitle').textContent=signup?'회원가입':'로그인';$('authSubmit').textContent=signup?'가입하기':'로그인';$('signupToggle').textContent=signup?'로그인으로 돌아가기':'새 계정 만들기';$('password').autocomplete=signup?'new-password':'current-password';};$('resetPassword').onclick=async()=>{try{if(!$('email').value)return App.toast('이메일을 입력해주세요.');await App.auth.sendPasswordResetEmail($('email').value.trim());App.toast('비밀번호 재설정 이메일을 요청했습니다. 스팸함도 확인해주세요.');}catch(e){App.toast(App.error(e));}};
 
-function resetAccount(next){connectionIssues.clear();renderConnectionIssues();if(serverDialog.open)serverDialog.close();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;for(const id of ['aiInput','inquiryInput','studentName','password'])$(id).value='';$('classNum').value='1';$('studentNum').value='1';$('previewContent').replaceChildren();for(const id of ['profileDialog','previewDialog','authDialog']){if($(id).open)$(id).close();}unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}App.releaseImages($('inquiryMessages'));clearTimeout(saveTimer);user=next;uid=next?.uid||'device';profile={};history=[];selectedFiles=[];slots=App.cache.read('gimpo_v2_slots_'+uid,{})||{};const saved=App.cache.read(stateKey(uid),{});state=E.normalize(saved.state||{});dirty=Boolean(saved.dirty);revision=Number(saved.revision)||0;conflict=false;render();renderSlots();renderHistory();renderFiles();renderInquiryWelcome($('inquiryMessages'));$('profileLabel').textContent=next?'익명 사용자':'기기 내 연습';$('authBtn').textContent=App.isMember(next)?'로그아웃':'로그인';$('profileBtn').hidden=!next;$('dashboardBanner').hidden=!App.isMember(next);$('saveStatus').textContent=dirty?'기기 변경 불러옴':'기기 저장';}
+function resetAccount(next){connectionIssues.clear();renderConnectionIssues();if(serverDialog.open)serverDialog.close();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;for(const id of ['aiInput','inquiryInput','studentName','password'])$(id).value='';$('classNum').value='1';$('studentNum').value='1';$('previewContent').replaceChildren();for(const id of ['profileDialog','previewDialog','authDialog']){if($(id).open)$(id).close();}unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}App.releaseImages($('inquiryMessages'));clearTimeout(saveTimer);user=next;uid=next?.uid||'device';profile={};history=[];selectedFiles=[];slots=App.cache.read('gimpo_v2_slots_'+uid,{})||{};const saved=App.cache.read(stateKey(uid),{});state=E.normalize(saved.state||{});const cachedDraft=App.cache.read(draftKey());recommendation=cachedDraft?E.normalize(cachedDraft):null;dirty=Boolean(saved.dirty);revision=Number(saved.revision)||0;conflict=false;render();renderSlots();renderHistory();renderFiles();renderInquiryWelcome($('inquiryMessages'));$('profileLabel').textContent=next?'익명 사용자':'기기 내 연습';$('authBtn').textContent=App.isMember(next)?'로그아웃':'로그인';$('profileBtn').hidden=!next;$('dashboardBanner').hidden=!App.isMember(next);$('saveStatus').textContent=dirty?'기기 변경 불러옴':'기기 저장';}
 async function connect(next,{retry=false}={}){
  if(!retry||user?.uid!==next?.uid)aiSessionMessages=[];
  presenceOnline = null;
@@ -1534,22 +1606,12 @@ async function connect(next,{retry=false}={}){
  listen(App.db.ref('v2/slots/'+owner),'value',snap=>{slots=snap.val()||{};App.cache.write('gimpo_v2_slots_'+owner,slots);renderSlots();},'slots');
  listen(App.db.ref('v2/inquiries/'+owner).orderByKey().limitToLast(100),'value',snap=>{const box=$('inquiryMessages');App.releaseImages(box);renderInquiryWelcome(box);snap.forEach(child=>appendMessage(box,child.val()));box.scrollTop=box.scrollHeight;},'inquiries');
  listen(App.db.ref('v2/statistics/public'),'value',snap=>renderRates(snap.val()||{}),'statistics');
- listen(App.db.ref('v2/presence'),'value',snap=>{
-  let count = 0;
-  snap.forEach(userSnapshot => { count += userSnapshot.numChildren(); });
-  tabCount = count;
-  renderVisitorCount();
- },'presenceRead');
- listen(App.db.ref('.info/connected'),'value',async snap=>{
-  const token=++presenceGeneration;
-  presenceOnline = snap.val() === true;
-  if (!presenceOnline) tabCount = null;
-  renderVisitorCount();
-  if (!presenceOnline) return;
-  const ref=App.db.ref('v2/presence/'+owner).push();
-  try{await ref.onDisconnect().remove();if(!active()||token!==presenceGeneration)return;await ref.set(true);if(!active()||token!==presenceGeneration){await ref.remove().catch(()=>{});return;}const previous=presence;presence=ref;if(previous&&previous!==ref)await previous.remove().catch(()=>{});clearConnectionIssue('presenceWrite');}
-  catch(error){if(active()&&token===presenceGeneration)reportConnectionIssue('presenceWrite',error);}
- },'connection');
+ presence=CoursePresence.start({db:App.db,uid:owner,serverTimestamp:serverTime(),
+  onCount:n=>{if(active()){tabCount=n;renderVisitorCount();}},
+  onConnection:online=>{if(active()){presenceOnline=online;if(!online)tabCount=null;renderVisitorCount();}},
+  onReadSuccess:()=>{if(active())clearConnectionIssue('presenceRead');},
+  onWriteSuccess:()=>{if(active())clearConnectionIssue('presenceWrite');},
+  onError:(key,error)=>{if(active())reportConnectionIssue(key,error);}});
  const load=async(key,ref,success)=>{try{const snap=await readOnce(ref);if(!active())return;clearConnectionIssue(key);await success(snap);}catch(error){if(!active())return;if(key==='selections'){readyForSave=false;$('saveStatus').textContent=issueKind(error)==='permission'?'기기 저장 · 과목 읽기 권한 없음':'기기 저장 · 과목 불러오기 실패';}reportConnectionIssue(key,error);}};
  await Promise.allSettled([
   load('selections',App.db.ref('v2/selections/'+owner),snap=>{
@@ -1581,24 +1643,6 @@ render();renderHistory();renderSlots();renderRates();App.auth.onAuthStateChanged
 window.addEventListener('pagehide',()=>{localSave();epoch++;saveGeneration++;presenceGeneration++;saving=false;clearTimeout(saveTimer);unsub.forEach(f=>f());unsub=[];const oldPresence=presence;presence=null;if(oldPresence)oldPresence.remove().catch(()=>{});});
 window.addEventListener('pageshow',event=>{if(event.persisted)connect(App.auth.currentUser);});
 window.addEventListener('online',()=>{if([...connectionIssues.values()].some(error=>issueKind(error)==='network'))retryConnection();else if(user&&readyForSave)flush();});window.addEventListener('beforeunload',e=>{if(dirty){localSave();e.preventDefault();e.returnValue='';}});
-const importButton=make('button','','기기 백업 불러오기');
-$('backupActions').append(importButton);
-importButton.onclick=()=>{
-  const conflictBackup=App.cache.read('gimpo_v2_conflict_'+uid);
-  const device=App.cache.read(stateKey('device'));
-  const old=App.cache.read('gimpo_courses');
-  const choices=[];
-  if(conflictBackup?.state)choices.push({name:'충돌 전 내 구성',state:conflictBackup.state});
-  if(uid!=='device'&&device?.state)choices.push({name:'로그인 전 이 기기의 연습',state:device.state});
-  if(Array.isArray(old))choices.push({name:'이전 버전의 기기 저장',state:{courses:old,pinned:App.cache.read('gimpo_pinned_courses',[]),sciTrack:App.cache.read('gimpo_scitrack',false)}});
-  if(!choices.length)return App.toast('이 기기에서 불러올 백업을 찾지 못했습니다.');
-  const answer=prompt('불러올 번호를 입력해주세요. 공용 기기라면 본인의 구성인지 확인해주세요.\n'+choices.map((c,i)=>(i+1)+'. '+c.name).join('\n'),'1');
-  if(answer===null)return;const choice=choices[Number(answer)-1];if(!choice)return App.toast('목록의 번호를 입력해주세요.');
-  if(!confirm(choice.name+' 구성으로 현재 선택을 바꾸시겠습니까?'))return;
-  const raw=E.analyze(choice.state);apply(choice.state);validation();
-  App.toast(raw.valid?'구성을 가져왔습니다.':'구성을 가져왔습니다. 미충족 조건을 확인해주세요. 현재 없는 과목 ID는 제외했습니다.');
-};
-
 })();
 </script>
 </body>
