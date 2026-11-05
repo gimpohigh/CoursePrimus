@@ -52,7 +52,7 @@ test('signed caller reaches a fixed model and final-only output without identity
   assert.equal(f.seen.ai[0][1].store, false);
   assert.equal(JSON.stringify(f.seen.ai).includes('synthetic-guest'), false);
   assert.equal(JSON.stringify(f.seen.ai).includes('192.0.2.1'), false);
-  assert.ok(f.seen.ai[0][1].messages[0].content.includes('"columns"'));
+  assert.match(f.seen.ai[0][1].messages[0].content, /교과 총 174학점 \+ 창의적 체험활동 18학점/);
 });
 
 test('CORS, token, role injection, changed model, unknown course, oversized and malformed input fail before model', async () => {

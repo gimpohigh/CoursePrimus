@@ -47,7 +47,7 @@ npm run deploy
 
 - `POST /chat`은 `Origin: https://gimpohigh.github.io`, `Authorization: Bearer <Firebase ID token>`, `Content-Type: application/json`을 사용합니다.
 - 본문은 `{messages:[{role:"user"|"assistant",text:"..."}],courses:["과목ID"],sciTrack:false}`입니다. 최근 대화 12개, 각 4,000자, 대화 총 16,000자, JSON 전체 32KiB 이내입니다. 모델명과 시스템 프롬프트는 서버가 고정합니다.
-- 성공 응답은 `{text:"최종 한국어 답변",model:"@cf/openai/gpt-oss-20b"}`이며 text는 최대 8,000자입니다. 모델 출력은 최대 768토큰, reasoning effort는 low입니다. 내부 분석 문장은 반환하지 않습니다.
+- 성공 응답은 `{text:"최종 한국어 답변",model:"@cf/openai/gpt-oss-20b"}`이며 text는 최대 8,000자입니다. 모델 출력은 기본 최대 768토큰, 상세 설명 요청 시 최대 2,048토큰이며, reasoning effort는 low입니다. 내부 분석 문장은 반환하지 않습니다.
 - 실패 응답은 `{error:{code:"...",message:"사용자 안내"}}`입니다. 잘못된 입력은 400/413/415, 인증은 401/403, 이용량은 429, 서버·불완전한 답변은 503/504로 구분합니다. 무료 한도 초과가 서버에서 HTTP 400과 내부 코드 3036/4006/4007로 오는 경우도 429로 안내합니다.
 - 기존 사이트의 `ai-config.json`에는 `workerUrl`을 이 Worker의 `/chat` 주소로 지정합니다. 인증 토큰은 프런트엔드에서 `getIdToken()`으로 받아 요청할 때만 전달합니다.
 
@@ -67,3 +67,7 @@ npm run deploy
 - [Firebase ID 토큰 검증](https://firebase.google.com/docs/auth/admin/verify-id-tokens)
 - [OpenAI gpt-oss 모델의 Apache 2.0 라이선스](https://developers.openai.com/api/docs/models/gpt-oss-20b)
 - [Cloudflare 데이터 이용](https://developers.cloudflare.com/workers-ai/platform/data-usage/)
+
+2026년 11월 5일 요청 반영
+
+학교 과목 113개와 운영자 제공 조건은 `courses.json`, `school-context.json`에 보관합니다. 질문에 관련된 자료를 골라 GPT에 전달하며, 수강연습의 기존 과목표·검증 조건은 변경하지 않습니다. 송율근 입력에는 운영자가 지정한 제작자 소개를 반환합니다. 일반 답변은 핵심 중심이고, 상세 요청에는 설명을 늘립니다. 대학별 공식 모집요강 없이 지원 필수를 단정한 문장은 확인 안내로 교정합니다.
