@@ -613,11 +613,11 @@
     <form id="profileForm" class="update-modal">
         <div class="update-modal-header"><span id="profileTitle">프로필 수정</span><button class="update-modal-close" type="button" data-close="profileDialog" aria-label="프로필 창 닫기">✖</button></div>
         <div class="update-modal-body">
-            <div style="font-size: 14px; margin-bottom: 10px; line-height: 1.4;">변경할 이름, 반, 번호를 설정해주세요.</div>
+            <div id="profileInstruction" style="font-size: 14px; margin-bottom: 10px; line-height: 1.4;">변경할 이름, 반, 번호를 설정해주세요. 관리자 승인 후 프로필이 바뀝니다.</div>
             <input id="studentName" class="auth-input" type="text" maxlength="30" placeholder="이름 또는 익명 닉네임" aria-label="이름 또는 익명 닉네임" autocomplete="name" required>
             <div class="auth-row" style="margin-top: 8px;"><select id="classNum" class="auth-input" aria-label="반" required></select><select id="studentNum" class="auth-input" aria-label="번호" required></select></div>
         </div>
-        <button class="update-modal-footer" type="submit">수정 완료</button>
+        <button id="profileSubmit" class="update-modal-footer" type="submit">수정 승인 요청</button>
     </form>
 </dialog>
 <dialog id="previewDialog" aria-labelledby="previewTitle">
@@ -692,6 +692,170 @@ window.App = (() => {
   };
   return api;
 })();
+</script>
+<script>/* Private inquiry attachments for the existing Firebase Realtime Database. */
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.InquiryMedia=factory();})(typeof globalThis!=='undefined'?globalThis:this,function(){
+'use strict';
+const MAX_SOURCE=5*1024*1024,MAX_BYTES=300*1024,MAX_EDGE=1600;
+const TYPES=['image/jpeg','image/png','image/webp'];
+const UID=/^[A-Za-z0-9_-]{1,128}$/;
+const PATH=/^v2\/inquiryImages\/[A-Za-z0-9_-]{1,128}\/[A-Za-z0-9_-]{1,100}$/;
+function signature(bytes,mime){
+ const n=bytes.length,hex=(a,b)=>Array.from(bytes.slice(a,b),x=>x.toString(16).padStart(2,'0')).join(''),ascii=(a,b)=>String.fromCharCode(...bytes.slice(a,b));
+ if(mime==='image/jpeg')return n>=12&&hex(0,3)==='ffd8ff'&&hex(n-2,n)==='ffd9';
+ if(mime==='image/png')return n>=45&&hex(0,8)==='89504e470d0a1a0a'&&hex(8,12)==='0000000d'&&ascii(12,16)==='IHDR'&&hex(n-8,n)==='49454e44ae426082';
+ if(mime==='image/webp')return n>=20&&ascii(0,4)==='RIFF'&&new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength).getUint32(4,true)===n-8&&ascii(8,12)==='WEBP'&&['VP8 ','VP8L','VP8X'].includes(ascii(12,16));
+ return false;
+}
+function bytesToBase64(bytes){let raw='';for(let i=0;i<bytes.length;i+=8192)raw+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(raw);}
+function decodeRecord(record){
+ if(!record||!TYPES.includes(record.mime)||typeof record.data!=='string'||record.data.length===0||record.data.length>4*Math.ceil(MAX_BYTES/3)||record.data.length%4||!/^[A-Za-z0-9+/]+={0,2}$/.test(record.data))throw new Error('사진 데이터 형식이 올바르지 않습니다.');
+ let raw;try{raw=atob(record.data);}catch{throw new Error('사진 데이터 형식이 올바르지 않습니다.');}
+ if(raw.length>MAX_BYTES||btoa(raw)!==record.data)throw new Error('사진 데이터 크기나 형식이 올바르지 않습니다.');
+ const bytes=Uint8Array.from(raw,c=>c.charCodeAt(0));
+ if(!signature(bytes,record.mime))throw new Error('사진 파일 형식과 내용이 일치하지 않습니다.');
+ return bytes;
+}
+function normalizedName(name,mime){const original=typeof name==='string'?name.trim():'사진';const stem=(original||'사진').replace(/\.[^.]+$/,'').slice(0,110)||'사진';return stem+({ 'image/jpeg':'.jpg','image/png':'.png','image/webp':'.webp' }[mime]);}
+async function loadImage(file,view){
+ if(typeof view.createImageBitmap==='function')return view.createImageBitmap(file);
+ return new Promise((resolve,reject)=>{const url=view.URL.createObjectURL(file),img=new view.Image();img.onload=()=>{view.URL.revokeObjectURL(url);resolve(img);};img.onerror=()=>{view.URL.revokeObjectURL(url);reject(new Error('사진을 읽을 수 없습니다.'));};img.src=url;});
+}
+async function compress(file,view,doc){
+ const raw=new Uint8Array(await file.arrayBuffer());
+ if(raw.length===0||raw.length>MAX_SOURCE||!signature(raw,file.type))throw new Error('JPG·PNG·WEBP 사진을 각 5MB 이하로 선택해주세요.');
+ const image=await loadImage(file,view);
+ try{
+  const width=image.width||image.naturalWidth,height=image.height||image.naturalHeight;
+  if(!Number.isFinite(width)||!Number.isFinite(height)||width<1||height<1)throw new Error('사진 크기를 읽을 수 없습니다.');
+  const ratio=Math.min(1,MAX_EDGE/Math.max(width,height)),canvas=doc.createElement('canvas'),ctx=canvas.getContext('2d');
+  if(!ctx)throw new Error('이 브라우저에서 사진을 준비할 수 없습니다.');
+  let w=Math.max(1,Math.round(width*ratio)),h=Math.max(1,Math.round(height*ratio));
+  const targetType=file.type==='image/jpeg'?'image/jpeg':'image/webp';
+  for(let round=0;round<6;round++){
+   canvas.width=w;canvas.height=h;ctx.drawImage(image,0,0,w,h);
+   for(const quality of [.8,.65,.5]){
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,targetType,quality));
+    if(!blob)throw new Error('사진을 준비하지 못했습니다. 다시 선택해주세요.');
+    if(blob.size>0&&blob.size<=MAX_BYTES){const bytes=new Uint8Array(await blob.arrayBuffer());if(!signature(bytes,blob.type))throw new Error('사진 변환에 실패했습니다.');return {mime:blob.type,data:bytesToBase64(bytes),name:normalizedName(file.name,blob.type)};}
+   }
+   w=Math.max(1,Math.round(w*.75));h=Math.max(1,Math.round(h*.75));
+  }
+  throw new Error('사진 용량을 줄이지 못했습니다. 더 작은 사진을 선택해주세요.');
+ }finally{image.close?.();}
+}
+function create({db,auth,serverTimestamp,environment={}}){
+ const view=environment.window||(typeof window!=='undefined'?window:globalThis),doc=environment.document||view.document;
+ const encode=environment.encodeFile||(file=>compress(file,view,doc));
+ const uuid=environment.uuid||(()=>view.crypto.randomUUID());
+ const timestamp=()=>typeof serverTimestamp==='function'?serverTimestamp():serverTimestamp||{'.sv':'timestamp'};
+ async function uploadImages(uid,files){
+  if(!Array.isArray(files))files=Array.from(files||[]);
+  if(files.length===0)return [];
+  if(!UID.test(uid)||!auth.currentUser?.uid)throw new Error('사진 첨부는 서버 연결 후 이용할 수 있습니다.');
+  if(files.length>3||files.some(file=>!TYPES.includes(file.type)||!Number.isFinite(file.size)||file.size<=0||file.size>MAX_SOURCE))throw new Error('JPG·PNG·WEBP 사진을 3장, 각 5MB 이하로 선택해주세요.');
+  const uploaderUid=auth.currentUser.uid,records={},references=[];
+  for(const file of files){
+   const encoded=await encode(file);decodeRecord(encoded);
+   if(auth.currentUser?.uid!==uploaderUid)throw new Error('로그인 계정이 바뀌었습니다. 사진을 다시 첨부해주세요.');
+   const id=uuid();if(!/^[A-Za-z0-9_-]{1,100}$/.test(id))throw new Error('사진 저장 정보를 만들지 못했습니다.');
+   const name=typeof encoded.name==='string'&&encoded.name.length>0?encoded.name.slice(0,120):normalizedName(file.name,encoded.mime);
+   records[id]={uploaderUid,mime:encoded.mime,data:encoded.data,name,createdAt:timestamp()};
+   references.push({dbPath:`v2/inquiryImages/${uid}/${id}`,name});
+  }
+  // One atomic write prevents partially uploaded batches when one file fails.
+  await db.ref(`v2/inquiryImages/${uid}`).update(records);
+  return references;
+ }
+ async function imageElement(image){
+  const wrap=doc.createElement('div');
+  try{
+   if(!image||typeof image.dbPath!=='string'||!PATH.test(image.dbPath))throw new Error('사진 경로가 올바르지 않습니다.');
+   const snap=await db.ref(image.dbPath).once('value'),record=snap.val(),bytes=decodeRecord(record);
+   const blob=new view.Blob([bytes],{type:record.mime}),url=view.URL.createObjectURL(blob),img=doc.createElement('img'),link=doc.createElement('a');
+   const name=typeof record.name==='string'?record.name.slice(0,120):'문의 사진';
+   img.src=url;img.alt=name;img.style.cssText='max-width:100%;width:220px;border-radius:12px;display:block';
+   link.href=url;link.download=name;link.textContent='이미지 저장';wrap.append(img,link);
+  }catch{wrap.textContent='사진을 불러오지 못했습니다. 연결 상태를 확인해주세요.';}
+  return wrap;
+ }
+ return {uploadImages,imageElement};
+}
+return {create,decodeRecord,signature,MAX_BYTES,MAX_SOURCE,MAX_EDGE};
+});
+
+/* Profile approval and inquiry mail use the existing Apps Script and Firebase. */
+(function(root,factory){
+ const api=factory();
+ if(typeof module==='object'&&module.exports)module.exports=api;
+ else {
+  root.GimpoSupport=api;
+  const app=root.App;
+  if(app&&!app.offline&&app.db&&app.auth){
+   app.support=api.create({db:app.db,auth:app.auth,serverTimestamp:()=>firebase.database.ServerValue.TIMESTAMP});
+   const media=root.InquiryMedia.create({db:app.db,auth:app.auth,serverTimestamp:()=>firebase.database.ServerValue.TIMESTAMP});
+   const legacyImage=app.imageElement;
+   app.uploadImages=(uid,files)=>media.uploadImages(uid,files);
+   app.imageElement=image=>image?.dbPath?media.imageElement(image):legacyImage(image);
+   app.canAttachImages=()=>Boolean(app.auth.currentUser);
+  }
+ }
+})(typeof globalThis!=='undefined'?globalThis:this,function(){
+ 'use strict';
+ const WEB_APP_URL='https://script.google.com/macros/s/AKfycbzHSzopZm8oQcPGqSmteuCJKanULIptcelUfvqG9OgGlz4vD019ZgndZnYNwGZy9EcMoA/exec';
+ function failure(code,message){return Object.assign(new Error(message),{code});}
+ function normalizeProfile(data){
+  const value={grade:1,name:String(data?.name||'').trim(),classNum:String(Number(data?.classNum)),studentNum:String(Number(data?.studentNum))};
+  if(!value.name||value.name.length>30||!/^(?:[1-9]|1[0-2])$/.test(value.classNum)||!/^(?:[1-9]|[12][0-9]|3[0-5])$/.test(value.studentNum))throw failure('profile/invalid','이름, 반, 번호를 확인해주세요.');
+  return value;
+ }
+ function create({db,auth,serverTimestamp=()=>({'.sv':'timestamp'}),fetcher=(...args)=>fetch(...args),randomId=()=>crypto.randomUUID(),webAppUrl=WEB_APP_URL}){
+  function owner(user){if(!user?.uid||auth.currentUser?.uid!==user.uid)throw failure('auth/changed','로그인 계정이 변경되었습니다. 다시 시도해주세요.');return user.uid;}
+  async function wake(user){
+   try{
+    owner(user);const idToken=await user.getIdToken();owner(user);
+    // An opaque response is only a wake-up acknowledgement, never proof of mail delivery.
+    await fetcher(webAppUrl,{method:'POST',mode:'no-cors',credentials:'omit',keepalive:true,headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({action:'wake',idToken}),signal:AbortSignal.timeout(20000)});
+    return true;
+   }catch{return false;} // The durable database queue is retried by the mail server.
+  }
+  async function syncContact(user){const uid=owner(user);await db.ref('v2/inquiryContacts/'+uid).set({email:user.email||'',grade:1});}
+  async function createProfile(user,data){
+   const uid=owner(user),profile=normalizeProfile(data);
+   const result=await db.ref('v2/profiles/'+uid).transaction(old=>old==null?profile:undefined,undefined,false);
+   owner(user);if(!result.committed)throw failure('profile/exists','이미 등록된 프로필이 있습니다. 수정 요청으로 변경해주세요.');
+   return result.snapshot.val();
+  }
+  async function requestProfileChange(user,data){
+   const uid=owner(user),to=normalizeProfile(data),requestId=randomId();
+   const request={requestId,to,createdAt:serverTimestamp(),status:'pending'};
+   const result=await db.ref('v2/profileChangeRequests/'+uid).transaction(old=>old?.status==='pending'?undefined:request,undefined,false);
+   owner(user);if(!result.committed)throw failure('profile/pending','이미 승인 대기 중인 프로필 수정 요청이 있습니다.');
+   return result.snapshot.val();
+  }
+  async function persistInquiry(user,messageId,payload){
+   const uid=owner(user);
+   if(typeof messageId!=='string'||!/^[-A-Za-z0-9_]{1,100}$/.test(messageId)||payload?.role!=='user')throw failure('inquiry/invalid','문의 전송 정보를 확인해주세요.');
+   const messagePath='v2/inquiries/'+uid+'/'+messageId,queuePath='v2/mailQueue/'+uid+'/'+messageId;
+   const matches=value=>value&&value.role==='user'&&value.text===payload.text&&value.senderName===payload.senderName&&JSON.stringify(value.images||[])===JSON.stringify(payload.images||[]);
+   const previous=await db.ref(messagePath).once('value');owner(user);
+   if(previous.exists()){
+    if(!matches(previous.val()))throw failure('inquiry/conflict','같은 문의 번호에 다른 내용이 저장되어 있습니다. 다시 확인해주세요.');
+    const queue=await db.ref(queuePath).once('value');owner(user);
+    if(!queue.exists())await db.ref(queuePath).set({createdAt:serverTimestamp(),status:'pending'});
+   }else{
+    try{
+     await db.ref().update({[messagePath]:payload,[queuePath]:{createdAt:serverTimestamp(),status:'pending'}});
+    }catch(error){
+     const [message,queue]=await Promise.all([db.ref(messagePath).once('value'),db.ref(queuePath).once('value')]).catch(()=>[]);
+     if(!message||!queue||!matches(message.val())||!queue.exists())throw error;
+    }
+   }
+  }
+  return {syncContact,createProfile,requestProfileChange,persistInquiry,wake};
+ }
+ return {create,normalizeProfile,WEB_APP_URL};
+});
 </script>
 <script>(function(root,factory){if(typeof module === "object" && module.exports){module.exports=factory();}else{root.CourseEngine=factory();}})(typeof globalThis !== "undefined" ? globalThis : this,function(){"use strict";
 const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":"공통국어 1","type":"공통","cat":"국어","grade":"5단계/등급O","req":true,"cred":4},{"id":"11_02","sem":"1-1","name":"공통수학 1","type":"공통","cat":"수학","grade":"5단계/등급O","req":true,"cred":4},{"id":"11_03","sem":"1-1","name":"공통영어 1","type":"공통","cat":"영어","grade":"5단계/등급O","req":true,"cred":3},{"id":"11_04","sem":"1-1","name":"한국사 1","type":"공통","cat":"한국사","grade":"5단계/등급O","req":true,"cred":3},{"id":"11_05","sem":"1-1","name":"통합사회 1","type":"공통","cat":"사회","grade":"5단계/등급O","req":true,"cred":3},{"id":"11_06","sem":"1-1","name":"통합과학 1","type":"공통","cat":"과학","grade":"5단계/등급O","req":true,"cred":4},{"id":"11_07","sem":"1-1","name":"과학탐구실험 1","type":"공통","cat":"과학","grade":"3단계/등급X","req":true,"cred":1},{"id":"11_08","sem":"1-1","name":"체육 1","type":"공통","cat":"체육","grade":"3단계/등급X","req":true,"cred":2},{"id":"11_09","sem":"1-1","name":"음악/미술","type":"공통","cat":"예술","grade":"3단계/등급X","req":true,"cred":2},{"id":"11_10","sem":"1-1","name":"정보/한문","type":"공통","cat":"정보","grade":"5단계/등급O","req":true,"cred":3},{"id":"12_01","sem":"1-2","name":"공통국어 2","type":"공통","cat":"국어","grade":"5단계/등급O","req":true,"cred":3},{"id":"12_02","sem":"1-2","name":"공통수학 2","type":"공통","cat":"수학","grade":"5단계/등급O","req":true,"cred":4},{"id":"12_03","sem":"1-2","name":"공통영어 2","type":"공통","cat":"영어","grade":"5단계/등급O","req":true,"cred":4},{"id":"12_04","sem":"1-2","name":"한국사 2","type":"공통","cat":"한국사","grade":"5단계/등급O","req":true,"cred":3},{"id":"12_05","sem":"1-2","name":"통합사회 2","type":"공통","cat":"사회","grade":"5단계/등급O","req":true,"cred":3},{"id":"12_06","sem":"1-2","name":"통합과학 2","type":"공통","cat":"과학","grade":"5단계/등급O","req":true,"cred":4},{"id":"12_07","sem":"1-2","name":"과학탐구실험 2","type":"공통","cat":"과학","grade":"3단계/등급X","req":true,"cred":1},{"id":"12_08","sem":"1-2","name":"체육 2","type":"공통","cat":"체육","grade":"3단계/등급X","req":true,"cred":2},{"id":"12_09","sem":"1-2","name":"미술/음악","type":"공통","cat":"예술","grade":"3단계/등급X","req":true,"cred":2},{"id":"12_10","sem":"1-2","name":"한문/정보","type":"공통","cat":"한문","grade":"5단계/등급O","req":true,"cred":3},{"id":"21_01","sem":"2-1","name":"문학","type":"일반","cat":"국어","grade":"5단계/등급O","req":true,"cred":4},{"id":"21_02","sem":"2-1","name":"대수","type":"일반","cat":"수학","grade":"5단계/등급O","req":true,"cred":4},{"id":"21_03","sem":"2-1","name":"영어 I","type":"일반","cat":"영어","grade":"5단계/등급O","req":true,"cred":4},{"id":"21_04","sem":"2-1","name":"스포츠 생활 1","type":"융합","cat":"체육","grade":"3단계/등급X","req":true,"cred":2},{"id":"21_s01","sem":"2-1","name":"주제 탐구 독서","type":"진로","cat":"국어","grade":"5단계/등급O","req":false,"cred":3},{"id":"21_s02","sem":"2-1","name":"인공지능 수학","type":"진로","cat":"수학","grade":"5단계/등급O","req":false,"cred":3},{"id":"21_s03","sem":"2-1","name":"영어 독해와 작문","type":"진로","cat":"영어","grade":"5단계/등급O","req":false,"cred":3},{"id":"21_s04","sem":"2-1","name":"세계 시민과 지리","type":"일반","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"21_s05","sem":"2-1","name":"세계사","type":"일반","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"21_s06","sem":"2-1","name":"현대사회와 윤리","type":"일반","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"21_s07","sem":"2-1","name":"정치","type":"진로","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"21_s08","sem":"2-1","name":"경제","type":"진로","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"21_s09","sem":"2-1","name":"물리학","type":"일반","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciReq":true},{"id":"21_s10","sem":"2-1","name":"화학","type":"일반","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciReq":true},{"id":"21_s11","sem":"2-1","name":"생명과학","type":"일반","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciReq":true},{"id":"21_s12","sem":"2-1","name":"지구과학","type":"일반","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciReq":true},{"id":"21_s13","sem":"2-1","name":"기초 체육 전공 실기","type":"진로","cat":"체육","grade":"5단계/등급O","req":false,"cred":3,"pair":"체육실기1"},{"id":"21_s14","sem":"2-1","name":"인공지능 기초","type":"진로","cat":"정보","grade":"5단계/등급O","req":false,"cred":3},{"id":"21_s15","sem":"2-1","name":"일본어","type":"일반","cat":"제2외국어","grade":"5단계/등급O","req":false,"cred":3},{"id":"21_s16","sem":"2-1","name":"중국어","type":"일반","cat":"제2외국어","grade":"5단계/등급O","req":false,"cred":3},{"id":"22_01","sem":"2-2","name":"화법과 언어","type":"일반","cat":"국어","grade":"5단계/등급O","req":true,"cred":4},{"id":"22_02","sem":"2-2","name":"미적분 I","type":"일반","cat":"수학","grade":"5단계/등급O","req":true,"cred":4},{"id":"22_03","sem":"2-2","name":"영어 II","type":"일반","cat":"영어","grade":"5단계/등급O","req":true,"cred":4},{"id":"22_04","sem":"2-2","name":"스포츠 생활 2","type":"융합","cat":"체육","grade":"3단계/등급X","req":true,"cred":2},{"id":"22_s01","sem":"2-2","name":"문학과 영상","type":"진로","cat":"국어","grade":"5단계/등급O","req":false,"cred":3},{"id":"22_s02","sem":"2-2","name":"기하","type":"진로","cat":"수학","grade":"5단계/등급O","req":false,"cred":3},{"id":"22_s03","sem":"2-2","name":"영어 발표와 토론","type":"진로","cat":"영어","grade":"5단계/등급O","req":false,"cred":3},{"id":"22_s04","sem":"2-2","name":"동아시아 역사 기행","type":"진로","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"22_s05","sem":"2-2","name":"법과 사회","type":"진로","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"22_s06","sem":"2-2","name":"윤리와 사상","type":"진로","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"22_s07","sem":"2-2","name":"한국지리 탐구","type":"진로","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"22_s08","sem":"2-2","name":"금융과 경제생활","type":"융합","cat":"사회","grade":"5단계/등급X","req":false,"cred":3},{"id":"22_s09","sem":"2-2","name":"역학과 에너지","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true},{"id":"22_s10","sem":"2-2","name":"물질과 에너지","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true},{"id":"22_s11","sem":"2-2","name":"세포와 물질대사","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true},{"id":"22_s12","sem":"2-2","name":"지구시스템 과학","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true},{"id":"22_s13","sem":"2-2","name":"융합과학 탐구","type":"융합","cat":"과학","grade":"5단계/등급X","req":false,"cred":3},{"id":"22_s14","sem":"2-2","name":"기초 체육 전공 실기","type":"진로","cat":"체육","grade":"5단계/등급O","req":false,"cred":3,"pair":"체육실기1"},{"id":"22_s15","sem":"2-2","name":"데이터 과학","type":"진로","cat":"정보","grade":"5단계/등급O","req":false,"cred":3},{"id":"22_s16","sem":"2-2","name":"일본어 회화","type":"진로","cat":"제2외국어","grade":"5단계/등급O","req":false,"cred":3},{"id":"22_s17","sem":"2-2","name":"중국 문화","type":"융합","cat":"제2외국어","grade":"5단계/등급O","req":false,"cred":3},{"id":"31_01","sem":"3-1","name":"독서와 작문","type":"일반","cat":"국어","grade":"5단계/등급O","req":true,"cred":3},{"id":"31_02","sem":"3-1","name":"확률과 통계","type":"일반","cat":"수학","grade":"5단계/등급O","req":true,"cred":3},{"id":"31_03","sem":"3-1","name":"심화 영어 독해와 작문","type":"진로","cat":"영어","grade":"5단계/등급O","req":true,"cred":3},{"id":"31_04","sem":"3-1","name":"스포츠 문화","type":"진로","cat":"체육","grade":"3단계/등급X","req":true,"cred":1},{"id":"31_05","sem":"3-1","name":"고시외 과목","type":"융합","cat":"교양","grade":"P/F","req":true,"cred":1},{"id":"31_s01","sem":"3-1","name":"언어생활 탐구","type":"융합","cat":"국어","grade":"5단계/등급O","req":false,"cred":3},{"id":"31_s02","sem":"3-1","name":"미적분 II","type":"진로","cat":"수학","grade":"5단계/등급O","req":false,"cred":3},{"id":"31_s03","sem":"3-1","name":"세계 문화와 영어","type":"융합","cat":"영어","grade":"5단계/등급O","req":false,"cred":3},{"id":"31_s04","sem":"3-1","name":"도시의 미래 탐구","type":"진로","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"31_s05","sem":"3-1","name":"사회와 문화","type":"일반","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"31_s06","sem":"3-1","name":"인문학과 윤리","type":"진로","cat":"사회","grade":"5단계/등급O","req":false,"cred":3},{"id":"31_s07","sem":"3-1","name":"역사로 탐구하는 현대 세계","type":"융합","cat":"사회","grade":"5단계/등급X","req":false,"cred":3},{"id":"31_s08","sem":"3-1","name":"기후변화와 지속 가능한 세계","type":"융합","cat":"사회","grade":"5단계/등급X","req":false,"cred":3,"pair":"기후지속"},{"id":"31_s09","sem":"3-1","name":"전자기와 양자","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true,"pair":"전자기"},{"id":"31_s10","sem":"3-1","name":"화학 반응의 세계","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true,"pair":"화학반응"},{"id":"31_s11","sem":"3-1","name":"생물의 유전","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true,"pair":"유전"},{"id":"31_s12","sem":"3-1","name":"행성우주과학","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true,"pair":"행성"},{"id":"31_s13","sem":"3-1","name":"기후변화와 환경생태","type":"융합","cat":"과학","grade":"5단계/등급X","req":false,"cred":3,"pair":"기후환경"},{"id":"31_s14","sem":"3-1","name":"음악 연주와 창작","type":"진로","cat":"예술","grade":"3단계/등급X","req":false,"cred":3},{"id":"31_s15","sem":"3-1","name":"미술 창작","type":"진로","cat":"예술","grade":"3단계/등급X","req":false,"cred":3},{"id":"31_s16","sem":"3-1","name":"심화 체육 전공 실기","type":"진로","cat":"체육","grade":"5단계/등급O","req":false,"cred":3,"pair":"체육실기2"},{"id":"31_s17","sem":"3-1","name":"정보 과학","type":"진로","cat":"정보","grade":"5단계/등급O","req":false,"cred":3},{"id":"31_s18","sem":"3-1","name":"일본 문화","type":"융합","cat":"제2외국어","grade":"5단계/등급O","req":false,"cred":3},{"id":"31_s19","sem":"3-1","name":"관광 중국어","type":"진로","cat":"제2외국어","grade":"5단계/등급O","req":false,"cred":3},{"id":"31_s20","sem":"3-1","name":"논리와 사고","type":"진로","cat":"교양","grade":"P/F","req":false,"cred":3,"pair":"논리"},{"id":"32_01","sem":"3-2","name":"독서 토론과 글쓰기","type":"융합","cat":"국어","grade":"5단계/등급O","req":true,"cred":3},{"id":"32_02","sem":"3-2","name":"수학과 문화","type":"융합","cat":"수학","grade":"5단계/등급O","req":true,"cred":3},{"id":"32_03","sem":"3-2","name":"심화 영어","type":"진로","cat":"영어","grade":"5단계/등급O","req":true,"cred":3},{"id":"32_04","sem":"3-2","name":"스포츠 과학","type":"진로","cat":"체육","grade":"3단계/등급X","req":true,"cred":1},{"id":"32_05","sem":"3-2","name":"고시외 과목","type":"융합","cat":"교양","grade":"P/F","req":true,"cred":1},{"id":"32_s01","sem":"3-2","name":"매체 의사소통","type":"융합","cat":"국어","grade":"5단계/등급O","req":false,"cred":3,"g":0},{"id":"32_s02","sem":"3-2","name":"경제 수학","type":"진로","cat":"수학","grade":"5단계/등급O","req":false,"cred":3,"g":0},{"id":"32_s03","sem":"3-2","name":"전문 수학","type":"진로","cat":"수학","grade":"5단계/등급O","req":false,"cred":3,"g":0},{"id":"32_s04","sem":"3-2","name":"미디어 영어","type":"융합","cat":"영어","grade":"5단계/등급O","req":false,"cred":3,"g":0},{"id":"32_s05","sem":"3-2","name":"윤리문제 탐구","type":"융합","cat":"사회","grade":"5단계/등급X","req":false,"cred":3,"g":0},{"id":"32_s06","sem":"3-2","name":"여행지리","type":"융합","cat":"사회","grade":"5단계/등급X","req":false,"cred":3,"g":0},{"id":"32_s07","sem":"3-2","name":"문화로 보는 한국사","type":"융합","cat":"사회","grade":"5단계/등급O","req":false,"cred":3,"g":0},{"id":"32_s08","sem":"3-2","name":"전자기와 양자","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true,"pair":"전자기","g":0},{"id":"32_s09","sem":"3-2","name":"화학 반응의 세계","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true,"pair":"화학반응","g":0},{"id":"32_s10","sem":"3-2","name":"생물의 유전","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true,"pair":"유전","g":0},{"id":"32_s11","sem":"3-2","name":"행성우주과학","type":"진로","cat":"과학","grade":"5단계/등급O","req":false,"cred":3,"sciAdv":true,"pair":"행성","g":0},{"id":"32_s12","sem":"3-2","name":"음악 감상과 비평","type":"진로","cat":"예술","grade":"3단계/등급X","req":false,"cred":3,"g":0},{"id":"32_s13","sem":"3-2","name":"미술 감상과 비평","type":"진로","cat":"예술","grade":"3단계/등급X","req":false,"cred":3,"g":0},{"id":"32_s14","sem":"3-2","name":"심화 체육 전공 실기","type":"진로","cat":"체육","grade":"5단계/등급O","req":false,"cred":3,"pair":"체육실기2","g":0},{"id":"32_s15","sem":"3-2","name":"소프트웨어와 생활","type":"융합","cat":"정보","grade":"5단계/등급O","req":false,"cred":3,"g":0},{"id":"32_s16","sem":"3-2","name":"심화 일본어","type":"진로","cat":"제2외국어","grade":"5단계/등급O","req":false,"cred":3,"g":0},{"id":"32_s17","sem":"3-2","name":"중국어 회화","type":"진로","cat":"제2외국어","grade":"5단계/등급O","req":false,"cred":3,"g":0},{"id":"32_s18","sem":"3-2","name":"논리와 사고","type":"진로","cat":"교양","grade":"P/F","req":false,"cred":3,"pair":"논리","g":0},{"id":"32_s19","sem":"3-2","name":"기후변화와 지속 가능한 세계","type":"융합","cat":"사회","grade":"5단계/등급X","req":false,"cred":3,"pair":"기후지속","g":1},{"id":"32_s20","sem":"3-2","name":"사회문제 탐구","type":"융합","cat":"사회","grade":"5단계/등급X","req":false,"cred":3,"g":1},{"id":"32_s21","sem":"3-2","name":"과학의 역사와 문화","type":"융합","cat":"과학","grade":"5단계/등급X","req":false,"cred":3,"g":2},{"id":"32_s22","sem":"3-2","name":"기후변화와 환경생태","type":"융합","cat":"과학","grade":"5단계/등급X","req":false,"cred":3,"pair":"기후환경","g":2}],"semesters":[{"key":"1-1","title":"1학년 1학기","limit":0},{"key":"1-2","title":"1학년 2학기","limit":0},{"key":"2-1","title":"2학년 1학기","limit":5},{"key":"2-2","title":"2학년 2학기","limit":5},{"key":"3-1","title":"3학년 1학기","limit":6},{"key":"3-2","title":"3학년 2학기","limit":6}]};
@@ -880,9 +1044,9 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
   const tabs=Array.from(document.querySelectorAll('[data-tab]'));
   const indicator=document.getElementById('navIndicator');
   const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
-  const tapSlideMs = 400;
-  const holdThresholdMs = 175;
-  const heldSlideMs = 110;
+  const tapSlideMs = 180;
+  const holdThresholdMs = 120;
+  const heldSlideMs = 80;
   const easing = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
   let current=2, requested=2, requestedDirection=1, sliding=false;
   let motion=[], slideVersion=0, idleResolvers=[];
@@ -986,6 +1150,13 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
     // A theme snapshot must not hide the response to a new navigation action.
     if(activeViewTransition)activeViewTransition.skipTransition();
     if(!sliding&&index!==current)startSlide(index,requestedDirection);
+    else if(sliding&&index!==current){
+      // Finish the visible motion promptly, without snapping its current position.
+      for(const animation of motion){
+        if(animation.updatePlaybackRate)animation.updatePlaybackRate(3);
+        else animation.playbackRate=3;
+      }
+    }
   }
 
   function stopHoldingArrow() {
@@ -1465,7 +1636,7 @@ const E=CourseEngine,$=id=>document.getElementById(id),stateKey=uid=>'gimpo_v2_s
 const make=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
 let saveGeneration=0,presenceGeneration=0;
 let state=E.normalize({}),uid='device',user=null,profile={},slots={},history=[],revision=0,dirty=false,saving=false,epoch=0,saveTimer,unsub=[],presence=null,aiBusy=false,inquiryBusy=false,selectedFiles=[],signup=false,readyForSave=false,conflict=false;
-let inquiryPending=null;
+let inquiryPending=null,profileBusy=false,profileReady=false;
 // Recommendation edits stay in their own draft until the user runs recommendation.
 let recommendation=null;
 const draftKey=()=> 'gimpo_v2_recommend_'+uid;
@@ -1484,8 +1655,8 @@ function renderVisitorCount() {
  else if (presenceOnline && tabCount !== null) value = String(tabCount);
  $('connectionCountValue').textContent = value;
 }
-const issueLabels={selections:'과목 선택',profiles:'프로필',history:'AI 대화',slots:'저장 구성',inquiries:'문의',statistics:'선택률',presenceRead:'접속 현황',presenceWrite:'내 접속 등록',connection:'DB 연결',auth:'로그인',sdk:'연결 모듈',save:'과목 저장'};
-const issuePaths={selections:'v2/selections/{내 UID}',profiles:'v2/profiles/{내 UID}',history:'v2/aiHistory/{내 UID}',slots:'v2/slots/{내 UID}',inquiries:'v2/inquiries/{내 UID}',statistics:'v2/statistics/public',presenceRead:'v2/presence',presenceWrite:'v2/presence/{내 UID}'};
+const issueLabels={selections:'과목 선택',profiles:'프로필',contact:'문의 계정',history:'AI 대화',slots:'저장 구성',inquiries:'문의',statistics:'선택률',presenceRead:'접속 현황',presenceWrite:'내 접속 등록',connection:'DB 연결',auth:'로그인',sdk:'연결 모듈',save:'과목 저장'};
+const issuePaths={selections:'v2/selections/{내 UID}',profiles:'v2/profiles/{내 UID}',contact:'v2/inquiryContacts/{내 UID}',history:'v2/aiHistory/{내 UID}',slots:'v2/slots/{내 UID}',inquiries:'v2/inquiries/{내 UID}',statistics:'v2/statistics/public',presenceRead:'v2/presence',presenceWrite:'v2/presence/{내 UID}'};
 function issueKind(error){const code=String(error?.code||'unknown').toLowerCase();if(code.includes('permission')||code.includes('denied'))return 'permission';if(code.includes('auth/')||code.includes('unauth'))return 'auth';if(code.includes('timeout')||code.includes('unavailable')||code.includes('network')||code.includes('disconnect'))return 'network';return 'other';}
 const connectionNotice=make('button','','');connectionNotice.id='connectionNotice';connectionNotice.type='button';connectionNotice.hidden=true;connectionNotice.style.cssText='border:0;background:transparent;color:var(--dark-red);padding:0;font:inherit;text-align:left;cursor:pointer;overflow-wrap:anywhere';$('saveStatus').parentElement.append(connectionNotice);
 const serverDialog=make('dialog');serverDialog.id='serverDialog';serverDialog.setAttribute('aria-labelledby','serverDialogTitle');
@@ -1546,7 +1717,7 @@ function listen(ref,event,fn,key='connection'){
 function readOnce(ref){return new Promise((resolve,reject)=>{let done=false;const timer=setTimeout(()=>{if(done)return;done=true;reject(Object.assign(new Error('서버 응답 시간이 초과되었습니다.'),{code:'database/timeout'}));},15000);ref.once('value').then(value=>{if(done)return;done=true;clearTimeout(timer);resolve(value);},error=>{if(done)return;done=true;clearTimeout(timer);reject(error);});});}
 
 function localSave(){return App.cache.write(stateKey(uid),{state,dirty,revision});}
-function currentName(){return profile.name?(App.isMember(user)?`${profile.classNum}반 ${profile.studentNum}번 ${profile.name}`:profile.name):'익명 사용자';}
+function currentName(){return profile.name?(App.isMember(user)?`${profile.grade||1}학년 ${profile.classNum}반 ${profile.studentNum}번 ${profile.name}`:profile.name):'익명 사용자';}
 function apply(next){$('recommendResult').textContent='';state=E.normalize(next);dirty=true;conflict=false;localSave();render();$('saveStatus').textContent=App.offline||!user?'기기에 저장됨':'기기 저장됨 · 서버 저장 대기';clearTimeout(saveTimer);saveTimer=setTimeout(()=>flush(),450);}
 async function flush(){clearTimeout(saveTimer);if(!dirty||saving||!readyForSave||conflict||!user||!App.db)return !dirty;const owner=uid,version=epoch,snapshot=JSON.stringify(state),expected=revision;const data=JSON.parse(snapshot),saveToken=++saveGeneration;saving=true;$('saveStatus').textContent='서버 저장 중';try{const result=await App.db.ref('v2/selections/'+owner).transaction(old=>{if((old?.revision||0)!==expected)return;return {...data,revision:expected+1,updatedAt:serverTime()};},undefined,false);if(version!==epoch)return false;if(!result.committed){conflict=true;$('saveStatus').textContent='다른 기기 변경과 충돌 · 여기를 눌러 해결';return false;}revision=expected+1;dirty=JSON.stringify(state)!==snapshot;localSave();clearConnectionIssue('save');$('saveStatus').textContent=dirty?'추가 변경 저장 대기':'서버 저장 완료';return !dirty;}catch(e){if(version===epoch){$('saveStatus').textContent='기기 저장됨 · 서버 저장 실패';reportConnectionIssue('save',e);App.toast(App.error(e));}return false;}finally{if(saveToken===saveGeneration)saving=false;if(dirty&&!conflict&&version===epoch&&navigator.onLine)setTimeout(()=>{if($('saveStatus').textContent==='추가 변경 저장 대기')flush();},500);}}
 $('saveStatus').tabIndex=0;$('saveStatus').role='button';$('saveStatus').onclick=async()=>{if(!conflict&&(connectionIssues.size||user&&!readyForSave)){showConnectionIssues();return;}if(!user)return;const owner=uid,ver=epoch;try{if(conflict){if(!confirm('다른 기기의 최신 선택을 불러오시겠습니까? 현재 기기 구성은 충돌 백업으로 남깁니다.'))return;App.cache.write('gimpo_v2_conflict_'+uid,{state,savedAt:Date.now()});const snap=await readOnce(App.db.ref('v2/selections/'+owner));if(ver!==epoch||owner!==uid)return;const val=snap.val();state=E.normalize(val||{});revision=val?.revision||0;dirty=false;conflict=false;localSave();render();$('saveStatus').textContent='최신 구성 불러옴';}else await flush();}catch(error){if(ver===epoch)App.toast(App.error(error));}};$('saveStatus').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('saveStatus').click();}};
@@ -1687,42 +1858,79 @@ const text=$('inquiryInput').value.trim(),files=[...selectedFiles];if(!text&&!fi
 if(!user)return App.toast('문의는 서버 연결 후 이용할 수 있습니다.');
 if(!profile.name){$('profileDialog').showModal();return App.toast('이름 또는 닉네임을 먼저 저장해주세요.');}
 inquiryBusy=true;$('inquirySend').disabled=true;$('attachBtn').disabled=true;renderFiles();
-const owner=uid,ver=epoch;
+const owner=uid,ver=epoch,requestUser=user;
 try{
  if(!inquiryPending||inquiryPending.owner!==owner||inquiryPending.text!==text||inquiryPending.files.length!==files.length||files.some((f,i)=>f!==inquiryPending.files[i])){
    inquiryPending={owner,text,files,key:App.db.ref('v2/inquiries/'+owner).push().key,images:null,senderName:currentName()};
  }
- const request=inquiryPending,ref=App.db.ref('v2/inquiries/'+owner+'/'+request.key);
+ const request=inquiryPending;
  if(!request.images)request.images=await App.uploadImages(owner,files);
  if(ver!==epoch)return;
  const payload={role:'user',text,senderName:request.senderName,timestamp:serverTime()};
  if(request.images.length)payload.images=request.images;
- const matches=value=>value&&value.role==='user'&&value.text===text&&value.senderName===request.senderName&&JSON.stringify(value.images||[])===JSON.stringify(request.images||[]);
- const previous=await ref.once('value');
- if(!matches(previous.val())){
-   try{await ref.set(payload);}catch(error){const check=await ref.once('value').catch(()=>null);if(!check||!matches(check.val()))throw error;}
- }
+ await App.support.persistInquiry(requestUser,request.key,payload);
+ if(ver!==epoch||owner!==uid)return;
+ Promise.resolve().then(()=>App.support.wake(requestUser)).catch(()=>{});
  if(ver===epoch){if($('inquiryInput').value.trim()===text)$('inquiryInput').value='';selectedFiles=[];inquiryPending=null;}
-}catch(e){App.toast(App.error(e));}
+}catch(e){if(ver===epoch&&owner===uid)App.toast(App.error(e));}
 finally{inquiryBusy=false;$('inquirySend').disabled=false;$('attachBtn').disabled=false;renderFiles();}
 };
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).close());
 for(let i=1;i<=12;i++)$('classNum').append(new Option(i+'반',i));for(let i=1;i<=35;i++)$('studentNum').append(new Option(i+'번',i));
 async function beforeAuth(){
- if(aiBusy||inquiryBusy||saving){App.toast('진행 중인 전송을 마친 후 계정을 전환해주세요.');return false;}
+ if(aiBusy||inquiryBusy||profileBusy||saving){App.toast('진행 중인 전송을 마친 후 계정을 전환해주세요.');return false;}
  if(!dirty)return true;
  if(localSave()===false){App.toast('현재 선택을 기기에 저장하지 못했습니다. 계정을 전환하기 전에 저장 상태를 확인해주세요.');return false;}
  if(user&&readyForSave&&!conflict&&!connectionIssues.has('save')&&!connectionIssues.has('selections')){if(await flush())return true;}
  App.toast('아직 서버에 저장하지 못한 선택은 이 기기의 현재 계정에 보관합니다.');return true;
 }
 $('authBtn').onclick=async()=>{if(!await beforeAuth())return;if(App.offline)return App.toast('로그인은 서버 연결이 필요합니다.');if(App.isMember(user)){if(confirm('로그아웃하시겠습니까? 계정별 서버 저장은 유지됩니다.')){try{await App.signOut();}catch(e){App.toast(App.error(e));}}}else $('authDialog').showModal();};
-$('profileBtn').onclick=()=>{$('studentName').value=profile.name||'';$('classNum').value=profile.classNum||'1';$('studentNum').value=profile.studentNum||'1';$('profileDialog').showModal();};
-$('profileForm').onsubmit=async e=>{e.preventDefault();if(!user)return App.toast('서버 연결 후 정보를 저장할 수 있습니다.');const data={name:$('studentName').value.trim(),classNum:$('classNum').value,studentNum:$('studentNum').value};if(!data.name)return;const ver=epoch;try{await App.db.ref('v2/profiles/'+uid).set(data);if(ver!==epoch)return;profile=data;$('profileLabel').textContent=currentName();$('profileDialog').close();App.toast('정보를 저장했습니다.');}catch(e){App.toast(App.error(e));}};
+function profileFullName(value){return `${value.grade||1}학년 ${value.classNum}반 ${value.studentNum}번 ${value.name}`;}
+function sameProfile(a,b){return Number(a?.grade||1)===Number(b?.grade||1)&&String(a?.classNum||'')===String(b?.classNum||'')&&String(a?.studentNum||'')===String(b?.studentNum||'')&&String(a?.name||'')===String(b?.name||'');}
+function updateProfileForm(){
+ $('profileSubmit').disabled=profileBusy||!profileReady;
+ $('profileSubmit').textContent=profileBusy?'처리 중…':profile.name?'수정 승인 요청':'정보 저장';
+ $('profileInstruction').textContent=profile.name?'변경할 이름, 반, 번호를 설정해주세요. 관리자 승인 후 프로필이 바뀝니다.':'1학년의 이름, 반, 번호를 설정해주세요. 처음 등록한 이후의 수정은 관리자 승인이 필요합니다.';
+}
+function applyProfileSnapshot(value,owner=uid){
+ if(owner!==uid)return;
+ const previousApproval=profile.approvedRequestId;profile=value||{};profileReady=true;
+ $('profileLabel').textContent=currentName();updateProfileForm();
+ const approval=profile.approvedRequestId,noticeKey='gimpo_v2_profile_notice_'+owner;
+ if(typeof approval==='string'&&approval&&approval!==previousApproval&&App.cache.read(noticeKey)!==approval){
+  App.cache.write(noticeKey,approval);
+  App.toast('프로필이 '+profileFullName(profile)+'으로 바뀌었습니다.');
+ }
+}
+$('profileBtn').onclick=()=>{$('studentName').value=profile.name||'';$('classNum').value=profile.classNum||'1';$('studentNum').value=profile.studentNum||'1';updateProfileForm();$('profileDialog').showModal();};
+$('profileForm').onsubmit=async e=>{
+ e.preventDefault();if(profileBusy)return;
+ if(!user)return App.toast('서버 연결 후 정보를 저장할 수 있습니다.');
+ if(!profileReady)return App.toast('프로필을 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+ const data={grade:1,name:$('studentName').value.trim(),classNum:$('classNum').value,studentNum:$('studentNum').value};
+ if(!data.name)return;
+ if(profile.name&&sameProfile(profile,data)){App.toast('변경된 정보가 없습니다.');return;}
+ const ver=epoch,owner=uid,requestUser=user,creating=!profile.name;profileBusy=true;updateProfileForm();
+ try{
+  if(creating){
+   const stored=await App.support.createProfile(requestUser,data);
+   if(ver!==epoch||owner!==uid)return;
+   applyProfileSnapshot(stored,owner);$('profileDialog').close();App.toast('정보를 저장했습니다.');
+  }else{
+   await App.support.requestProfileChange(requestUser,data);
+   if(ver!==epoch||owner!==uid)return;
+   $('profileDialog').close();App.toast('프로필 수정 승인을 요청했습니다. 관리자 승인 후 반영됩니다.');
+   Promise.resolve().then(()=>App.support.wake(requestUser)).catch(()=>{});
+  }
+ }catch(error){if(ver===epoch&&owner===uid)App.toast(App.error(error));}
+ finally{if(ver===epoch&&owner===uid){profileBusy=false;updateProfileForm();}}
+};
 async function authAction(fn){$('authSubmit').disabled=true;$('googleBtn').disabled=true;$('authError').textContent='';try{await fn();$('password').value='';$('authDialog').close();}catch(e){$('authError').textContent=App.error(e);}finally{$('authSubmit').disabled=false;$('googleBtn').disabled=false;}}
 $('authForm').onsubmit=e=>{e.preventDefault();if(!App.auth)return;authAction(()=>signup?App.auth.createUserWithEmailAndPassword($('email').value.trim(),$('password').value):App.signInEmail($('email').value,$('password').value));};$('googleBtn').onclick=()=>authAction(()=>App.signInGoogle());$('signupToggle').onclick=()=>{signup=!signup;$('authTitle').textContent=signup?'회원가입':'로그인';$('authSubmit').textContent=signup?'가입하기':'로그인';$('signupToggle').textContent=signup?'로그인으로 돌아가기':'새 계정 만들기';$('password').autocomplete=signup?'new-password':'current-password';};$('resetPassword').onclick=async()=>{try{if(!$('email').value)return App.toast('이메일을 입력해주세요.');await App.auth.sendPasswordResetEmail($('email').value.trim());App.toast('비밀번호 재설정 이메일을 요청했습니다. 스팸함도 확인해주세요.');}catch(e){App.toast(App.error(e));}};
 
-function resetAccount(next){inquiryScroll.reset();inquiryLoaded=false;inquiryKeys.clear();connectionIssues.clear();renderConnectionIssues();if(serverDialog.open)serverDialog.close();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;for(const id of ['aiInput','inquiryInput','studentName','password'])$(id).value='';$('classNum').value='1';$('studentNum').value='1';$('previewContent').replaceChildren();for(const id of ['profileDialog','previewDialog','authDialog']){if($(id).open)$(id).close();}unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}App.releaseImages($('inquiryMessages'));clearTimeout(saveTimer);user=next;uid=next?.uid||'device';profile={};history=[];selectedFiles=[];slots=App.cache.read('gimpo_v2_slots_'+uid,{})||{};const saved=App.cache.read(stateKey(uid),{});state=E.normalize(saved.state||{});const cachedDraft=App.cache.read(draftKey());recommendation=cachedDraft?E.normalize(cachedDraft):null;dirty=Boolean(saved.dirty);revision=Number(saved.revision)||0;conflict=false;render();renderSlots();renderHistory();renderFiles();renderInquiryWelcome($('inquiryMessages'));$('profileLabel').textContent=next?'익명 사용자':'기기 내 연습';$('authBtn').textContent=App.isMember(next)?'로그아웃':'로그인';$('profileBtn').hidden=!next;$('dashboardBanner').hidden=!App.isMember(next);$('saveStatus').textContent=dirty?'기기 변경 불러옴':'기기 저장';}
+function resetAccount(next){profileBusy=false;profileReady=false;inquiryScroll.reset();inquiryLoaded=false;inquiryKeys.clear();connectionIssues.clear();renderConnectionIssues();if(serverDialog.open)serverDialog.close();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;for(const id of ['aiInput','inquiryInput','studentName','password'])$(id).value='';$('classNum').value='1';$('studentNum').value='1';$('previewContent').replaceChildren();for(const id of ['profileDialog','previewDialog','authDialog']){if($(id).open)$(id).close();}unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}App.releaseImages($('inquiryMessages'));clearTimeout(saveTimer);user=next;uid=next?.uid||'device';profile={};history=[];selectedFiles=[];slots=App.cache.read('gimpo_v2_slots_'+uid,{})||{};const saved=App.cache.read(stateKey(uid),{});state=E.normalize(saved.state||{});const cachedDraft=App.cache.read(draftKey());recommendation=cachedDraft?E.normalize(cachedDraft):null;dirty=Boolean(saved.dirty);revision=Number(saved.revision)||0;conflict=false;render();renderSlots();renderHistory();renderFiles();renderInquiryWelcome($('inquiryMessages'));$('profileLabel').textContent=next?'익명 사용자':'기기 내 연습';$('authBtn').textContent=App.isMember(next)?'로그아웃':'로그인';$('profileBtn').hidden=!next;$('dashboardBanner').hidden=!App.isMember(next);$('saveStatus').textContent=dirty?'기기 변경 불러옴':'기기 저장';}
 async function connect(next,{retry=false}={}){
+ profileReady=false;
  if(!retry||user?.uid!==next?.uid)aiSessionMessages=[];
  presenceOnline = null;
  tabCount = null;
@@ -1732,6 +1940,7 @@ async function connect(next,{retry=false}={}){
   localSave();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;clearTimeout(saveTimer);unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}connectionIssues.clear();renderConnectionIssues();
  }else resetAccount(next);
  const ver=epoch,owner=next.uid,active=()=>ver===epoch&&owner===uid;
+ Promise.resolve().then(()=>active()?App.support.syncContact(next):undefined).then(()=>{if(active())clearConnectionIssue('contact');},error=>{if(active())reportConnectionIssue('contact',error);});
  $('saveStatus').textContent=dirty?'기기 변경 보관 · 서버 확인 중':'서버 데이터 확인 중';
  // Each feature subscribes independently: a denied profile or AI history must not stop inquiries/presence.
  listen(App.db.ref('v2/slots/'+owner),'value',snap=>{slots=snap.val()||{};App.cache.write('gimpo_v2_slots_'+owner,slots);renderSlots();},'slots');
@@ -1752,7 +1961,7 @@ async function connect(next,{retry=false}={}){
    listen(App.db.ref('v2/selections/'+owner),'value',snapshot=>{if(saving)return;const v=snapshot.val();if(!v||v.revision===revision)return;if(dirty){conflict=true;$('saveStatus').textContent='다른 기기 변경과 충돌 · 여기를 눌러 해결';}else{state=E.normalize(v);revision=v.revision;localSave();render();}},'selections');
    if(dirty&&!conflict)flush();
   }),
-  load('profiles',App.db.ref('v2/profiles/'+owner),snap=>{profile=snap.val()||{};$('profileLabel').textContent=currentName();if(App.isMember(next)&&!profile.name&&!retry){$('studentName').value='';$('profileDialog').showModal();}}),
+  load('profiles',App.db.ref('v2/profiles/'+owner),snap=>{applyProfileSnapshot(snap.val(),owner);listen(App.db.ref('v2/profiles/'+owner),'value',value=>applyProfileSnapshot(value.val(),owner),'profiles');if(App.isMember(next)&&!profile.name&&!retry){$('studentName').value='';updateProfileForm();$('profileDialog').showModal();}}),
   load('history',App.db.ref('v2/aiHistory/'+owner).orderByKey().limitToLast(100),snap=>{history=mergeAIHistory(snap.val());renderHistory();})
  ]);
 }
