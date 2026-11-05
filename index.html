@@ -693,7 +693,63 @@ window.App = (() => {
   return api;
 })();
 </script>
-<script>/* Private inquiry attachments for the existing Firebase Realtime Database. */
+<script>/* The thumbnail and the enlarged view use the same stored, full-resolution image. */
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory;else root.InquiryPreview=factory(root,root.document);})(typeof globalThis!=='undefined'?globalThis:this,function(view,doc){
+'use strict';
+let dialog,photo,stage,title,zoomLabel,download,previousFocus,ownedUrl=null,revision=0,scale=1,fitting=true;
+const bound=new WeakSet();
+function node(tag,text){const n=doc.createElement(tag);if(text)n.textContent=text;return n;}
+function revoke(){if(ownedUrl){view.URL.revokeObjectURL(ownedUrl);ownedUrl=null;}}
+function updateSize(){
+ if(!dialog?.open||!photo.naturalWidth)return;
+ if(fitting)scale=Math.min(1,Math.max(1,stage.clientWidth-32)/photo.naturalWidth,Math.max(1,stage.clientHeight-32)/photo.naturalHeight);
+ photo.style.width=Math.max(1,Math.round(photo.naturalWidth*scale))+'px';photo.style.height='auto';
+ zoomLabel.textContent=Math.round(scale*100)+'%';
+}
+function zoom(next){fitting=false;scale=Math.max(.05,Math.min(4,next));updateSize();}
+function ensure(){
+ if(dialog)return;
+ const style=node('style');style.textContent=`
+ dialog.inquiry-image-viewer{box-sizing:border-box;position:fixed;inset:12px;margin:auto;padding:0;border:0;border-radius:14px;width:calc(100vw - 24px);max-width:1400px;height:calc(100vh - 24px);height:calc(100dvh - 24px);max-height:none;background:#15171b;color:#fff;overflow:hidden}
+ dialog.inquiry-image-viewer::backdrop{background:rgba(0,0,0,.78)}
+ .inquiry-image-viewer .image-viewer-layout{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-width:0}
+ .inquiry-image-viewer .image-viewer-header,.inquiry-image-viewer .image-viewer-tools{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 12px;min-width:0}
+ .inquiry-image-viewer .image-viewer-title{flex:1;min-width:0;overflow-wrap:anywhere;margin:0;font:600 15px/1.4 system-ui}
+ .inquiry-image-viewer button,.inquiry-image-viewer a{font:14px/1.4 system-ui;color:#fff;background:#30343d;border:1px solid #646c7a;border-radius:8px;padding:9px 12px;margin:0;min-height:40px;cursor:pointer;text-decoration:none;flex-shrink:0;width:auto}
+ .inquiry-image-viewer button:focus-visible,.inquiry-image-viewer a:focus-visible{outline:3px solid #92b9ff;outline-offset:2px}
+ .inquiry-image-viewer .image-viewer-stage{min-width:0;min-height:0;overflow:auto;overscroll-behavior:contain;padding:16px;box-sizing:border-box;text-align:center;touch-action:pan-x pan-y pinch-zoom}
+ .inquiry-image-viewer .image-viewer-photo{display:block;margin:auto;max-width:none!important;max-height:none!important;border-radius:0!important;object-fit:contain}
+ .inquiry-image-viewer .image-viewer-zoom{font:14px system-ui;min-width:42px;text-align:center}
+ `;doc.head.append(style);
+ dialog=node('dialog');dialog.className='inquiry-image-viewer';dialog.setAttribute('aria-label','사진 확대 보기');
+ const layout=node('div');layout.className='image-viewer-layout';const header=node('div');header.className='image-viewer-header';title=node('h2');title.className='image-viewer-title';
+ const close=node('button','닫기');close.type='button';close.addEventListener('click',()=>dialog.close());header.append(title,close);
+ stage=node('div');stage.className='image-viewer-stage';photo=node('img');photo.className='image-viewer-photo';photo.addEventListener('load',updateSize);stage.append(photo);
+ const tools=node('div');tools.className='image-viewer-tools';
+ for(const [label,action] of [['축소',()=>zoom(scale/1.25)],['확대',()=>zoom(scale*1.25)],['100%',()=>zoom(1)],['화면 맞춤',()=>{fitting=true;updateSize();}]]){const b=node('button',label);b.type='button';b.addEventListener('click',action);tools.append(b);}
+ zoomLabel=node('span');zoomLabel.className='image-viewer-zoom';download=node('a','이미지 저장');tools.append(zoomLabel,download);layout.append(header,stage,tools);dialog.append(layout);doc.body.append(dialog);
+ dialog.addEventListener('close',()=>{revision++;photo.removeAttribute('src');download.removeAttribute('href');revoke();if(previousFocus?.isConnected)previousFocus.focus({preventScroll:true});});
+ view.addEventListener('resize',updateSize);view.visualViewport?.addEventListener('resize',updateSize);
+}
+async function open(img){
+ const source=img.currentSrc||img.src;if(!source||! /^(blob:|https?:|data:image\/(png|jpeg|webp);base64,)/.test(source))return;
+ ensure();const ticket=++revision;revoke();previousFocus=img;fitting=true;title.textContent=img.alt||'문의 사진';photo.alt=title.textContent;photo.src=source;download.href=source;download.download=title.textContent;
+ if(!dialog.open)dialog.showModal();stage.scrollTop=0;stage.scrollLeft=0;updateSize();
+ // Keep a private copy alive if a realtime chat refresh revokes its thumbnail URL.
+ if(source.startsWith('blob:'))try{
+  const response=await view.fetch(source);if(!response.ok)throw new Error('image-unavailable');const blob=await response.blob();
+  if(ticket!==revision||!dialog.open)return;
+  ownedUrl=view.URL.createObjectURL(blob);photo.src=ownedUrl;download.href=ownedUrl;
+ }catch{ /* The already-decoded thumbnail remains available in the viewer. */ }
+}
+function bind(img){
+ if(!img||bound.has(img))return;bound.add(img);img.style.cursor='zoom-in';img.tabIndex=0;img.setAttribute('role','button');img.setAttribute('aria-label',(img.alt||'사진')+' 크게 보기');
+ img.addEventListener('click',()=>open(img));img.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();open(img);}});
+}
+return {bind,open,close(){if(dialog?.open)dialog.close();}};
+});
+
+/* Private inquiry attachments for the existing Firebase Realtime Database. */
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.InquiryMedia=factory();})(typeof globalThis!=='undefined'?globalThis:this,function(){
 'use strict';
 const MAX_SOURCE=5*1024*1024,MAX_BYTES=300*1024,MAX_EDGE=1600;
@@ -796,7 +852,7 @@ return {create,decodeRecord,signature,MAX_BYTES,MAX_SOURCE,MAX_EDGE};
    const media=root.InquiryMedia.create({db:app.db,auth:app.auth,serverTimestamp:()=>firebase.database.ServerValue.TIMESTAMP});
    const legacyImage=app.imageElement;
    app.uploadImages=(uid,files)=>media.uploadImages(uid,files);
-   app.imageElement=image=>image?.dbPath?media.imageElement(image):legacyImage(image);
+   app.imageElement=async image=>{const node=await (image?.dbPath?media.imageElement(image):legacyImage(image));node.querySelectorAll('img').forEach(img=>root.InquiryPreview?.bind(img));return node;};
    app.canAttachImages=()=>Boolean(app.auth.currentUser);
   }
  }
@@ -1311,7 +1367,16 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
   window.CourseUI={selectTab,setTheme,get currentTab(){return current;},get requestedTab(){return requested;},get isSliding(){return sliding;},get themeTransitioning(){return themeBusy;}};
 })();
 </script>
-<script>/* Keep a chat's visible message in place; only an explicit jump follows new replies. */
+<script>/* Use persisted send time, never storage-key spelling, to order inquiry messages. */
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.ChatOrder=factory();})(typeof globalThis!=='undefined'?globalThis:this,function(){
+'use strict';
+function timestamp(message){return typeof message?.timestamp==='number'&&Number.isFinite(message.timestamp)?message.timestamp:null;}
+function compare(a,b){const x=timestamp(a[1]),y=timestamp(b[1]);if(x!==y)return x===null?-1:y===null?1:x-y;return a[0]===b[0]?0:a[0]<b[0]?-1:1;}
+function sorted(entries){return Array.from(entries).filter(([,value])=>value&&typeof value==='object').sort(compare);}
+return {timestamp,compare,sorted};
+});
+
+/* Preserve reading position; follow an own send only when already near the end. */
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.ChatScroll=factory();})(typeof globalThis!=='undefined'?globalThis:this,function(){
 'use strict';
 function create({container,button,environment={}}){
@@ -1325,11 +1390,22 @@ function create({container,button,environment={}}){
  const previousOverflowAnchor=container.style.overflowAnchor;
  container.style.overflowAnchor='none';
  let disposed=false,loaded=false,initialPending=true,anchor=null,frame=null,mutating=false;
- const unread=new Set(),observed=new Set();
+ const unread=new Set(),observed=new Set(),ownSends=new Set();let followId=null;
  const rows=()=>Array.from(container.querySelectorAll('[data-message-id]'));
  const visible=()=>container.clientHeight>0&&container.getClientRects().length>0;
  const top=()=>container.getBoundingClientRect().top+(container.clientTop||0);
  const atBottom=()=>container.scrollHeight-container.clientHeight-container.scrollTop<=3;
+ function nearBottom(){
+  if(!visible())return false;
+  if(container.scrollHeight-container.clientHeight-container.scrollTop<=64)return true;
+  const end=top()+container.clientHeight;
+  return rows().slice(-3).some(node=>node.getBoundingClientRect().top<=end+2);
+ }
+ function prepareOwnSend(id){
+  const key=String(id);ownSends.delete(key);
+  if(nearBottom())ownSends.add(key);
+ }
+ function cancelOwnSend(id){ownSends.delete(String(id));if(followId===String(id))followId=null;}
  function snapshot(){
   if(!visible())return anchor;
   const start=top(),items=rows().map(node=>({id:node.dataset.messageId,offset:node.getBoundingClientRect().top-start,bottom:node.getBoundingClientRect().bottom-start}));
@@ -1348,9 +1424,15 @@ function create({container,button,environment={}}){
  }
  function restore(saved=anchor){
   if(disposed||!loaded||!visible())return;
+  const current=rows();
+  if(followId&&current.at(-1)?.dataset.messageId!==followId)followId=null;
+  const sent=current.find(node=>ownSends.has(node.dataset.messageId));
+  if(sent){ownSends.delete(sent.dataset.messageId);followId=current.at(-1)?.dataset.messageId||null;}
   if(initialPending){
    container.scrollTop=Math.max(0,container.scrollHeight-container.clientHeight);
    initialPending=false;unread.clear();anchor=snapshot();
+  }else if(followId){
+   container.scrollTop=Math.max(0,container.scrollHeight-container.clientHeight);unread.clear();anchor=snapshot();
   }else if(saved){
    const byId=new Map(rows().map(node=>[node.dataset.messageId,node]));
    const match=saved.items.find(item=>byId.has(item.id));
@@ -1393,6 +1475,8 @@ function create({container,button,environment={}}){
   if(anchor&&(anchor.height!==container.clientHeight||anchor.contentHeight!==container.scrollHeight)){
    restore();schedule();return;
   }
+  if(!atBottom())followId=null;
+  if(!nearBottom())ownSends.clear();
   anchor=snapshot();if(atBottom())unread.clear();renderButton();
  }
  function toBottom(event){
@@ -1403,7 +1487,7 @@ function create({container,button,environment={}}){
  function reset(){
   if(disposed)return;
   if(frame!==null){cancelFrame(frame);frame=null;}
-  loaded=false;initialPending=true;anchor=null;unread.clear();button.hidden=true;
+  loaded=false;initialPending=true;anchor=null;followId=null;ownSends.clear();unread.clear();button.hidden=true;
  }
  function onVisibility(){if(documentObject?.visibilityState!=='hidden')refresh();}
  container.addEventListener('scroll',onScroll,{passive:true});
@@ -1412,10 +1496,10 @@ function create({container,button,environment={}}){
  view?.visualViewport?.addEventListener('resize',schedule);
  documentObject?.addEventListener('visibilitychange',onVisibility);
  button.hidden=true;
- return {update,capture,restore,refresh,toBottom,reset,dispose(){
+ return {update,capture,restore,refresh,toBottom,reset,prepareOwnSend,cancelOwnSend,nearBottom,dispose(){
   if(disposed)return;disposed=true;
   if(frame!==null)cancelFrame(frame);
-  resizeObserver?.disconnect();mutationObserver?.disconnect();observed.clear();unread.clear();
+  resizeObserver?.disconnect();mutationObserver?.disconnect();observed.clear();unread.clear();ownSends.clear();followId=null;
   container.removeEventListener('scroll',onScroll);button.removeEventListener('click',toBottom);
   view?.removeEventListener('resize',schedule);view?.visualViewport?.removeEventListener('resize',schedule);
   documentObject?.removeEventListener('visibilitychange',onVisibility);
@@ -1780,15 +1864,16 @@ function appendMessage(target,m,{scroll=true,id}={}){
 }
 const inquiryScroll=ChatScroll.create({container:$('inquiryMessages'),button:$('inquiryJump')});
 let inquiryLoaded=false,inquiryKeys=new Set();
-function renderInquiryWelcome(box){box.replaceChildren();appendMessage(box,{role:'assistant',text:'안녕하세요! 개발자입니다.\n수강신청과 관련하여 궁금한 점이나 사이트 오류, 건의사항이 있다면 자유롭게 문의해 주세요.\n(확인하는 대로 최대한 빠르게 답변드리겠습니다!)'},{scroll:false,id:'welcome'});}
+function renderInquiryWelcome(box,timestamp){box.replaceChildren();appendMessage(box,{role:'assistant',timestamp,text:'안녕하세요! 개발자입니다.\n수강신청과 관련하여 궁금한 점이나 사이트 오류, 건의사항이 있다면 자유롭게 문의해 주세요.\n(확인하는 대로 최대한 빠르게 답변드리겠습니다!)'},{scroll:false,id:'welcome'});}
 function renderInquiries(snapshot){
  const entries=[];
  // Firebase forEach stops on a truthy return value. Never return the message DOM node.
  snapshot.forEach(child=>{entries.push([child.key,child.val()]);});
+ entries.sort(ChatOrder.compare);
  const incomingIds=inquiryLoaded?entries.filter(([id,m])=>!inquiryKeys.has(id)&&m.role!=='user').map(([id])=>id):[];
  const box=$('inquiryMessages');
  inquiryScroll.update(()=>{
-  App.releaseImages(box);renderInquiryWelcome(box);
+  App.releaseImages(box);renderInquiryWelcome(box,entries[0]?.[1]?.timestamp);
   for(const [id,message] of entries)appendMessage(box,message,{scroll:false,id});
  },{initial:!inquiryLoaded,incomingIds});
  inquiryKeys=new Set(entries.map(([id])=>id));inquiryLoaded=true;
@@ -1849,7 +1934,7 @@ $('aiForm').onsubmit=async event=>{
 };
 $('clearAi').onclick=async()=>{if(aiBusy||!confirm('현재 계정의 AI 대화를 삭제하시겠습니까?'))return;const owner=uid,ver=epoch;try{if(user)await App.db.ref('v2/aiHistory/'+owner).remove();if(ver!==epoch||owner!==uid)return;history=[];aiSessionMessages=[];renderHistory();}catch(e){if(ver===epoch)App.toast(App.error(e));}};
 let previewUrls=[];
-function renderFiles(){previewUrls.forEach(url=>URL.revokeObjectURL(url));previewUrls=[];$('attachments').replaceChildren(...selectedFiles.map((file,i)=>{const wrap=make('div','preview-img-wrap'),img=make('img','preview-img'),b=make('button','preview-del','×');img.src=URL.createObjectURL(file);previewUrls.push(img.src);img.alt=file.name;b.type='button';b.setAttribute('aria-label',file.name+' 첨부 삭제');b.disabled=inquiryBusy;b.onclick=()=>{selectedFiles.splice(i,1);renderFiles();};wrap.append(img,b);return wrap;}));$('attachments').hidden=selectedFiles.length===0;}
+function renderFiles(){previewUrls.forEach(url=>URL.revokeObjectURL(url));previewUrls=[];$('attachments').replaceChildren(...selectedFiles.map((file,i)=>{const wrap=make('div','preview-img-wrap'),img=make('img','preview-img'),b=make('button','preview-del','×');img.src=URL.createObjectURL(file);previewUrls.push(img.src);img.alt=file.name;globalThis.InquiryPreview?.bind(img);b.type='button';b.setAttribute('aria-label',file.name+' 첨부 삭제');b.disabled=inquiryBusy;b.onclick=()=>{selectedFiles.splice(i,1);renderFiles();};wrap.append(img,b);return wrap;}));$('attachments').hidden=selectedFiles.length===0;}
 
 $('attachBtn').onclick=()=>$('files').click();$('files').onchange=e=>{const next=[...selectedFiles,...e.target.files];e.target.value='';if(next.length>3||next.some(f=>!['image/jpeg','image/png','image/webp'].includes(f.type)||f.size>5*1024*1024))return App.toast('JPG·PNG·WEBP 사진을 3장, 각 5MB 이하로 선택해주세요.');selectedFiles=next;renderFiles();};
 $('inquiryForm').onsubmit=async e=>{
@@ -1863,7 +1948,7 @@ try{
  if(!inquiryPending||inquiryPending.owner!==owner||inquiryPending.text!==text||inquiryPending.files.length!==files.length||files.some((f,i)=>f!==inquiryPending.files[i])){
    inquiryPending={owner,text,files,key:App.db.ref('v2/inquiries/'+owner).push().key,images:null,senderName:currentName()};
  }
- const request=inquiryPending;
+ const request=inquiryPending;inquiryScroll.prepareOwnSend?.(request.key);
  if(!request.images)request.images=await App.uploadImages(owner,files);
  if(ver!==epoch)return;
  const payload={role:'user',text,senderName:request.senderName,timestamp:serverTime()};
@@ -1872,7 +1957,7 @@ try{
  if(ver!==epoch||owner!==uid)return;
  Promise.resolve().then(()=>App.support.wake(requestUser)).catch(()=>{});
  if(ver===epoch){if($('inquiryInput').value.trim()===text)$('inquiryInput').value='';selectedFiles=[];inquiryPending=null;}
-}catch(e){if(ver===epoch&&owner===uid)App.toast(App.error(e));}
+}catch(e){inquiryScroll.cancelOwnSend?.(inquiryPending?.key);if(ver===epoch&&owner===uid)App.toast(App.error(e));}
 finally{inquiryBusy=false;$('inquirySend').disabled=false;$('attachBtn').disabled=false;renderFiles();}
 };
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).close());
@@ -1928,7 +2013,7 @@ $('profileForm').onsubmit=async e=>{
 async function authAction(fn){$('authSubmit').disabled=true;$('googleBtn').disabled=true;$('authError').textContent='';try{await fn();$('password').value='';$('authDialog').close();}catch(e){$('authError').textContent=App.error(e);}finally{$('authSubmit').disabled=false;$('googleBtn').disabled=false;}}
 $('authForm').onsubmit=e=>{e.preventDefault();if(!App.auth)return;authAction(()=>signup?App.auth.createUserWithEmailAndPassword($('email').value.trim(),$('password').value):App.signInEmail($('email').value,$('password').value));};$('googleBtn').onclick=()=>authAction(()=>App.signInGoogle());$('signupToggle').onclick=()=>{signup=!signup;$('authTitle').textContent=signup?'회원가입':'로그인';$('authSubmit').textContent=signup?'가입하기':'로그인';$('signupToggle').textContent=signup?'로그인으로 돌아가기':'새 계정 만들기';$('password').autocomplete=signup?'new-password':'current-password';};$('resetPassword').onclick=async()=>{try{if(!$('email').value)return App.toast('이메일을 입력해주세요.');await App.auth.sendPasswordResetEmail($('email').value.trim());App.toast('비밀번호 재설정 이메일을 요청했습니다. 스팸함도 확인해주세요.');}catch(e){App.toast(App.error(e));}};
 
-function resetAccount(next){profileBusy=false;profileReady=false;inquiryScroll.reset();inquiryLoaded=false;inquiryKeys.clear();connectionIssues.clear();renderConnectionIssues();if(serverDialog.open)serverDialog.close();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;for(const id of ['aiInput','inquiryInput','studentName','password'])$(id).value='';$('classNum').value='1';$('studentNum').value='1';$('previewContent').replaceChildren();for(const id of ['profileDialog','previewDialog','authDialog']){if($(id).open)$(id).close();}unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}App.releaseImages($('inquiryMessages'));clearTimeout(saveTimer);user=next;uid=next?.uid||'device';profile={};history=[];selectedFiles=[];slots=App.cache.read('gimpo_v2_slots_'+uid,{})||{};const saved=App.cache.read(stateKey(uid),{});state=E.normalize(saved.state||{});const cachedDraft=App.cache.read(draftKey());recommendation=cachedDraft?E.normalize(cachedDraft):null;dirty=Boolean(saved.dirty);revision=Number(saved.revision)||0;conflict=false;render();renderSlots();renderHistory();renderFiles();renderInquiryWelcome($('inquiryMessages'));$('profileLabel').textContent=next?'익명 사용자':'기기 내 연습';$('authBtn').textContent=App.isMember(next)?'로그아웃':'로그인';$('profileBtn').hidden=!next;$('dashboardBanner').hidden=!App.isMember(next);$('saveStatus').textContent=dirty?'기기 변경 불러옴':'기기 저장';}
+function resetAccount(next){globalThis.InquiryPreview?.close();profileBusy=false;profileReady=false;inquiryScroll.reset();inquiryLoaded=false;inquiryKeys.clear();connectionIssues.clear();renderConnectionIssues();if(serverDialog.open)serverDialog.close();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;for(const id of ['aiInput','inquiryInput','studentName','password'])$(id).value='';$('classNum').value='1';$('studentNum').value='1';$('previewContent').replaceChildren();for(const id of ['profileDialog','previewDialog','authDialog']){if($(id).open)$(id).close();}unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}App.releaseImages($('inquiryMessages'));clearTimeout(saveTimer);user=next;uid=next?.uid||'device';profile={};history=[];selectedFiles=[];slots=App.cache.read('gimpo_v2_slots_'+uid,{})||{};const saved=App.cache.read(stateKey(uid),{});state=E.normalize(saved.state||{});const cachedDraft=App.cache.read(draftKey());recommendation=cachedDraft?E.normalize(cachedDraft):null;dirty=Boolean(saved.dirty);revision=Number(saved.revision)||0;conflict=false;render();renderSlots();renderHistory();renderFiles();renderInquiryWelcome($('inquiryMessages'));$('profileLabel').textContent=next?'익명 사용자':'기기 내 연습';$('authBtn').textContent=App.isMember(next)?'로그아웃':'로그인';$('profileBtn').hidden=!next;$('dashboardBanner').hidden=!App.isMember(next);$('saveStatus').textContent=dirty?'기기 변경 불러옴':'기기 저장';}
 async function connect(next,{retry=false}={}){
  profileReady=false;
  if(!retry||user?.uid!==next?.uid)aiSessionMessages=[];
@@ -1944,7 +2029,7 @@ async function connect(next,{retry=false}={}){
  $('saveStatus').textContent=dirty?'기기 변경 보관 · 서버 확인 중':'서버 데이터 확인 중';
  // Each feature subscribes independently: a denied profile or AI history must not stop inquiries/presence.
  listen(App.db.ref('v2/slots/'+owner),'value',snap=>{slots=snap.val()||{};App.cache.write('gimpo_v2_slots_'+owner,slots);renderSlots();},'slots');
- listen(App.db.ref('v2/inquiries/'+owner).orderByKey().limitToLast(100),'value',renderInquiries,'inquiries');
+ listen(App.db.ref('v2/inquiries/'+owner).orderByChild('timestamp').limitToLast(100),'value',renderInquiries,'inquiries');
  listen(App.db.ref('v2/statistics/public'),'value',snap=>renderRates(snap.val()||{}),'statistics');
  presence=CoursePresence.start({db:App.db,uid:owner,serverTimestamp:serverTime(),
   onCount:n=>{if(active()){tabCount=n;renderVisitorCount();}},
