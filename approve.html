@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>프로필 수정 승인</title>
+  <style>
+    body{margin:0;min-height:100vh;min-height:100dvh;display:grid;place-items:center;background:#fff;color:#191f28;font:18px/1.6 system-ui;padding:24px;box-sizing:border-box}
+    main{max-width:32em;text-align:center;overflow-wrap:anywhere}button{font:inherit;border:0;border-radius:8px;padding:10px 20px;background:#2a52be;color:#fff;cursor:pointer}button[hidden]{display:none}
+  </style>
+</head>
+<body>
+  <main><p id="result" role="status" aria-live="polite">처리 중입니다.</p><button id="retry" type="button" hidden>다시 시도</button></main>
+  <script>
+  (()=>{
+    'use strict';
+    const endpoint='https://script.google.com/macros/s/AKfycbzHSzopZm8oQcPGqSmteuCJKanULIptcelUfvqG9OgGlz4vD019ZgndZnYNwGZy9EcMoA/exec';
+    const token=location.hash.slice(1),result=document.getElementById('result'),retry=document.getElementById('retry');
+    // Keep the approval capability in memory only, not in history or referrers.
+    history.replaceState(null,'',location.pathname+location.search);
+    if(!/^[a-f0-9]{64}\.[a-f0-9]{64}$/.test(token)){result.textContent='올바른 승인 링크를 열어주세요.';return;}
+    let pending=false,completed=false;
+    async function approve(){
+      if(pending||completed)return;
+      pending=true;retry.hidden=true;result.textContent='처리 중입니다.';
+      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),25000);
+      try{
+        const response=await fetch(endpoint,{method:'POST',mode:'cors',credentials:'omit',redirect:'follow',referrerPolicy:'no-referrer',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({action:'approve',token:token}),signal:controller.signal});
+        if(!response.ok||response.type==='opaque')throw new Error('unreadable-response');
+        const answer=await response.json();
+        if(answer&&answer.ok===true){completed=true;result.textContent='완료되었습니다.';}
+        else{result.textContent=answer&&typeof answer.message==='string'?answer.message:'요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.';retry.hidden=false;}
+      }catch(error){result.textContent='처리 결과를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.';retry.hidden=false;}
+      finally{clearTimeout(timer);pending=false;}
+    }
+    retry.addEventListener('click',approve);
+    approve();
+  })();
+  </script>
+</body>
+</html>
