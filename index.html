@@ -534,7 +534,7 @@
 .accordion-inner .course-card{width:100%;margin-right:0;padding:16px;gap:14px;min-height:94px}.accordion-inner .course-card:has(.pin-box){padding-top:28px}.accordion-inner .special-select-label{grid-column:1/-1;width:100%}
 .course-card.selection-unavailable{background:var(--bg-color,#f2f4f6);filter:grayscale(.85);opacity:.48;cursor:not-allowed}.course-card.selection-unavailable .course-check{cursor:not-allowed}
 @media(max-width:760px){.header,.header:has(#pinResetBtn:not([hidden])){grid-template-columns:auto minmax(0,1fr);padding:9px 10px;gap:8px}.header .header-title,.header:has(#pinResetBtn:not([hidden])) .header-title{grid-column:1/-1;grid-row:1;font-size:clamp(12px,3.9vw,18px)}.header .header-btn-left,.header:has(#pinResetBtn:not([hidden])) .header-btn-left{grid-column:1;grid-row:2;white-space:nowrap}.header .header-selection-actions,.header:has(#pinResetBtn:not([hidden])) .header-selection-actions,.header #clearAi{grid-column:2;grid-row:2;flex-wrap:nowrap}.header .header-btn-right{white-space:nowrap}.accordion-inner .course-card{padding:14px;gap:12px}}
-</style><style>.file-preview{display:flex;align-items:center;min-height:68px;max-width:180px;padding:12px 22px 12px 10px;border:1px solid #d1d6db;border-radius:10px;background:#f2f4f6;color:#191f28;overflow-wrap:anywhere;font-size:13px}.studio-version-dialog{width:min(680px,calc(100vw - 32px));max-height:85vh}.site-confirm .version-list{display:block;max-height:55vh;overflow:auto}.version-row{border-bottom:1px solid #e5e8eb;padding:12px 0}.version-row p{font-size:14px;margin:0 0 8px}.version-row button{font-size:13px;padding:6px 10px}</style></head>
+</style><style>.preview-img-wrap:has(.file-preview){width:180px;height:auto;min-height:68px}.preview-img-wrap .file-preview{width:100%;height:100%;box-sizing:border-box}.file-preview{display:flex;align-items:center;min-height:68px;max-width:180px;padding:12px 22px 12px 10px;border:1px solid #d1d6db;border-radius:10px;background:#f2f4f6;color:#191f28;overflow-wrap:anywhere;font-size:13px}.studio-version-dialog{width:min(680px,calc(100vw - 32px));max-height:85vh}.site-confirm .version-list{display:block;max-height:55vh;overflow:auto}.version-row{border-bottom:1px solid #e5e8eb;padding:12px 0}.version-row p{font-size:14px;margin:0 0 8px}.version-row button{font-size:13px;padding:6px 10px}</style></head>
 <body>
 <div id="app">
     <header class="header">
@@ -555,7 +555,7 @@
     </div>
     <div class="live-counter-wrap">
         <span id="saveStatus" role="status">불러오는 중</span>
-        <span id="connectionCount" role="status" aria-atomic="true" title="현재 사이트에 연결된 방문자 수 · 같은 계정의 여러 탭은 1명">실시간 접속자 수: <span id="connectionCountValue">연결 확인 중</span></span>
+        <span id="connectionCount" role="status" aria-atomic="true" title="현재 사이트에 연결된 방문자 수 · 같은 기기의 여러 탭은 1명">실시간 접속자 수: <span id="connectionCountValue">연결 확인 중</span></span>
     </div>
     <main class="tab-wrapper tabs">
         <section id="panel-0" class="panel tab-content chat" role="tabpanel" aria-label="AI 채팅" hidden>
@@ -640,7 +640,7 @@
             <div class="chat-bottom-wrapper">
                 <div id="attachments" class="preview-area"></div>
                 <form id="inquiryForm" class="chat-input-area">
-                    <button id="attachBtn" class="attach-btn" type="button" aria-label="사진 첨부" title="이미지 첨부">
+                    <button id="attachBtn" class="attach-btn" type="button" aria-label="사진·파일 첨부" title="사진·파일 첨부">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                     </button>
                     <input id="files" type="file" multiple hidden>
