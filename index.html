@@ -940,7 +940,7 @@ return {create,decodeRecord,signature,MAX_BYTES,MAX_SOURCE,MAX_EDGE};
  const WEB_APP_URL='https://script.google.com/macros/s/AKfycbzHSzopZm8oQcPGqSmteuCJKanULIptcelUfvqG9OgGlz4vD019ZgndZnYNwGZy9EcMoA/exec';
  function failure(code,message){return Object.assign(new Error(message),{code});}
  function normalizeProfile(data){
-  const value={grade:1,name:String(data?.name||'').trim(),classNum:String(Number(data?.classNum)),studentNum:String(Number(data?.studentNum))};
+  const value={grade:[1,2,3].includes(Number(data?.grade))?Number(data.grade):1,name:String(data?.name||'').trim(),classNum:String(Number(data?.classNum)),studentNum:String(Number(data?.studentNum))};
   if(!value.name||value.name.length>30||!/^(?:[1-9]|1[0-2])$/.test(value.classNum)||!/^(?:[1-9]|[12][0-9]|3[0-5])$/.test(value.studentNum))throw failure('profile/invalid','이름, 반, 번호를 확인해주세요.');
   return value;
  }
@@ -1740,7 +1740,7 @@ return {HEARTBEAT_MS,EXPIRES_MS,countVisitors,start};
 
   function createClient({fetcher, pageURL, currentUser}) {
     const page = new URL(pageURL);
-    const configURL = ['https:','http:'].includes(page.protocol) ? new URL('/course/ai-config.json', page.origin) : null;
+    const configURL = ['https:','http:'].includes(page.protocol) ? new URL('./ai-config.json', page) : null;
 
     async function readEndpoint() {
       if (!configURL) throw new ChatError('setup');
@@ -2100,7 +2100,7 @@ $('profileForm').onsubmit=async e=>{
  e.preventDefault();if(profileBusy)return;
  if(!user)return App.toast('서버 연결 후 정보를 저장할 수 있습니다.');
  if(!profileReady)return App.toast('프로필을 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
- const data={grade:1,name:$('studentName').value.trim(),classNum:$('classNum').value,studentNum:$('studentNum').value};
+ const data={grade:profile.grade||1,name:$('studentName').value.trim(),classNum:$('classNum').value,studentNum:$('studentNum').value};
  if(!data.name)return;
  if(profile.name&&sameProfile(profile,data)){App.toast('변경된 정보가 없습니다.');return;}
  const ver=epoch,owner=uid,requestUser=user,creating=!profile.name;profileBusy=true;updateProfileForm();
