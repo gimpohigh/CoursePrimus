@@ -786,8 +786,9 @@ dialog:is(#authDialog,#profileDialog,#serverDialog)>.update-modal,dialog:is(#aut
   const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
   const year=(time=Date.now())=>new Date(Number(time)+9*3600000).getUTCFullYear();
   function grade(profile={},createdAt,siteGrade=1,now=Date.now()) {
-    const base=Number(profile.entryGrade)||Number(profile.grade)||siteGrade;
-    const start=Number(profile.entryYear)||year(createdAt||now);
+    const owner=root.App?.auth?.currentUser?.uid,cohort=owner?root.App.cache.read('gimpo_v2_cohort_'+owner,{}):{};
+    const base=Number(profile.entryGrade)||Number(cohort?.entryGrade)||Number(profile.grade)||siteGrade;
+    const start=Number(profile.entryYear)||Number(cohort?.entryYear)||year(createdAt||now);
     return Math.max(1,Math.min(3,base+Math.max(0,year(now)-start)));
   }
   function confirmation(message) {
@@ -1079,7 +1080,7 @@ window.App = (() => {
     return signing;
   };
   api.auth.onAuthStateChanged(user=>{if(user){if(user.isAnonymous)guestReady.then(()=>{if(api.auth.currentUser?.uid===user.uid&&deviceAuth.currentUser?.uid!==user.uid)return deviceAuth.updateCurrentUser(user);}).catch(()=>{});api.authError=null;resolveReady(user);return;}api.retryAuthentication().catch(()=>{});});
-  api.signInGoogle=async()=>{const provider=new firebase.auth.GoogleAuthProvider();return api.auth.signInWithPopup(provider);};
+  api.signInGoogle=async()=>{const provider=new firebase.auth.GoogleAuthProvider();return api.auth.signInWithPopup(provider).then(credential=>credential.additionalUserInfo?.isNewUser?api.captureRegistration120(credential):credential);};
   api.signInEmail=(email,password)=>api.auth.signInWithEmailAndPassword(email.trim(),password);
   api.signOut=()=>api.auth.signOut();api.isAdmin=async()=>Boolean((await api.auth.currentUser?.getIdTokenResult(true))?.claims.admin);
   api.uploadImages=async(uid,files)=>{if(files.length>3)throw new Error('사진은 한 번에 3장까지 첨부할 수 있습니다.');for(const f of files){if(!['image/jpeg','image/png','image/webp'].includes(f.type)||f.size>5*1024*1024)throw new Error('사진은 JPG·PNG·WEBP, 한 장당 5MB 이하로 선택해주세요.');}const uploaded=[];try{for(const f of files){const ext={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[f.type];const path=`inquiryUploads/${uid}/${crypto.randomUUID()}/image.${ext}`;await api.storage.ref(path).put(f,{contentType:f.type});uploaded.push({path,name:f.name.slice(0,100)});}return uploaded;}catch(e){await Promise.allSettled(uploaded.map(x=>api.storage.ref(x.path).delete()));throw e;}};
@@ -1359,8 +1360,9 @@ const Media120=(()=>{
   const card=document.createElement('span');card.className='file-preview';card.textContent='📎 '+file.name;return card;
  }
  async function compressPhoto(file,mime){
-  if(file.size<3*MiB||!['image/jpeg','image/webp'].includes(mime)||typeof createImageBitmap!=='function')return file;
-  let bitmap;try{bitmap=await createImageBitmap(file);const ratio=Math.min(1,3600/Math.max(bitmap.width,bitmap.height));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(bitmap.width*ratio));c.height=Math.max(1,Math.round(bitmap.height*ratio));c.getContext('2d').drawImage(bitmap,0,0,c.width,c.height);const b=await new Promise(r=>c.toBlob(r,mime,.94));return b&&b.size<file.size?b:file;}catch{return file;}finally{bitmap?.close();}
+  if(file.size<3*MiB||!['image/jpeg','image/png','image/webp'].includes(mime)||typeof createImageBitmap!=='function')return file;
+  let bitmap;try{bitmap=await createImageBitmap(file);const ratio=Math.min(1,3600/Math.max(bitmap.width,bitmap.height));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(bitmap.width*ratio));c.height=Math.max(1,Math.round(bitmap.height*ratio));c.getContext('2d').drawImage(bitmap,0,0,c.width,c.height);
+   const format=mime==='image/png'?'image/webp':mime,b=await new Promise(r=>c.toBlob(r,format,mime==='image/png'?.98:.94));return b&&b.type===format&&b.size<file.size*.92?b:file;}catch{return file;}finally{bitmap?.close();}
  }
  async function parallel(items,n,fn){const result=new Array(items.length);let index=0;await Promise.all(Array.from({length:Math.min(n,items.length)},async()=>{while(index<items.length){const i=index++;result[i]=await fn(items[i],i);}}));return result;}
  async function http(action,args,{user,grant,body,signal,method}={}){
@@ -1374,7 +1376,8 @@ const Media120=(()=>{
   return parallel(files,2,async file=>{
    let entry=attachments.get(file);if(!entry||entry.key!==key||entry.room!==room||entry.uid!==user.uid){const mime=type(file);entry={uid:user.uid,room,key,mime,id:crypto.randomUUID(),grant:crypto.randomUUID(),data:compressPhoto(file,mime),parts:new Set()};attachments.set(file,entry);}
    const data=await entry.data;if(App.auth.currentUser?.uid!==user.uid)throw Error('로그인 계정이 변경되었습니다.');
-   const info={id:entry.id,grant:entry.grant,messageId:key,mime:entry.mime,size:data.size,name:file.name.slice(0,120)||'첨부 파일'};
+   const converted=data!==file&&data.type!==entry.mime,name=converted?file.name.replace(/\.[^.]*$/,'').slice(0,115)+'.webp':file.name;
+   const info={id:entry.id,grant:entry.grant,messageId:key,mime:converted?data.type:entry.mime,size:data.size,name:name.slice(0,120)||'첨부 파일'};
    const start=await(await http('start',{room},{user,body:info})).json();
    if(!start.finished){const indices=Array.from({length:Math.ceil(data.size/start.chunk)},(_,i)=>i).filter(n=>!entry.parts.has(n));
     await parallel(indices,3,async n=>{if(App.auth.currentUser?.uid!==user.uid)throw Error('로그인 계정이 변경되었습니다.');await http('part',{id:entry.id,n},{grant:entry.grant,body:data.slice(n*start.chunk,(n+1)*start.chunk)});entry.parts.add(n);});
@@ -1417,7 +1420,7 @@ const Media120=(()=>{
   try{return await downloadBytes119(ref,controller.signal,progress);}finally{requests.delete(controller);signal?.removeEventListener('abort',cancel);}
  }
  async function downloadBytes119(ref,signal,progress){
-  if(ref.mediaId)return Media120.binary(ref,signal,progress);
+  if(ref.mediaId){const key=App.auth.currentUser?.uid+':'+ref.mediaId;if(cache.has(key))return cache.get(key);const blob=await Media120.binary(ref,signal,progress);if(kind(ref)==='image')remember(key,blob);return blob;}
   if(!pathOK(ref.dbPath))throw Error('첨부 경로가 올바르지 않습니다.');
   const user=App.auth.currentUser,epoch=generation;if(!user)throw Error('로그인이 필요합니다.');const key=user.uid+':'+ref.dbPath;
   if(cache.has(key))return cache.get(key);
@@ -2638,6 +2641,7 @@ $('withdrawProfileChange').onclick=async()=>{
  }catch(error){if(version===epoch)App.toast(error.message);}
  finally{if(version===epoch){profileBusy=false;updateProfileForm();}}
 };
+window.addEventListener('course-cohort-changed',()=>{if(user){$('profileLabel').textContent=currentName();if($('profileDialog').open)updateProfileForm();}});
 function updateProfileForm(){
  renderPendingChange();
  $('profileClose').hidden=!profile.name;$('profileClose').disabled=profileBusy;
@@ -2682,7 +2686,7 @@ $('profileForm').onsubmit=async e=>{
  finally{if(ver===epoch&&owner===uid){profileBusy=false;updateProfileForm();}}
 };
 async function authAction(fn){$('authSubmit').disabled=true;$('googleBtn').disabled=true;$('authError').textContent='';try{await fn();$('password').value='';$('authDialog').close();}catch(e){$('authError').textContent=App.error(e);}finally{$('authSubmit').disabled=false;$('googleBtn').disabled=false;}}
-$('authForm').onsubmit=e=>{e.preventDefault();if(!App.auth)return;authAction(()=>signup?App.auth.createUserWithEmailAndPassword($('email').value.trim(),$('password').value):App.signInEmail($('email').value,$('password').value));};$('googleBtn').onclick=()=>authAction(()=>App.signInGoogle());$('signupToggle').onclick=()=>{signup=!signup;$('authTitle').textContent=signup?'회원가입':'로그인';$('authSubmit').textContent=signup?'가입하기':'로그인';$('signupToggle').textContent=signup?'로그인으로 돌아가기':'새 계정 만들기';$('password').autocomplete=signup?'new-password':'current-password';};$('resetPassword').onclick=async()=>{try{if(!$('email').value)return App.toast('이메일을 입력해주세요.');await App.auth.sendPasswordResetEmail($('email').value.trim());App.toast('비밀번호 재설정 이메일을 요청했습니다. 스팸함도 확인해주세요.');}catch(e){App.toast(App.error(e));}};
+$('authForm').onsubmit=e=>{e.preventDefault();if(!App.auth)return;authAction(()=>signup?App.auth.createUserWithEmailAndPassword($('email').value.trim(),$('password').value).then(credential=>App.captureRegistration120(credential)):App.signInEmail($('email').value,$('password').value));};$('googleBtn').onclick=()=>authAction(()=>App.signInGoogle());$('signupToggle').onclick=()=>{signup=!signup;$('authTitle').textContent=signup?'회원가입':'로그인';$('authSubmit').textContent=signup?'가입하기':'로그인';$('signupToggle').textContent=signup?'로그인으로 돌아가기':'새 계정 만들기';$('password').autocomplete=signup?'new-password':'current-password';};$('resetPassword').onclick=async()=>{try{if(!$('email').value)return App.toast('이메일을 입력해주세요.');await App.auth.sendPasswordResetEmail($('email').value.trim());App.toast('비밀번호 재설정 이메일을 요청했습니다. 스팸함도 확인해주세요.');}catch(e){App.toast(App.error(e));}};
 
 function resetAccount(next){globalThis.InquiryPreview?.close();pendingChange=null;profileBusy=false;profileReady=false;inquiryScroll.reset();inquiryLoaded=false;inquiryKeys.clear();connectionIssues.clear();renderConnectionIssues();if(serverDialog.open)serverDialog.close();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;for(const id of ['aiInput','inquiryInput','studentName','password'])$(id).value='';$('classNum').value='1';$('studentNum').value='1';$('previewContent').replaceChildren();for(const id of ['profileDialog','previewDialog','authDialog']){if($(id).open)$(id).close();}unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}App.releaseImages($('inquiryMessages'));clearTimeout(saveTimer);user=next;uid=next?.uid||'device';profile=App.cache.read('gimpo_v2_profile_'+uid,{})||{};history=[];selectedFiles=[];slots=App.cache.read('gimpo_v2_slots_'+uid,{})||{};const saved=App.cache.read(stateKey(uid),{});state=E.normalize(saved.state||{});const cachedDraft=App.cache.read(draftKey());recommendation=cachedDraft?E.normalize(cachedDraft):null;dirty=Boolean(saved.dirty);revision=Number(saved.revision)||0;conflict=false;render();renderSlots();renderHistory();renderFiles();renderInquiryWelcome($('inquiryMessages'));$('profileLabel').textContent=next?currentName():'기기 내 연습';$('authBtn').textContent=App.isMember(next)?'로그아웃':'로그인';$('profileBtn').hidden=!next;$('dashboardBanner').hidden=false;const account=$('accountIdentity');account.hidden=!next?.email;account.textContent=next?.email?'계정: '+next.email:'';account.title=account.textContent;scheduleAccountLayout();$('saveStatus').textContent=dirty?'기기 변경 불러옴':'기기 저장';}
 async function connect(next,{retry=false}={}){
@@ -2983,8 +2987,24 @@ App.db.ref('v2/siteContent/notices').on('value',snapshot=>{try{const value=snaps
 /* Register verified account metadata for the existing administrator directory. */
 (()=>{'use strict';if(!window.App||App.offline||App.demo||App.studioPreview)return;
 const endpoint='https://script.google.com/macros/s/AKfycbzHSzopZm8oQcPGqSmteuCJKanULIptcelUfvqG9OgGlz4vD019ZgndZnYNwGZy9EcMoA/exec';let epoch=0,stopProfile=null;
+// Preserve the registration portal even when another grade is open on this device.
+function rememberEntry120(user,cohort){
+ if(!user||App.auth.currentUser?.uid!==user.uid||![1,2,3].includes(Number(cohort?.entryGrade))||!Number.isInteger(Number(cohort?.entryYear)))return;
+ const value={entryGrade:Number(cohort.entryGrade),entryYear:Number(cohort.entryYear)};App.cache.write('gimpo_v2_cohort_'+user.uid,value);
+ window.dispatchEvent(new Event('course-cohort-changed'));
+}
+App.captureRegistration120=async credential=>{
+ if(!credential?.user)return credential;
+ const user=credential.user,siteGrade=1,when=Date.parse(user.metadata.creationTime);
+ const registration={entryGrade:siteGrade,entryYear:Course119.year(when||Date.now())};App.cache.write('gimpo_v2_registration_'+user.uid,registration);rememberEntry120(user,registration);
+ const send=async()=>{if(App.auth.currentUser?.uid!==user.uid)return;const idToken=await user.getIdToken();
+  const resp=await fetch(endpoint,{method:'POST',credentials:'omit',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({action:'syncStudentIdentity',idToken,siteGrade,registration:true}),signal:AbortSignal.timeout(30000)}),answer=await resp.json();
+  if(!answer.ok)throw Error('retry');rememberEntry120(user,answer.result?.cohort);
+ };send().catch(()=>setTimeout(()=>send().catch(()=>{}),2500));return credential;
+};
+
 App.auth.onAuthStateChanged(user=>{const version=++epoch;stopProfile?.();stopProfile=null;if(!user)return;let sent=false,attempts=0;
- async function sync(){if(sent||version!==epoch||attempts>=2)return;sent=true;attempts++;try{const idToken=await user.getIdToken();if(version!==epoch)return;const response=await fetch(endpoint,{method:'POST',credentials:'omit',referrerPolicy:'no-referrer',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({action:'syncStudentIdentity',idToken,siteGrade:1}),signal:AbortSignal.timeout(30000)});if(!response.ok||(await response.json()).ok!==true)throw Error('retry');}catch{sent=false;if(version===epoch&&attempts<2)setTimeout(sync,5000);}}
+ async function sync(){if(sent||version!==epoch||attempts>=2)return;sent=true;attempts++;try{const idToken=await user.getIdToken();if(version!==epoch)return;const response=await fetch(endpoint,{method:'POST',credentials:'omit',referrerPolicy:'no-referrer',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({action:'syncStudentIdentity',idToken,siteGrade:App.cache.read('gimpo_v2_registration_'+user.uid)?.entryGrade||1,registration:Boolean(App.cache.read('gimpo_v2_registration_'+user.uid))}),signal:AbortSignal.timeout(30000)});const answer=await response.json();if(!response.ok||answer.ok!==true)throw Error('retry');if(version===epoch)rememberEntry120(user,answer.result?.cohort);}catch{sent=false;if(version===epoch&&attempts<2)setTimeout(sync,5000);}}
  const ref=App.db.ref('v2/profiles/'+user.uid);let hasProfile=false;const fn=ref.on('value',snap=>{if(snap.val()?.name&&!hasProfile){hasProfile=true;sent=false;sync();}},()=>{});stopProfile=()=>ref.off('value',fn);if(!user.isAnonymous)sync();
 });
 })();
