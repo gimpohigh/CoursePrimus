@@ -904,7 +904,11 @@ function downloadCoursePaper(engine, state, student) {
     for(const word of value.trim().split(/\s+/)){const joined=current?current+' '+word:word;
       if(measure(joined,size,f)<=max){current=joined;continue;}
       if(current){result.push(current);current='';}
-      for(const c of word){if(current&&measure(current+c,size,f)>max){result.push(current);current='';}current+=c;}
+      for(const part of word.match(/[^/·]+[/·]?|[/·]/g)||[word]){
+        if(measure(current+part,size,f)<=max){current+=part;continue;}
+        if(current){result.push(current);current='';}
+        for(const c of part){if(current&&measure(current+c,size,f)>max){result.push(current);current='';}current+=c;}
+      }
     }result.push(current);return result;
   }
   const category=c=>c.sem==='3-2'&&c.name==='심화 일본어'?'':({사회:'사회(역사/도덕 포함)',정보:'기술·가정/정보',한문:'제2외국어/한문',제2외국어:'제2외국어/한문'}[c.cat]||c.cat);
