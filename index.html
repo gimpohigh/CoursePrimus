@@ -1337,7 +1337,7 @@ return {create,decodeRecord,signature,MAX_BYTES,MAX_SOURCE,MAX_EDGE};
 const Media120=(()=>{
  const endpoint='https://gimpo-course-db.gimporeport0310.workers.dev/media/',MiB=1048576;
  const hint='사진·동영상·파일은 한 번에 30개, 파일당 128MB, 합계 512MB까지 첨부할 수 있습니다.';
- const attachments=new WeakMap(),posters=new WeakMap(),receipts=new Map(),localVideos=new Map();
+ const attachments=new WeakMap(),posters=new WeakMap(),receipts=new Map();
  const valid=files=>files.length<=30&&files.every(f=>f.size>0&&f.size<=128*MiB)&&files.reduce((n,f)=>n+f.size,0)<=512*MiB;
  function icon(type='download'){
   const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),p=document.createElementNS(ns,'path');
@@ -1369,7 +1369,7 @@ const Media120=(()=>{
  async function http(action,args,{user,grant,body,signal,method}={}){
   const url=new URL(action,endpoint);Object.entries(args).forEach(([k,v])=>url.searchParams.set(k,v));const headers={Authorization:grant?'Upload '+grant:'Bearer '+await user.getIdToken()};
   const payload=body instanceof Blob?body:body===undefined?undefined:JSON.stringify(body);if(body&&!(body instanceof Blob))headers['Content-Type']='application/json';
-  let response;for(let i=0;i<3;i++){try{response=await fetch(url,{method:method||(body===undefined?'GET':'POST'),headers,body:payload,signal,credentials:'omit'});if(response.ok)return response;if(response.status<500&&response.status!==429)break;}catch(e){if(signal?.aborted||i===2)throw e;}await new Promise(r=>setTimeout(r,250*(i+1)));}
+  let response;for(let i=0;i<3;i++){try{response=await fetch(url,{method:method||(body===undefined?'GET':'POST'),headers,body:payload,signal,credentials:'omit',keepalive:action==='receipt'});if(response.ok)return response;if(response.status<500&&response.status!==429)break;}catch(e){if(signal?.aborted||i===2)throw e;}await new Promise(r=>setTimeout(r,250*(i+1)));}
   const detail=await response?.json().catch(()=>null);throw Error(detail?.error==='resource-exhausted'?'진행 중인 첨부 전송이 많습니다. 잠시 후 다시 보내주세요.':detail?.error==='permission-denied'?'이 첨부를 이용할 권한이 없습니다.':'첨부를 처리하지 못했습니다. 파일 형식과 연결을 확인한 뒤 다시 시도해 주세요.');
  }
  async function upload(room,files,key){
@@ -1388,11 +1388,65 @@ const Media120=(()=>{
  }
  const identity=r=>r.mediaId?[r.room,r.mediaId]:(r.dbPath||'').split('/').slice(-2);
  const cacheKey=(uid,room,id)=>new URL('/.course-video/'+encodeURIComponent(uid)+'/'+encodeURIComponent(room)+'/'+encodeURIComponent(id),location.origin).href;
- async function prepared(r,mark=false){
-  const [room,id]=identity(r),user=App.auth?.currentUser;if(!room||!id||!user)return false;const key=cacheKey(user.uid,room,id);
-  if(!mark&&receipts.get(key)===true)return true;
-  try{const v=await(await http('receipt',{room,id},{user,method:mark?'POST':'GET'})).json();if(v.ready)receipts.set(key,true);return !!v.ready;}catch{return false;}
+ async function markPrepared(r){
+  const [room,id]=identity(r),user=App.auth?.currentUser;if(!room||!id||!user)return;
+  const key=cacheKey(user.uid,room,id);if(receipts.get(key))return;
+  try{await http('receipt',{room,id},{user,method:'POST'});receipts.set(key,true);scheduleReceipts(0);}catch{}
  }
+ const watching=new Map();let timer=null,checking=false,rerun=false;
+ const mounts=new MutationObserver(()=>{
+  for(const [el,item] of watching){
+   if(el.isConnected&&!item.mounted){item.mounted=true;scheduleReceipts(0);}
+   else if(!el.isConnected&&item.mounted)forget(el);
+  }
+ });
+ function forget(el){
+  watching.delete(el);
+  if(!watching.size){mounts.disconnect();clearTimeout(timer);timer=null;}
+ }
+ function scheduleReceipts(delay){
+  if(!watching.size)return;
+  if(checking){if(!delay)rerun=true;return;}
+  if(timer!==null&&delay)return;
+  clearTimeout(timer);timer=setTimeout(checkReceipts,delay);
+ }
+ async function checkReceipts(){
+  timer=null;checking=true;const user=App.auth?.currentUser,rooms=new Map();
+  try{
+   for(const [el,item] of watching){
+    if(item.uid!==user?.uid){forget(el);continue;}
+    if(!el.isConnected)continue;
+    item.mounted=true;
+    if(receipts.get(item.key)){forget(el);item.restore();continue;}
+    if(!rooms.has(item.room))rooms.set(item.room,new Set());
+    rooms.get(item.room).add(item.id);
+   }
+   await Promise.all(Array.from(rooms,async ([room,ids])=>{
+    const list=Array.from(ids);
+    for(let i=0;i<list.length;i+=60){
+     try{const response=await http('receipts',{room},{user,body:{ids:list.slice(i,i+60)}});
+      const data=await response.json();
+      for(const id of data.ready)receipts.set(cacheKey(user.uid,room,id),true);
+     }catch{}
+    }
+   }));
+   for(const [el,item] of watching)if(el.isConnected&&item.uid===App.auth?.currentUser?.uid&&receipts.get(item.key)){
+    forget(el);item.restore();
+   }
+  }finally{
+   checking=false;const immediate=rerun;rerun=false;
+   if(immediate||!document.hidden&&Array.from(watching.keys()).some(el=>el.isConnected&&el.getClientRects().length))scheduleReceipts(immediate?0:12000);
+  }
+ }
+ function watchPrepared(el,r,restore){
+  const [room,id]=identity(r),uid=App.auth?.currentUser?.uid;if(!room||!id||!uid)return ()=>{};
+  if(!watching.size)mounts.observe(document.documentElement,{childList:true,subtree:true});
+  watching.set(el,{room,id,uid,key:cacheKey(uid,room,id),restore,mounted:el.isConnected});
+  if(el.isConnected)scheduleReceipts(0);
+  return ()=>forget(el);
+ }
+ for(const event of ['focus','pageshow','online'])window.addEventListener(event,()=>scheduleReceipts(0));
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleReceipts(0);});
  async function binary(r,signal,progress){const user=App.auth.currentUser,resp=await http('read',{room:r.room,id:r.mediaId},{user,signal}),chunks=[],reader=resp.body.getReader();let read=0;
   try{for(;;){const v=await reader.read();if(v.done)break;read+=v.value.length;if(read>r.size)throw Error('첨부 크기가 달라졌습니다.');chunks.push(v.value);progress?.(read,r.size);}}finally{reader.releaseLock();}
   if(read!==r.size||App.auth.currentUser?.uid!==user.uid)throw Error('첨부 전송이 완료되지 않았습니다.');return new Blob(chunks,{type:r.mime});
@@ -1403,7 +1457,7 @@ const Media120=(()=>{
   const blob=await loader();if(uid!==App.auth.currentUser?.uid)throw Error('로그인 계정이 변경되었습니다.');
   try{if(cache)await cache.put(key,new Response(blob,{headers:{'Content-Type':blob.type}}));}catch{}return blob;
  }
- return{hint,valid,icon,type,preview,upload,prepared,binary,videoBlob};
+ return{hint,valid,icon,type,preview,upload,markPrepared,watchPrepared,binary,videoBlob};
 })();
 
 </script>
@@ -1454,15 +1508,15 @@ const Media120=(()=>{
    const wrap=node('div','attachment119'),type=kind(ref),name=ref.name||'첨부 파일';
    if(type==='video'){
     const video=node('video','chat-video119'),load=node('button','video-load119'),status=node('span','',ref.size?size(ref.size):'영상 받기'),icon=node('b','','↓'),expand=node('button','video-expand119','크게 보기');icon.replaceChildren(Media120.icon());if(/^data:image\/jpeg;base64,[A-Za-z0-9+/=]{1,24000}$/.test(ref.poster||''))video.poster=ref.poster;video.playsInline=true;video.muted=true;video.preload='none';load.type=expand.type='button';expand.hidden=true;load.setAttribute('aria-label','사이트 안에서 영상 받기');load.append(icon,status);wrap.classList.add('video-card119');wrap.append(video,load,expand);
-    let blob=null,controller=null;cleanup.set(wrap,()=>controller?.abort());load.onclick=async()=>{
+    let blob=null,controller=null;load.onclick=async()=>{
      if(controller){controller.abort();return;}
      if(blob){if(video.paused){try{await video.play();load.hidden=true;}catch{App.toast('이 브라우저에서 영상을 재생하지 못했습니다. 크게 보기에서 다운로드할 수 있습니다.');}}else video.pause();return;}
      controller=new AbortController();icon.textContent='×';load.setAttribute('aria-label','영상 받기 취소');
-     try{blob=await Media120.videoBlob(ref,()=>downloadRecord(ref,controller.signal,(n,total)=>{status.textContent=total?Math.min(99,Math.round(n/total*100))+'%':size(n)+' 받는 중';}));if(!wrap.isConnected){blob=null;return;}const url=URL.createObjectURL(blob);wrap.dataset.mediaUrl=url;video.src=url;video.preload='auto';video.load();expand.hidden=false;icon.textContent='▶';status.textContent='재생';load.setAttribute('aria-label','무음으로 재생');Media120.prepared(ref,true);}
+     try{blob=await Media120.videoBlob(ref,()=>downloadRecord(ref,controller.signal,(n,total)=>{status.textContent=total?Math.min(99,Math.round(n/total*100))+'%':size(n)+' 받는 중';}));if(!wrap.isConnected){blob=null;return;}const url=URL.createObjectURL(blob);wrap.dataset.mediaUrl=url;video.src=url;video.preload='auto';video.load();expand.hidden=false;icon.textContent='▶';status.textContent='재생';load.setAttribute('aria-label','무음으로 재생');Media120.markPrepared(ref);}
      catch(error){blob=null;icon.replaceChildren(Media120.icon());status.textContent=error.name==='AbortError'?'다시 받기':'받기 실패 · 재시도';load.setAttribute('aria-label','사이트 안에서 영상 받기');if(error.name!=='AbortError')App.toast(error.message);}
      finally{controller=null;}
     };
-    video.onloadedmetadata=()=>{const seconds=Number.isFinite(video.duration)?Math.max(0,Math.floor(video.duration)):0;status.textContent=Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');};video.onended=video.onpause=()=>{load.hidden=false;};video.onclick=()=>{if(blob){video.pause();open(blob,ref);}};expand.onclick=()=>{if(blob){video.pause();open(blob,ref);}};Media120.prepared(ref).then(ready=>{if(ready&&wrap.isConnected&&!blob&&!controller)load.click();});return wrap;
+    video.onloadedmetadata=()=>{const seconds=Number.isFinite(video.duration)?Math.max(0,Math.floor(video.duration)):0;status.textContent=Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');};video.onended=video.onpause=()=>{load.hidden=false;};video.onclick=()=>{if(blob){video.pause();open(blob,ref);}};expand.onclick=()=>{if(blob){video.pause();open(blob,ref);}};const unwatch=Media120.watchPrepared(wrap,ref,()=>{if(!blob&&!controller)load.click();});cleanup.set(wrap,()=>{unwatch();controller?.abort();});return wrap;
    }
    if(type==='file'){
     const button=node('button','file-card119'),title=node('strong','',name),detail=node('span','',ref.size?'용량 '+size(ref.size):'파일 다운로드'),icon=node('span','file-symbol119');icon.append(Media120.icon());button.type='button';button.append(title,detail,icon);button.onclick=async()=>{button.disabled=true;try{save(await downloadRecord(ref),name);}catch(error){App.toast(error.message);}finally{button.disabled=false;}};wrap.append(button);return wrap;
