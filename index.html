@@ -599,27 +599,77 @@ dialog:is(#authDialog,#profileDialog,#previewDialog,#serverDialog,.site-confirm)
 dialog:is(#authDialog,#profileDialog,#serverDialog){width:min(420px,calc(100vw - 32px))}
 dialog:is(#authDialog,#profileDialog,#serverDialog)>.update-modal,dialog:is(#authDialog,#profileDialog)>form{width:100%;max-width:none;box-sizing:border-box;margin-inline:auto}
 #profileDialog select{appearance:none;padding-inline-end:36px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 20 20'%3E%3Cpath d='m5 8 5 5 5-5' stroke='%23596576' fill='none' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
-.dashboard-banner .banner-inner{position:relative;display:block!important;min-height:30px;width:100%;box-sizing:border-box;max-width:none}
-.dashboard-banner .banner-user,.dashboard-banner #profileBtn,.dashboard-banner #themeBtn,.dashboard-banner .account-identity{position:absolute;top:50%;margin:0;transform:translateY(-50%);max-width:none;white-space:nowrap}
-.dashboard-banner .banner-user{display:block;left:50%;transform:translate(-50%,-50%);font-size:var(--identity-size,12px);text-align:center}
-.dashboard-banner #themeBtn{right:0;left:auto}
-.dashboard-banner #profileBtn{left:var(--edit-left,auto);right:var(--edit-right,auto)}
-.dashboard-banner .account-identity{left:0;max-width:var(--email-space,25%);overflow:hidden;text-overflow:ellipsis;font-size:clamp(10px,1.4vw,12px)}
-.dashboard-banner .banner-inner.wrap-controls{min-height:60px}
-.dashboard-banner .wrap-controls .banner-user{top:14px;max-width:100%;white-space:normal;line-height:1.2}
-.dashboard-banner .wrap-controls :is(.account-identity,#profileBtn,#themeBtn){top:auto;bottom:0;transform:none}
-.dashboard-banner .wrap-controls #profileBtn{left:auto;right:var(--edit-fallback,76px)}
-.dashboard-banner .account-identity[hidden]{display:none}
-@media(max-width:760px){.header .header-title{font-size:clamp(13px,3.9vw,18px)}.header .header-btn-left,.header .header-btn-right{font-size:clamp(10px,2.8vw,13px)}}
-#app>.header.fit-controls120:not(.stack-controls120){display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:6px;padding-inline:10px}
-#app>.header.fit-controls120 .header-title{font-size:var(--header-fit-size);justify-self:center}
-#app>.header.fit-controls120:not(.stack-controls120) .header-title{grid-column:2;grid-row:1;white-space:nowrap;order:0}
-#app>.header.fit-controls120:not(.stack-controls120) #authBtn{grid-column:1;grid-row:1;justify-self:start;position:static;transform:none;order:0}
-#app>.header.fit-controls120:not(.stack-controls120) :is(.header-selection-actions,#clearAi){grid-column:3;grid-row:1;justify-self:end;position:static;transform:none;order:0}
-#app>.header.stack-controls120{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:5px 8px}
-#app>.header.stack-controls120 .header-title{flex:1 0 100%;order:0;text-align:center;white-space:normal}
-#app>.header.stack-controls120 :is(#authBtn,.header-selection-actions,#clearAi){position:static;transform:none;order:1}
-</style><style>.preview-img-wrap video{width:100%;height:100%;display:block;object-fit:cover;border-radius:inherit}.media-toolbar119 svg,.file-symbol119 svg,.video-load119 svg{display:block;margin:auto}.media-toolbar119 svg{width:24px;height:24px}</style></head>
+</style><style>.preview-img-wrap video{width:100%;height:100%;display:block;object-fit:cover;border-radius:inherit}.media-toolbar119 svg,.file-symbol119 svg,.video-load119 svg{display:block;margin:auto}.media-toolbar119 svg{width:24px;height:24px}</style><style>
+:is(.site-confirm,.studio-modal,.chat-bubble,.msg-bubble,.student-chat-bubble,.validation-results,.notice-body,.school-notice,.course-name,.stat-label,.studio-status,.studio-muted,.update-modal-body,#appToast,.gallery-note121){word-break:keep-all;overflow-wrap:anywhere;line-break:strict}
+dialog.site-confirm{width:min(490px,calc(100% - 24px));max-width:calc(100% - 24px)}
+dialog.site-confirm p,.studio-modal p{word-break:keep-all;overflow-wrap:anywhere}
+.media-viewer119{inset:0;margin:0;box-sizing:border-box}
+.media-viewer119 .media-stage119{position:absolute;inset:0;display:block;overflow:hidden;touch-action:pan-y pinch-zoom}
+.media-slide121{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;min-width:0;gap:12px}
+.media-slide121 img{user-select:none;-webkit-user-drag:none}
+.media-viewer119 .media-toolbar119{z-index:2}
+.media-viewer119 .media-toolbar119 button,.media-viewer119 .gallery-arrow121{display:grid;place-items:center;box-sizing:border-box;margin:0;padding:0;border-radius:50%;line-height:1;color:white}
+.media-viewer119 .media-toolbar119 button{inline-size:44px;block-size:44px}
+.media-viewer119 .media-toolbar119 svg,.gallery-arrow121 svg{display:block;margin:0;width:24px;height:24px}
+.gallery-arrow121{z-index:1;position:absolute;top:50%;transform:translateY(-50%);width:clamp(36px,5vw,46px);height:clamp(36px,5vw,46px);border:1px solid #ffffff6b;background:#222a;cursor:pointer}
+.gallery-arrow121.previous121{left:max(10px,env(safe-area-inset-left))}
+.gallery-arrow121.next121{right:max(10px,env(safe-area-inset-right))}
+.gallery-note121{position:absolute;z-index:3;left:50%;transform:translateX(-50%);bottom:max(38px,calc(env(safe-area-inset-bottom) + 16px));max-width:90%;padding:9px 16px;border-radius:12px;background:#191f28;color:#fff;text-align:center;pointer-events:none;white-space:nowrap}
+.viewer-file121{width:min(460px,calc(100% - 120px));max-height:68%;display:grid;gap:10px;align-content:center;text-align:center;word-break:keep-all;overflow-wrap:anywhere}
+.viewer-file121>span,.media-loading121{color:#c8cbd0;font-size:13px}
+.viewer-file121 pre{overflow:auto;text-align:start;white-space:pre-wrap;margin:0 0 12px;font:14px/1.55 monospace;max-height:48dvh;touch-action:pan-y}
+.gallery-retry121{padding:8px 14px;border:1px solid #ffffff70;border-radius:8px;color:white;background:#333;cursor:pointer}
+.file-card119{padding:0;min-height:62px}
+.file-card119 .file-open121{display:flex;flex-direction:column;gap:5px;width:100%;text-align:left;padding:15px 52px 15px 14px;background:transparent;border:0;color:inherit;font:inherit;cursor:pointer}
+.file-open121>span{color:#8b95a1;font-size:13px}
+.file-card119 .file-symbol119{display:grid;place-items:center;position:absolute;right:8px;top:50%;transform:translateY(-50%);width:38px;height:38px;background:transparent;border:0;padding:0;font-size:23px;color:inherit;cursor:pointer}
+.video-load119 .transfer-ring121{position:relative;isolation:isolate}
+.video-load119 .transfer-ring121>svg{position:absolute;width:calc(100% + 6px);height:calc(100% + 6px);inset:-3px;overflow:visible;transform:rotate(-90deg)}
+.transfer-ring121 .ring-track121{fill:none;stroke:#ffffff50;stroke-width:3}
+.transfer-ring121 .ring-meter121{fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100;transition:stroke-dashoffset .14s ease-out}
+.transfer-ring121 .ring-cross121{display:block;width:16px;height:16px;position:relative}
+.ring-cross121::before,.ring-cross121::after{content:"";position:absolute;left:7px;top:-1px;width:2px;height:18px;background:white;border-radius:2px;transform:rotate(45deg)}
+.ring-cross121::after{transform:rotate(-45deg)}
+@media(prefers-reduced-motion:reduce){.transfer-ring121 .ring-meter121{transition:none}}
+#app>.header, #app>.header:has(#pinResetBtn:not([hidden])){
+ display:grid;grid-template-columns:var(--header-left,max-content) minmax(0,1fr) var(--header-right,max-content);
+ grid-template-rows:auto;align-items:center;column-gap:clamp(3px,.85vw,10px);row-gap:0;
+ padding:clamp(6px,.9vw,10px) clamp(6px,1.5vw,12px);min-height:clamp(36px,6vw,52px);flex-wrap:nowrap;
+}
+#app>.header .header-title,#app>.header:has(#pinResetBtn:not([hidden])) .header-title{
+ grid-column:2;grid-row:1;justify-self:center;order:0;padding:0;margin:0;width:max-content;max-width:none;scale:var(--header-scale,1) 1;
+ font-size:var(--header-size,clamp(12px,2.8vw,20px));line-height:1.25;white-space:nowrap;text-align:center;
+}
+#app>.header #authBtn,#app>.header .header-selection-actions,#app>.header #clearAi{
+ position:static;inset:auto;transform:none;margin:0;grid-row:1;order:0;white-space:nowrap;
+}
+#app>.header #authBtn{grid-column:1;justify-self:start}
+#app>.header .header-selection-actions,#app>.header #clearAi,#app>.header:has(#pinResetBtn:not([hidden])) .header-selection-actions{grid-column:3;grid-row:1;justify-self:end;gap:clamp(3px,.7vw,8px);flex-wrap:nowrap}
+#app>.header .header-selection-actions{width:max-content;min-width:max-content;max-width:none}
+#app>.header :is(.header-btn-left,.header-btn-right){font-size:clamp(9px,calc(6.5px + .82vw),13px);padding:clamp(4px,.7vw,6px) clamp(3px,calc(1.5vw - 2px),12px);line-height:1.3;white-space:nowrap}
+#app>.header .header-selection-actions:not(:has(button:not([hidden]))){display:none}
+.dashboard-banner:not([hidden]){padding:clamp(6px,.8vw,8px) clamp(6px,1.5vw,12px)}
+#dashboardBanner .banner-inner{
+ display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,max-content) minmax(0,1fr);
+ align-items:center;justify-items:stretch;gap:clamp(3px,.7vw,8px);padding:0;min-height:clamp(25px,3.4vw,30px);width:100%;max-width:none;
+}
+#dashboardBanner :is(.banner-user,#profileBtn,#themeBtn,.account-identity){
+ position:static;inset:auto;transform:none;grid-row:1;margin:0;white-space:nowrap;min-width:0;
+}
+#dashboardBanner .profile-group{grid-column:2;grid-row:1;min-width:0;max-width:var(--group-limit,100%);display:flex;align-items:center;justify-content:center;gap:clamp(3px,.7vw,8px)}
+#dashboardBanner .banner-user{display:block;flex:0 1 auto;width:var(--identity-width,max-content);overflow:hidden;text-overflow:ellipsis;line-height:1.4;font-size:var(--identity-size,clamp(10.5px,2.6vw,15px))}
+#dashboardBanner .identity-text121{display:inline-block;white-space:nowrap;transform-origin:left center;transform:scaleX(var(--identity-scale,1))}
+#dashboardBanner #profileBtn,#dashboardBanner #themeBtn{flex:none;width:max-content;min-width:max-content;max-width:none;font-size:clamp(10px,calc(8.7px + .4vw),12px);padding:clamp(4px,.62vw,6px) clamp(5px,.95vw,10px);line-height:1.3}
+#dashboardBanner #themeBtn{justify-self:end;grid-column:3}
+#dashboardBanner .account-identity{grid-column:1;justify-self:start;max-width:100%;font-size:clamp(10px,calc(8.6px + .37vw),12px);overflow:hidden;text-overflow:ellipsis}
+#dashboardBanner .account-identity::-webkit-scrollbar{display:none}
+#dashboardBanner [hidden]{display:none!important}
+#courseList .accordion-inner,#recommendList .accordion-inner,#rates .accordion-inner{gap:clamp(10px,1.45vw,16px);padding:clamp(10px,1.45vw,16px)}
+#app .accordion-inner .course-card{padding:clamp(12px,1.5vw,16px);gap:clamp(8px,1.35vw,14px);transform-origin:top left}
+#app .accordion-inner .course-card:has(.pin-box){padding-top:28px}
+#app .save-slot-list-container{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
+#app .nav-item{font-size:clamp(10px,calc(9px + .35vw),12px)}
+</style></head>
 <body>
 <div id="app">
     <header class="header">
@@ -633,8 +683,7 @@ dialog:is(#authDialog,#profileDialog,#serverDialog)>.update-modal,dialog:is(#aut
     </header>
     <div id="dashboardBanner" class="dashboard-banner" hidden>
         <div class="banner-inner"><span id="accountIdentity" class="account-identity" hidden></span>
-            <button id="profileBtn" class="edit-profile-btn" type="button" hidden>프로필 수정</button>
-            <span class="banner-user"><span id="profileLabel">기기 내 연습</span> (자동저장)</span>
+            <div class="profile-group"><span class="banner-user"><span class="identity-text121"><span id="profileLabel">기기 내 연습</span> (자동저장)</span></span><button id="profileBtn" class="edit-profile-btn" type="button" hidden>프로필 수정</button></div>
         <button id="themeBtn" class="theme-toggle-btn" type="button">다크 모드</button>
         </div>
     </div>
@@ -810,27 +859,29 @@ function downloadCoursePaper(engine, state, student) {
   const number=n=>Number(n.toFixed(3)).toString(), pt=n=>number(height-n);
   const family='"Malgun Gothic","Apple SD Gothic Neo","Noto Sans CJK KR","Noto Sans KR",sans-serif';
   const fonts=[];
-  function font(bold){
-    const canvas=document.createElement('canvas');canvas.width=170;canvas.height=160;
+  function font(bold,roman=false){
+    const canvas=document.createElement('canvas');canvas.width=roman?490:170;canvas.height=160;
     const ctx=canvas.getContext('2d',{willReadFrequently:true});
-    ctx.font=(bold?'700 ':'400 ')+'112px '+family;ctx.textBaseline='alphabetic';
-    const f={ctx,canvas,bold,id:allocate(),glyphs:new Map(),name:'F'+(fonts.length+1)};fonts.push(f);return f;
+    ctx.font=(bold?'700 ':'400 ')+'112px '+(roman?'"Times New Roman","Liberation Serif","Noto Serif",Times,serif':family);ctx.textBaseline='alphabetic';
+    const f={ctx,canvas,bold,roman,id:allocate(),glyphs:new Map(),name:'F'+(fonts.length+1)};fonts.push(f);return f;
   }
   const normal=font(false),bold=font(true);
-  function measure(str,size,f){return Array.from(str).reduce((n,c)=>n+f.ctx.measureText(c).width*size/112,0);}
+  function face(f,c){return /^[\u2160-\u217f]$/.test(c)&&!f.roman?(f.numerals||=font(f.bold,true)):f;}
+  function shape(f,c){return f.roman?c.normalize('NFKC'):c;}
+  function measure(str,size,f){return Array.from(str).reduce((n,c)=>{const selected=face(f,c);return n+selected.ctx.measureText(shape(selected,c)).width*size/112;},0);}
   function glyph(f,char){
-    if(f.glyphs.has(char))return f.glyphs.get(char);
-    if(f.glyphs.size>=254){f.next||=font(f.bold);return glyph(f.next,char);}
-    const ctx=f.ctx,advance=Math.round(ctx.measureText(char).width*1000/112),code=f.glyphs.size+1;
+    f=face(f,char);if(f.glyphs.has(char))return f.glyphs.get(char);
+    if(f.glyphs.size>=254){f.next||=font(f.bold,f.roman);return glyph(f.next,char);}
+    const ctx=f.ctx,cw=f.canvas.width,draw=shape(f,char),advance=Math.round(ctx.measureText(draw).width*1000/112),code=f.glyphs.size+1;
     const g={code,id:allocate(),advance,char,font:f};f.glyphs.set(char,g);
-    ctx.clearRect(0,0,170,160);ctx.fillStyle='black';ctx.fillText(char,10,123);
-    const pixels=ctx.getImageData(0,0,170,160).data;
-    let left=170,right=-1,top=160,bottom=-1;
-    for(let y=0;y<160;y++)for(let x=0;x<170;x++)if(pixels[(170*y+x)*4+3]>70){left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);}
+    ctx.clearRect(0,0,cw,160);ctx.fillStyle='black';ctx.fillText(draw,10,123);
+    const pixels=ctx.getImageData(0,0,cw,160).data;
+    let left=cw,right=-1,top=160,bottom=-1;
+    for(let y=0;y<160;y++)for(let x=0;x<cw;x++)if(pixels[(cw*y+x)*4+3]>70){left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);}
     let commands=advance+' 0 d0\n';
     if(right>=left){
       const w=right-left+1,h=bottom-top+1,stride=Math.ceil(w/8),bits=new Uint8Array(stride*h);
-      for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(pixels[((top+y)*170+left+x)*4+3]>70)bits[y*stride+(x>>3)]|=128>>(x%8);
+      for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(pixels[((top+y)*cw+left+x)*4+3]>70)bits[y*stride+(x>>3)]|=128>>(x%8);
       const scale=1000/112;
       commands+='q '+[w*scale,0,0,h*scale,(left-10)*scale,(122-bottom)*scale].map(number).join(' ')+' cm\nBI /W '+w+' /H '+h+' /IM true /BPC 1 /D [1 0] /F /AHx ID\n'+hex(bits)+'>\nEI\nQ\n';
     }
@@ -849,10 +900,18 @@ function downloadCoursePaper(engine, state, student) {
   }
   function line(x,y,x2,y2,thickness=.65){drawing.push(number(thickness)+' w '+number(x)+' '+pt(y)+' m '+number(x2)+' '+pt(y2)+' l S');}
   function wrap(value,max,size,f){
-    let result=[],current='';for(const char of value){if(current&&measure(current+char,size,f)>max){result.push(current.trimEnd());current='';}if(current||char.trim())current+=char;}result.push(current.trimEnd());return result;
+    const result=[];let current='';
+    for(const word of value.trim().split(/\s+/)){const joined=current?current+' '+word:word;
+      if(measure(joined,size,f)<=max){current=joined;continue;}
+      if(current){result.push(current);current='';}
+      for(const c of word){if(current&&measure(current+c,size,f)>max){result.push(current);current='';}current+=c;}
+    }result.push(current);return result;
   }
   const category=c=>c.sem==='3-2'&&c.name==='심화 일본어'?'':({사회:'사회(역사/도덕 포함)',정보:'기술·가정/정보',한문:'제2외국어/한문',제2외국어:'제2외국어/한문'}[c.cat]||c.cat);
-  const paperName=c=>c?.name==='정보 과학'?'정보과학':c?.name||'';
+  const numerals=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+  const paperName=c=>(c?.name==='정보 과학'?'정보과학':c?.name||'').replace(/(^|\s)([IVX]+)$/,(all,space,n)=>{
+    const i=numerals.indexOf(n);return i<0?all:space+String.fromCharCode(0x2160+i);
+  });
   const left=39.5,right=width-32,gap=7.5,tableWidth=(right-left-gap)/2,cols=[0,.232,.496,.731,1].map(v=>v*tableWidth);
   function table(x,y,semester){
     const selected=engine.courses.filter(c=>c.sem===semester.key&&!c.req&&state.courses.includes(c.id));
@@ -1357,35 +1416,81 @@ const Media120=(()=>{
  }
  function preview(file,urls){
   const mime=type(file);if(mime.startsWith('video/')){const v=document.createElement('video');v.className='preview-img';v.muted=true;v.playsInline=true;v.preload='auto';v.setAttribute('aria-label',file.name);const url=URL.createObjectURL(file);urls.push(url);v.src=url+'#t=0.001';poster(file).then(p=>{if(p)v.poster=p;});return v;}
-  if(mime.startsWith('image/')){const img=document.createElement('img');img.className='preview-img';const url=URL.createObjectURL(file);urls.push(url);img.src=url;img.alt=file.name;window.InquiryPreview?.bind(img);return img;}
+  if(mime.startsWith('image/')){preparePhoto(file,mime);const img=document.createElement('img');img.className='preview-img';const url=URL.createObjectURL(file);urls.push(url);img.src=url;img.alt=file.name;window.InquiryPreview?.bind(img);return img;}
   const card=document.createElement('span');card.className='file-preview';card.textContent='📎 '+file.name;return card;
  }
- async function compressPhoto(file,mime){
-  if(file.size<3*MiB||!['image/jpeg','image/png','image/webp'].includes(mime)||typeof createImageBitmap!=='function')return file;
-  let bitmap;try{bitmap=await createImageBitmap(file);const ratio=Math.min(1,3600/Math.max(bitmap.width,bitmap.height));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(bitmap.width*ratio));c.height=Math.max(1,Math.round(bitmap.height*ratio));c.getContext('2d').drawImage(bitmap,0,0,c.width,c.height);
-   const format=mime==='image/png'?'image/webp':mime,b=await new Promise(r=>c.toBlob(r,format,mime==='image/png'?.98:.94));return b&&b.type===format&&b.size<file.size*.92?b:file;}catch{return file;}finally{bitmap?.close();}
+ const photoWork=new WeakMap(),photoQueue=[];
+let decoding=0;
+function preparePhoto(file,mime){
+ if(photoWork.has(file))return photoWork.get(file);
+ const work=new Promise(resolve=>{photoQueue.push(async()=>{
+  try{resolve(await prepare());}catch{resolve({data:file,thumbnail:''});}
+ });pump();});photoWork.set(file,work);return work;
+ function pump(){
+  while(decoding<2&&photoQueue.length){decoding++;photoQueue.shift()().finally(()=>{decoding--;pump();});}
  }
+ async function prepare(){
+  if(!['image/jpeg','image/png','image/webp'].includes(mime)||!window.createImageBitmap)return {data:file,thumbnail:''};
+  const bitmap=await createImageBitmap(file);
+  try{
+   const thumb=document.createElement('canvas'),factor=Math.min(1,280/bitmap.width,240/bitmap.height);
+   thumb.width=Math.max(1,Math.round(bitmap.width*factor));thumb.height=Math.max(1,Math.round(bitmap.height*factor));
+   const tiny=thumb.getContext('2d');tiny.fillStyle='#fff';tiny.fillRect(0,0,thumb.width,thumb.height);tiny.drawImage(bitmap,0,0,thumb.width,thumb.height);
+   let thumbnail=thumb.toDataURL('image/jpeg',.74);if(thumbnail.length>24000)thumbnail=thumb.toDataURL('image/jpeg',.50);if(thumbnail.length>24000)thumbnail='';
+   let data=file;
+   if(file.size>=3*MiB){
+    const ratio=Math.min(1,3600/Math.max(bitmap.width,bitmap.height)),canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.round(bitmap.width*ratio));canvas.height=Math.max(1,Math.round(bitmap.height*ratio));canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);
+    const format=mime==='image/png'?'image/webp':mime,result=await new Promise(r=>canvas.toBlob(r,format,mime==='image/png'?.98:.94));
+    if(result?.type===format&&result.size<file.size*.92)data=result;
+    canvas.width=canvas.height=1;
+   }
+   return {data,thumbnail};
+  }finally{bitmap.close();}
+ }
+}
  async function parallel(items,n,fn){const result=new Array(items.length);let index=0;await Promise.all(Array.from({length:Math.min(n,items.length)},async()=>{while(index<items.length){const i=index++;result[i]=await fn(items[i],i);}}));return result;}
  async function http(action,args,{user,grant,body,signal,method}={}){
   const url=new URL(action,endpoint);Object.entries(args).forEach(([k,v])=>url.searchParams.set(k,v));const headers={Authorization:grant?'Upload '+grant:'Bearer '+await user.getIdToken()};
-  const payload=body instanceof Blob?body:body===undefined?undefined:JSON.stringify(body);if(body&&!(body instanceof Blob))headers['Content-Type']='application/json';
+  const binaryBody=body instanceof Blob||body instanceof FormData;const payload=binaryBody?body:body===undefined?undefined:JSON.stringify(body);if(body&&!binaryBody)headers['Content-Type']='application/json';
   let response;for(let i=0;i<3;i++){try{response=await fetch(url,{method:method||(body===undefined?'GET':'POST'),headers,body:payload,signal,credentials:'omit',keepalive:action==='receipt'});if(response.ok)return response;if(response.status<500&&response.status!==429)break;}catch(e){if(signal?.aborted||i===2)throw e;}await new Promise(r=>setTimeout(r,250*(i+1)));}
   const detail=await response?.json().catch(()=>null);throw Error(detail?.error==='resource-exhausted'?'진행 중인 첨부 전송이 많습니다. 잠시 후 다시 보내주세요.':detail?.error==='permission-denied'?'이 첨부를 이용할 권한이 없습니다.':'첨부를 처리하지 못했습니다. 파일 형식과 연결을 확인한 뒤 다시 시도해 주세요.');
  }
  async function upload(room,files,key){
-  if(!files.length)return [];const user=App.auth.currentUser;if(!user||!key)throw Error('로그인 상태를 확인해주세요.');if(!valid(files))throw Error(hint);
-  return parallel(files,2,async file=>{
-   let entry=attachments.get(file);if(!entry||entry.key!==key||entry.room!==room||entry.uid!==user.uid){const mime=type(file);entry={uid:user.uid,room,key,mime,id:crypto.randomUUID(),grant:crypto.randomUUID(),data:compressPhoto(file,mime),parts:new Set()};attachments.set(file,entry);}
-   const data=await entry.data;if(App.auth.currentUser?.uid!==user.uid)throw Error('로그인 계정이 변경되었습니다.');
-   const converted=data!==file&&data.type!==entry.mime,name=converted?file.name.replace(/\.[^.]*$/,'').slice(0,115)+'.webp':file.name;
-   const info={id:entry.id,grant:entry.grant,messageId:key,mime:converted?data.type:entry.mime,size:data.size,name:name.slice(0,120)||'첨부 파일'};
+ if(!files.length)return [];
+ const user=App.auth.currentUser;if(!user||!key)throw Error('로그인 상태를 확인해주세요.');
+ if(!valid(files))throw Error(hint);
+ const slow=navigator.connection?.saveData||/(^|-)2g$/.test(navigator.connection?.effectiveType||'');
+ const workers=slow?2:files.every(f=>type(f).startsWith('image/'))?4:2;
+ return parallel(files,workers,async file=>{
+  let entry=attachments.get(file);
+  if(!entry||entry.key!==key||entry.room!==room||entry.uid!==user.uid){
+   const mime=type(file);entry={uid:user.uid,room,key,mime,id:crypto.randomUUID(),grant:crypto.randomUUID(),prepared:preparePhoto(file,mime),parts:new Set()};
+   attachments.set(file,entry);
+  }
+  if(entry.ref)return entry.ref;
+  const {data,thumbnail}=await entry.prepared;if(App.auth.currentUser?.uid!==user.uid)throw Error('로그인 계정이 변경되었습니다.');
+  const converted=data!==file&&data.type!==entry.mime,name=converted?file.name.replace(/\.[^.]*$/,'').slice(0,115)+'.webp':file.name;
+  const info={id:entry.id,grant:entry.grant,messageId:key,mime:converted?data.type:entry.mime,size:data.size,name:name.slice(0,120)||'첨부 파일'};
+  if(info.mime.startsWith('image/')&&data.size<=8*MiB){
+   const form=new FormData();form.append('info',JSON.stringify(info));form.append('data',data,'photo');
+   await http('photo',{room},{user,body:form});
+  }else{
    const start=await(await http('start',{room},{user,body:info})).json();
-   if(!start.finished){const indices=Array.from({length:Math.ceil(data.size/start.chunk)},(_,i)=>i).filter(n=>!entry.parts.has(n));
+   if(!start.finished){
+    const indices=Array.from({length:Math.ceil(data.size/start.chunk)},(_,i)=>i).filter(n=>!entry.parts.has(n));
     await parallel(indices,3,async n=>{if(App.auth.currentUser?.uid!==user.uid)throw Error('로그인 계정이 변경되었습니다.');await http('part',{id:entry.id,n},{grant:entry.grant,body:data.slice(n*start.chunk,(n+1)*start.chunk)});entry.parts.add(n);});
-    await http('finish',{id:entry.id},{grant:entry.grant,method:'POST'});}
-   const ref={mediaId:entry.id,room,name:info.name,mime:info.mime,size:info.size};if(info.mime.startsWith('video/')){const image=await poster(file);if(image)ref.poster=image;}return ref;
-  });
- }
+    await http('finish',{id:entry.id},{grant:entry.grant,method:'POST'});
+   }
+  }
+  if(App.auth.currentUser?.uid!==user.uid)throw Error('로그인 계정이 변경되었습니다.');
+  const ref={mediaId:entry.id,room,name:info.name,mime:info.mime,size:info.size};
+  if(thumbnail)ref.poster=thumbnail;
+  if(info.mime.startsWith('video/')){const image=await poster(file);if(image)ref.poster=image;}
+  if(info.mime.startsWith('image/'))window.CourseMedia119?.rememberUpload?.(user.uid,ref,data);
+  entry.ref=ref;return ref;
+ });
+}
  const identity=r=>r.mediaId?[r.room,r.mediaId]:(r.dbPath||'').split('/').slice(-2);
  const cacheKey=(uid,room,id)=>new URL('/.course-video/'+encodeURIComponent(uid)+'/'+encodeURIComponent(room)+'/'+encodeURIComponent(id),location.origin).href;
  async function markPrepared(r){
@@ -1492,40 +1597,203 @@ const Media120=(()=>{
   const blob=new Blob([bytes],{type:mime});remember(key,blob);return blob;
  }
  function save(blob,name){const url=URL.createObjectURL(blob),a=node('a');a.href=url;a.download=name||'첨부 파일';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
- function open(blob,ref){
-  viewer?.close();const d=node('dialog','media-viewer119'),bar=node('header','media-toolbar119'),back=node('button','','‹'),meta=node('div','media-meta119'),sender=node('strong','',ref.senderName||'보낸 사람'),time=node('time','',ref.timestamp?new Date(ref.timestamp).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):''),down=node('button','','↓');
-  down.replaceChildren(Media120.icon());back.type=down.type='button';back.setAttribute('aria-label','뒤로가기');down.setAttribute('aria-label','기기에 다운로드');back.onclick=()=>d.close();down.onclick=()=>save(blob,ref.name);meta.append(sender,time);bar.append(back,meta,down);
-  const url=URL.createObjectURL(blob),media=node(blob.type.startsWith('video/')?'video':'img','media-full119');media.src=url;if(media.tagName==='VIDEO'){media.controls=true;media.playsInline=true;media.muted=false;}else media.alt=ref.name||'첨부 사진';
-  const stage=node('div','media-stage119');stage.append(media);stage.onclick=()=>bar.classList.toggle('controls-hidden');d.append(stage,bar);document.body.append(d);d.showModal();viewer=d;back.focus();
-  d.addEventListener('close',()=>{if(media.tagName==='VIDEO'){media.pause();media.removeAttribute('src');media.load();}URL.revokeObjectURL(url);d.remove();if(viewer===d)viewer=null;},{once:true});
+ let legacyElement121;
+ const validPoster121=f=>/^data:image\/jpeg;base64,[A-Za-z0-9+/=]{1,24000}$/.test(f?.poster||'');
+ function galleryTimestamp(value){
+ if(!Number.isFinite(Number(value))||value==null)return '';
+ const parts=new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'numeric',second:'numeric',hourCycle:'h12'}).formatToParts(new Date(Number(value)));
+ const field=k=>parts.find(p=>p.type===k)?.value||'';
+ return field('year')+'. '+Number(field('month'))+'. '+Number(field('day'))+'. '+field('dayPeriod')+' '+Number(field('hour'))+'시 '+Number(field('minute'))+'분 '+Number(field('second'))+'초';
+}
+function chevron(right){
+ const svg=document.createElementNS('http://www.w3.org/2000/svg','svg'),path=document.createElementNS(svg.namespaceURI,'path');
+ svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');
+ path.setAttribute('d',right?'m9 5 7 7-7 7':'m15 5-7 7 7 7');path.setAttribute('fill','none');path.setAttribute('stroke','currentColor');path.setAttribute('stroke-width','2.25');path.setAttribute('stroke-linecap','round');path.setAttribute('stroke-linejoin','round');svg.append(path);return svg;
+}
+function gallerySequence(first){
+ const g=first.gallery,older=new Map();let ended=!g?.room||g.complete,pageRequest;
+ function entries(){return new Map([...older,...(g?.entries?.()||[])]);}
+ function ordered(){
+  if(!g)return [first];
+  const result=[];
+  for(const [id,msg] of ChatOrder.sorted(entries().entries())){
+   if(!Array.isArray(msg?.images))continue;
+   msg.images.forEach((ref,index)=>{if(ref)result.push({...ref,gallery:{...g,id,index},senderName:msg.senderName||(msg.role==='admin'?'개발자':'학생'),timestamp:msg.timestamp});});
+  }
+  return result;
  }
+ function near(ref,direction){
+  const all=ordered(),at=g?all.findIndex(x=>x.gallery.id===ref.gallery.id&&x.gallery.index===ref.gallery.index):0;
+  return at<0?null:all[at+direction]||null;
+ }
+ async function previousPage(){
+  const before=ChatOrder.sorted(entries().entries())[0];
+  if(!before){ended=true;return;}
+  const cursor=ChatOrder.timestamp(before[1]);
+  const snap=await App.db.ref('v2/inquiries/'+g.room).orderByChild('timestamp').endAt(cursor,before[0]).limitToLast(81).once('value');
+  const values=Object.entries(snap.val()||{});let added=0;const known=entries();
+  for(const [id,msg] of values)if(!known.has(id)){older.set(id,msg);added++;}
+  if(values.length<81||!added)ended=true;
+ }
+ async function find(ref,direction){
+  let next=near(ref,direction);
+  while(!next&&direction<0&&!ended){
+   if(!pageRequest)pageRequest=previousPage().finally(()=>{pageRequest=null;});
+   await pageRequest;next=near(ref,direction);
+  }
+  return next;
+ }
+ return {near,find};
+}
+function open(blob,ref){
+ viewer?.close();
+ const d=node('dialog','media-viewer119'),stage=node('div','media-stage119'),bar=node('header','media-toolbar119');
+ const back=node('button'),meta=node('div','media-meta119'),sender=node('strong'),stamp=node('time'),down=node('button');
+ const prev=node('button','gallery-arrow121 previous121'),next=node('button','gallery-arrow121 next121');
+ const note=node('div','gallery-note121');note.setAttribute('role','status');note.hidden=true;
+ const sequence=gallerySequence(ref),motion=matchMedia('(prefers-reduced-motion: reduce)');
+ let current=null,adjacent=null,side=0,navigation=0,busy=false,queued=null,gesture=null,gestureSeq=0,quietClick=false,noteTimer;
+ const orderButton=(button,label,icon,action)=>{button.type='button';button.setAttribute('aria-label',label);button.append(icon);button.onclick=action;};
+ function say(message){clearTimeout(noteTimer);note.textContent=message;note.hidden=false;noteTimer=setTimeout(()=>{note.hidden=true;},2000);}
+ function edge(direction){say(direction<0?'이전 첨부가 더 이상 없습니다.':'다음 첨부가 더 이상 없습니다.');}
+ function metadata(){
+  sender.textContent=current.ref.senderName||'보낸 사람';stamp.textContent=galleryTimestamp(current.ref.timestamp);down.disabled=!current.blob&&!current.external;
+ }
+ function dispose(slide){
+  if(!slide)return;slide.closed=true;slide.abort.abort();slide.el.getAnimations().forEach(a=>a.cancel());
+  const video=slide.el.querySelector('video');if(video){video.pause();video.removeAttribute('src');video.load();}
+  slide.el.remove();if(slide.url)URL.revokeObjectURL(slide.url);
+ }
+ function position(slide,offset){if(slide)slide.el.style.transform='translate3d('+offset+'px,0,0)';}
+ function card(file){const box=node('div','viewer-file121');box.append(node('strong','',file.name||'첨부 파일'),node('span','',file.size?size(file.size):'파일'));return box;}
+ function slideFor(file,initial,offset){
+  const el=node('section','media-slide121'),entry={el,ref:file,blob:null,url:null,external:null,abort:new AbortController(),closed:false};
+  position(entry,offset);stage.append(el);
+  const category=kind(file),fallback=card(file);
+  if(category==='file')el.append(fallback);
+  else if(validPoster121(file)){const thumb=node('img','media-full119');thumb.src=file.poster;thumb.alt=file.name||'첨부';el.append(thumb);}
+  else el.append(node('span','media-loading121','불러오는 중…'));
+  (async()=>{
+   let value=initial;
+   if(!value&&file.legacyUrl&&!file.dbPath&&!file.mediaId){
+    const old=await legacyElement121(file),link=old.querySelector('a[href]');if(!link)throw Error('이전 사진을 불러오지 못했습니다.');entry.external=link.href;
+   }else if(!value&&!file.dbPath&&!file.mediaId){
+    const old=await legacyElement121(file);try{const img=old.querySelector('img');if(!img)throw Error('사진을 불러오지 못했습니다.');value=await(await fetch(img.src,{signal:entry.abort.signal})).blob();}finally{App.releaseImages(old);}
+   }else if(!value&&category==='video')value=await Media120.videoBlob(file,()=>downloadRecord(file,entry.abort.signal));
+   else if(!value)value=await downloadRecord(file,entry.abort.signal);
+   if(entry.closed)return;
+   entry.blob=value;
+   if(category==='file'){
+    if(value&&/\.(?:txt|log|csv|md)$/i.test(file.name||'')){const t=await value.slice(0,65536).text();if(!entry.closed){const preview=node('pre','file-text121',t);fallback.prepend(preview);}}
+   }else{
+    const source=entry.external||(entry.url=URL.createObjectURL(value)),media=node(category==='video'?'video':'img','media-full119');
+    if(category==='video'){media.controls=true;media.playsInline=true;media.muted=false;media.preload='metadata';Media120.markPrepared(file);}
+    else{media.alt=file.name||'첨부 사진';media.draggable=false;media.referrerPolicy='no-referrer';}
+    media.src=source;el.replaceChildren(media);
+   }
+   if(current===entry&&!entry.closed)metadata();
+  })().catch(error=>{if(entry.closed)return;const retry=node('button','gallery-retry121','다시 불러오기');retry.type='button';retry.onclick=()=>{if(current!==entry||busy)return;const replacement=slideFor(file,null,0);dispose(entry);current=replacement;metadata();};el.replaceChildren(node('span','',error.message||'첨부를 불러오지 못했습니다.'),retry);});
+  return entry;
+ }
+ function clearAdjacent(){dispose(adjacent);adjacent=null;side=0;}
+ function prepare(file,fromSide){
+  if(adjacent&&side===fromSide&&adjacent.ref.gallery?.id===file.gallery?.id&&adjacent.ref.gallery?.index===file.gallery?.index)return;
+  clearAdjacent();side=fromSide;adjacent=slideFor(file,null,side*stage.clientWidth);
+ }
+ function animate(el,from,to,duration){
+  el.style.transform='translate3d('+to+'px,0,0)';
+  if(motion.matches||!el.animate)return Promise.resolve();
+  return el.animate([{transform:'translate3d('+from+'px,0,0)'},{transform:'translate3d('+to+'px,0,0)'}],{duration,easing:'cubic-bezier(.2,.8,.2,1)'}).finished.catch(()=>{});
+ }
+ async function move(direction,fromSide=direction,offset=0){
+  if(!d.open)return;
+  if(busy){queued=direction;return;}
+  busy=true;const turn=++navigation,w=stage.clientWidth;
+  try{
+   const file=await sequence.find(current.ref,direction);if(!d.open||turn!==navigation)return;
+   if(!file){edge(direction);if(offset)await animate(current.el,offset,0,160);clearAdjacent();return;}
+   prepare(file,fromSide);const before=current,after=adjacent;
+   before.el.querySelector('video')?.pause();bar.classList.remove('controls-hidden');note.hidden=true;
+   const duration=Math.max(110,Math.min(290,290*(1-Math.min(1,Math.abs(offset)/w))));
+   await Promise.all([animate(before.el,offset,-fromSide*w,duration),animate(after.el,fromSide*w+offset,0,duration)]);
+   if(turn!==navigation||!d.open)return;
+   current=after;adjacent=null;side=0;dispose(before);metadata();
+  }catch(error){if(d.open&&turn===navigation){say(error.message||'이전 대화를 불러오지 못했습니다.');await animate(current.el,offset,0,160);clearAdjacent();}}
+  finally{if(turn===navigation){busy=false;if(queued!==null){const step=queued;queued=null;move(step);}}}
+ }
+ orderButton(back,'뒤로가기',chevron(false),()=>d.close());orderButton(down,'기기에 다운로드',Media120.icon(),()=>{if(current.blob)save(current.blob,current.ref.name);else if(current.external){const a=node('a');a.href=current.external;a.download=current.ref.name||'사진';a.target='_blank';a.rel='noopener noreferrer';a.click();}});
+ orderButton(prev,'이전 첨부',chevron(false),()=>move(-1));orderButton(next,'다음 첨부',chevron(true),()=>move(1));
+ meta.append(sender,stamp);bar.append(back,meta,down);d.append(stage,bar,prev,next,note);document.body.append(d);d.showModal();viewer=d;current=slideFor(ref,blob,0);metadata();back.focus();
+ d.addEventListener('keydown',e=>{if(e.altKey||e.ctrlKey||e.metaKey)return;if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();e.stopPropagation();move(e.key==='ArrowLeft'?-1:1);}});
+ function pan(dx){
+  const delta=Math.sign(dx),fromSide=-delta,w=stage.clientWidth;let offset=Math.max(-w,Math.min(w,dx));
+  if(!adjacent&&gesture?.edge)offset*=.2;
+  position(current,offset);if(adjacent&&side===fromSide)position(adjacent,fromSide*w+offset);return offset;
+ }
+ stage.addEventListener('pointerdown',e=>{
+  if(busy||e.pointerType==='mouse'||!e.isPrimary||e.target.closest('button,pre')||gesture)return;
+  const v=e.target.closest('video');if(v&&e.clientY>v.getBoundingClientRect().bottom-50)return;
+  gesture={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,offset:0,dir:0,drag:false,edge:false};gestureSeq++;
+ });
+ stage.addEventListener('pointermove',e=>{
+  const g=gesture;if(!g||g.id!==e.pointerId)return;const dx=e.clientX-g.x,dy=e.clientY-g.y;
+  if(!g.drag){if(Math.abs(dy)>8&&Math.abs(dy)>Math.abs(dx)){gesture=null;return;}if(Math.abs(dx)<7||Math.abs(dx)<Math.abs(dy))return;g.drag=true;stage.setPointerCapture(e.pointerId);}
+  if(e.cancelable)e.preventDefault();g.dx=dx;const dir=Math.sign(dx);
+  if(dir&&dir!==g.dir){
+   g.dir=dir;g.edge=false;clearAdjacent();const f=sequence.near(current.ref,dir);
+   if(f)prepare(f,-dir);
+   else{const ticket=++gestureSeq;sequence.find(current.ref,dir).then(file=>{if(gesture!==g||ticket!==gestureSeq)return;if(file)prepare(file,-dir);else g.edge=true;g.offset=pan(g.dx);}).catch(()=>{});}
+  }
+  g.offset=pan(dx);
+ });
+ function release(e,cancel){
+  const g=gesture;if(!g||g.id!==e.pointerId)return;gesture=null;gestureSeq++;
+  if(!g.drag)return;quietClick=true;setTimeout(()=>{quietClick=false;},320);
+  if(cancel||!g.dir||Math.abs(g.dx)<5){busy=true;const w=stage.clientWidth;Promise.all([animate(current.el,g.offset,0,160),adjacent?animate(adjacent.el,side*w+g.offset,side*w,160):null]).then(()=>{clearAdjacent();busy=false;});}
+  else move(g.dir,-g.dir,g.offset);
+ }
+ stage.addEventListener('pointerup',e=>release(e,false));stage.addEventListener('pointercancel',e=>release(e,true));
+ stage.onclick=e=>{if(!quietClick&&!busy&&!e.target.closest('video,button,pre'))bar.classList.toggle('controls-hidden');};
+ d.addEventListener('close',()=>{navigation++;gestureSeq++;gesture=null;clearTimeout(noteTimer);dispose(current);clearAdjacent();d.remove();if(viewer===d)viewer=null;},{once:true});
+}
  function install(){
-  if(!root.App||App.studioPreview||App.offline||App.media119)return;App.media119=true;App.uploadImages=Media120.upload;const old=App.imageElement,release=App.releaseImages;
+  if(!root.App||App.studioPreview||App.offline||App.media119)return;App.media119=true;App.uploadImages=Media120.upload;const old=App.imageElement,release=App.releaseImages;legacyElement121=old;
   App.auth.onAuthStateChanged(user=>{if(owner!==user?.uid){owner=user?.uid;generation++;for(const controller of requests)controller.abort();cache.clear();cacheBytes=0;inflight.clear();viewer?.close();}});
   App.releaseImages=container=>{if(!container)return;for(const n of [container,...container.querySelectorAll('.attachment119')])cleanup.get(n)?.();container.querySelectorAll('video').forEach(v=>{v.pause();v.removeAttribute('src');v.load();});for(const n of [container,...container.querySelectorAll('[data-media-url]')])if(n.dataset?.mediaUrl){URL.revokeObjectURL(n.dataset.mediaUrl);delete n.dataset.mediaUrl;}release?.(container);};
   App.imageElement=async ref=>{
-   if(!ref?.dbPath&&!ref?.mediaId){const wrap=await old(ref),image=wrap.querySelector('img');if(image){wrap.querySelectorAll('a[download]').forEach(n=>n.remove());const fresh=image.cloneNode(true);image.replaceWith(fresh);fresh.tabIndex=0;fresh.setAttribute('role','button');fresh.setAttribute('aria-label','사진 크게 보기');const show=async()=>{try{const blob=await(await fetch(fresh.src)).blob();open(blob,ref);}catch{App.toast('사진을 불러오지 못했습니다.');}};fresh.onclick=show;fresh.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();show();}};}return wrap;}
+   if(!ref?.dbPath&&!ref?.mediaId){const wrap=await old(ref),image=wrap.querySelector('img');if(image){wrap.querySelectorAll('a[download]').forEach(n=>n.remove());const fresh=image.cloneNode(true);image.replaceWith(fresh);fresh.tabIndex=0;fresh.setAttribute('role','button');fresh.setAttribute('aria-label','사진 크게 보기');const show=async()=>{try{const blob=await(await fetch(fresh.src)).blob();open(blob,ref);}catch{App.toast('사진을 불러오지 못했습니다.');}};fresh.onclick=show;fresh.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();show();}};}else if(ref?.legacyUrl){const link=wrap.querySelector('a[href]');if(link)link.onclick=e=>{e.preventDefault();open(null,ref);};}return wrap;}
    const wrap=node('div','attachment119'),type=kind(ref),name=ref.name||'첨부 파일';
    if(type==='video'){
     const video=node('video','chat-video119'),load=node('button','video-load119'),status=node('span','',ref.size?size(ref.size):'영상 받기'),icon=node('b','','↓'),expand=node('button','video-expand119','크게 보기');icon.replaceChildren(Media120.icon());if(/^data:image\/jpeg;base64,[A-Za-z0-9+/=]{1,24000}$/.test(ref.poster||''))video.poster=ref.poster;video.playsInline=true;video.muted=true;video.preload='none';load.type=expand.type='button';expand.hidden=true;load.setAttribute('aria-label','사이트 안에서 영상 받기');load.append(icon,status);wrap.classList.add('video-card119');wrap.append(video,load,expand);
     let blob=null,controller=null;load.onclick=async()=>{
      if(controller){controller.abort();return;}
      if(blob){if(video.paused){try{await video.play();load.hidden=true;}catch{App.toast('이 브라우저에서 영상을 재생하지 못했습니다. 크게 보기에서 다운로드할 수 있습니다.');}}else video.pause();return;}
-     controller=new AbortController();icon.textContent='×';load.setAttribute('aria-label','영상 받기 취소');
-     try{blob=await Media120.videoBlob(ref,()=>downloadRecord(ref,controller.signal,(n,total)=>{status.textContent=total?Math.min(99,Math.round(n/total*100))+'%':size(n)+' 받는 중';}));if(!wrap.isConnected){blob=null;return;}const url=URL.createObjectURL(blob);wrap.dataset.mediaUrl=url;video.src=url;video.preload='auto';video.load();expand.hidden=false;icon.textContent='▶';status.textContent='재생';load.setAttribute('aria-label','무음으로 재생');Media120.markPrepared(ref);}
+     controller=new AbortController();icon.classList.add('transfer-ring121');
+     const ns='http://www.w3.org/2000/svg',ring=document.createElementNS(ns,'svg');ring.setAttribute('viewBox','0 0 60 60');ring.setAttribute('aria-hidden','true');
+     const arc=cls=>{const c=document.createElementNS(ns,'circle');c.setAttribute('cx','30');c.setAttribute('cy','30');c.setAttribute('r','27');c.setAttribute('pathLength','100');c.setAttribute('class',cls);return c;};
+     const meter=arc('ring-meter121');ring.append(arc('ring-track121'),meter);icon.replaceChildren(ring,node('i','ring-cross121'));status.textContent='0%';load.setAttribute('aria-label','영상 받기 취소');
+     try{blob=await Media120.videoBlob(ref,()=>downloadRecord(ref,controller.signal,(n,total)=>{if(total){const percent=Math.max(0,Math.min(100,Math.round(n/total*100)));meter.style.strokeDashoffset=String(100-percent);status.textContent=percent+'%';}else status.textContent=size(n)+' 받는 중';}));if(!wrap.isConnected){blob=null;return;}const url=URL.createObjectURL(blob);wrap.dataset.mediaUrl=url;video.src=url;video.preload='auto';video.load();expand.hidden=false;icon.textContent='▶';status.textContent='재생';load.setAttribute('aria-label','무음으로 재생');Media120.markPrepared(ref);}
      catch(error){blob=null;icon.replaceChildren(Media120.icon());status.textContent=error.name==='AbortError'?'다시 받기':'받기 실패 · 재시도';load.setAttribute('aria-label','사이트 안에서 영상 받기');if(error.name!=='AbortError')App.toast(error.message);}
-     finally{controller=null;}
+     finally{controller=null;icon.classList.remove('transfer-ring121');}
     };
     video.onloadedmetadata=()=>{const seconds=Number.isFinite(video.duration)?Math.max(0,Math.floor(video.duration)):0;status.textContent=Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');};video.onended=video.onpause=()=>{load.hidden=false;};video.onclick=()=>{if(blob){video.pause();open(blob,ref);}};expand.onclick=()=>{if(blob){video.pause();open(blob,ref);}};const unwatch=Media120.watchPrepared(wrap,ref,()=>{if(!blob&&!controller)load.click();});cleanup.set(wrap,()=>{unwatch();controller?.abort();});return wrap;
    }
    if(type==='file'){
-    const button=node('button','file-card119'),title=node('strong','',name),detail=node('span','',ref.size?'용량 '+size(ref.size):'파일 다운로드'),icon=node('span','file-symbol119');icon.append(Media120.icon());button.type='button';button.append(title,detail,icon);button.onclick=async()=>{button.disabled=true;try{save(await downloadRecord(ref),name);}catch(error){App.toast(error.message);}finally{button.disabled=false;}};wrap.append(button);return wrap;
+    const card=node('div','file-card119'),button=node('button','file-open121'),down=node('button','file-symbol119');
+    button.type=down.type='button';button.setAttribute('aria-label',name+' 크게 보기');button.append(node('strong','',name),node('span','',ref.size?'용량 '+size(ref.size):'첨부 파일'));
+    button.onclick=()=>open(null,ref);down.setAttribute('aria-label',name+' 다운로드');down.append(Media120.icon());
+    down.onclick=async()=>{down.disabled=true;try{save(await downloadRecord(ref),name);}catch(error){App.toast(error.message);}finally{down.disabled=false;}};
+    card.append(button,down);wrap.append(card);return wrap;
+   }
+   if(ref.mediaId&&validPoster121(ref)){
+    const photo=node('img','chat-photo119');photo.alt=name;photo.src=ref.poster;photo.tabIndex=0;photo.setAttribute('role','button');photo.setAttribute('aria-label','사진 크게 보기');
+    photo.onclick=()=>open(null,ref);photo.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();photo.click();}};wrap.append(photo);return wrap;
    }
    try{const key=App.auth.currentUser.uid+':'+(ref.dbPath||ref.mediaId);let task=inflight.get(key);if(!task){task=downloadRecord(ref).finally(()=>inflight.delete(key));inflight.set(key,task);}const blob=await task,url=URL.createObjectURL(blob),image=node('img','chat-photo119');wrap.dataset.mediaUrl=url;image.src=url;image.alt=name;image.tabIndex=0;image.setAttribute('role','button');image.setAttribute('aria-label','사진 크게 보기');image.onclick=()=>open(blob,ref);image.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open(blob,ref);}};wrap.append(image);}
    catch(error){wrap.append(node('span','',error.message));}return wrap;
   };
  }
- root.CourseMedia119={summary,kind,install};install();
+ root.CourseMedia119={summary,kind,install,rememberUpload(uid,file,blob){remember(uid+':'+file.mediaId,blob);}};install();
 })(window);
 </script>
 <script>(function(root,factory){if(typeof module === "object" && module.exports){module.exports=factory();}else{root.CourseEngine=factory();}})(typeof globalThis !== "undefined" ? globalThis : this,function(){"use strict";
@@ -1720,8 +1988,8 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
   const indicator=document.getElementById('navIndicator');
   const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
   const tapSlideMs = 180;
-  const holdThresholdMs = 120;
-  const heldSlideMs = 80;
+  const holdThresholdMs = 170;
+  const heldSlideMs = 130;
   const easing = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
   let current=2, requested=2, requestedDirection=1, sliding=false;
   let motion=[], slideVersion=0, idleResolvers=[];
@@ -1800,7 +2068,7 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
     newPanel.classList.add('tab-active');
     oldPanel.style.transform='translateX(0%)';
     newPanel.style.transform='translateX('+(direction*100)+'%)';
-    const timing = {duration: repeatingArrow ? heldSlideMs : tapSlideMs, easing, fill: 'both'};
+    const timing = {duration: repeatingArrow ? heldSlideMs : pressedArrow ? tapSlideMs + 50 : tapSlideMs, easing, fill: 'both'};
     motion=[
       oldPanel.animate([{transform:'translateX(0%)'},{transform:'translateX('+(-direction*100)+'%)'}],timing),
       newPanel.animate([{transform:'translateX('+(direction*100)+'%)'},{transform:'translateX(0%)'}],timing)
@@ -2369,43 +2637,80 @@ return {HEARTBEAT_MS,EXPIRES_MS,countVisitors,start};
 let E=CourseEngine;const $=id=>document.getElementById(id),stateKey=uid=>'gimpo_v2_state_'+uid;
 window.CoursePresentation={applyCatalogue(data){E=CourseEngine.create(data);state=E.normalize(state);if(recommendation)recommendation=E.normalize(recommendation);render();renderRates();},refresh(){render();},getCatalogue(){return {version:E.version,courses:E.courses,semesters:E.semesters};},previewState(value){if(!App.studioPreview)return;state=E.normalize(value);render();}};
 const make=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
-function fitAccountBanner(){
- const banner=document.getElementById('dashboardBanner'),row=banner.querySelector('.banner-inner'),name=row.querySelector('.banner-user'),edit=document.getElementById('profileBtn'),theme=document.getElementById('themeBtn');
- if(banner.hidden||!row.clientWidth)return;
- const gap=8,w=row.clientWidth,themeWidth=theme.offsetWidth,editWidth=edit.hidden?0:edit.offsetWidth;
- const baseSize=w>740?15:12;
- row.classList.remove('wrap-controls');row.style.setProperty('--identity-size',baseSize+'px');
- let size=baseSize,half=name.getBoundingClientRect().width/2;
- const available=w/2-themeWidth-editWidth-gap*3;
- while(half>available&&size>11){size-=.5;row.style.setProperty('--identity-size',size+'px');half=name.getBoundingClientRect().width/2;}
- if(half<=available){
-  row.style.setProperty('--edit-left',(w/2+half+gap)+'px');row.style.setProperty('--edit-right','auto');
-  row.style.setProperty('--email-space',Math.max(0,w/2-half-gap*2)+'px');
- }else{
-  row.style.setProperty('--identity-size',baseSize+'px');row.classList.add('wrap-controls');
-  row.style.setProperty('--edit-fallback',(themeWidth+gap)+'px');row.style.setProperty('--email-space',Math.max(0,w-themeWidth-editWidth-3*gap)+'px');
- }
-}
 const accountRow=document.querySelector('#dashboardBanner .banner-inner');
-let accountFrame=0;function scheduleAccountLayout(){if(!accountFrame)accountFrame=requestAnimationFrame(()=>{accountFrame=0;fitAccountBanner();});}
 const siteHeader=document.querySelector('#app>.header');
+const layoutMeasure=document.createElement('canvas').getContext('2d');
+let accountFrame=0;
+function textWidth(element,size){
+ const style=getComputedStyle(element);
+ layoutMeasure.font=style.fontWeight+' '+size+'px '+style.fontFamily;
+ return layoutMeasure.measureText(element.textContent.trim()).width+1;
+}
+function fitAccountBanner(){
+ const row=accountRow, label=row.querySelector('.banner-user'), edit=$('profileBtn'), theme=$('themeBtn');
+ if(!row.clientWidth)return;
+ const w=row.clientWidth, gap=parseFloat(getComputedStyle(row).columnGap)||0;
+ const available=w-2*(theme.offsetWidth+gap);
+ const base=Math.min(15,Math.max(10.5,9.1+w*.006));
+ const innerGap=edit.hidden?0:parseFloat(getComputedStyle(edit.parentElement).columnGap);
+ const room=Math.max(0,available-edit.offsetWidth-innerGap);
+ const size=Math.max(10,Math.min(base,base*room/textWidth(label,base)));
+ row.style.setProperty('--identity-size',size+'px');
+ const text=label.querySelector('.identity-text121'),natural=text.offsetWidth,fit=Math.min(1,room/Math.max(1,natural));
+ row.style.setProperty('--identity-scale',Math.max(.72,fit));
+ row.style.setProperty('--identity-width',Math.min(room,natural+1)+'px');
+ row.style.setProperty('--group-limit',Math.max(0,available)+'px');
+}
 function fitSiteHeader(){
  if(!siteHeader)return;
- const title=siteHeader.querySelector('.header-title'),left=siteHeader.querySelector('#authBtn'),actions=siteHeader.querySelector('.header-selection-actions'),clear=siteHeader.querySelector('#clearAi');
- const w=siteHeader.clientWidth;if(!w)return;
- const range=document.createRange();range.selectNodeContents(title);
- const base=Math.round(w<=760?Math.min(18,Math.max(13,innerWidth*.039)):Math.min(20,Math.max(14,innerWidth*.017)));
- siteHeader.classList.add('fit-controls120');siteHeader.classList.remove('stack-controls120');
- const room=w-2*(Math.max(left.offsetWidth,actions.offsetWidth,clear.offsetWidth)+18);
- let size=base;for(;;){siteHeader.style.setProperty('--header-fit-size',size+'px');if(range.getBoundingClientRect().width<=room||size<=Math.max(13,base-3))break;size--;}
- if(range.getBoundingClientRect().width>room){siteHeader.classList.add('stack-controls120');siteHeader.style.setProperty('--header-fit-size',base+'px');}
+ const title=siteHeader.querySelector('.header-title'),css=getComputedStyle(siteHeader);
+ const width=siteHeader.clientWidth-parseFloat(css.paddingLeft)-parseFloat(css.paddingRight);
+ const left=$('authBtn').offsetWidth,right=Math.max(siteHeader.querySelector('.header-selection-actions').offsetWidth,$('clearAi').offsetWidth);
+ const gap=parseFloat(css.columnGap)||0,base=Math.min(20,Math.max(13,11.5+width*.013));
+ const intrinsic=textWidth(title,base),wing=Math.min(Math.max(left,right),Math.max(0,(width-2*gap-intrinsic)/2));
+ const l=Math.max(left,wing),r=Math.max(right,wing);
+ siteHeader.style.setProperty('--header-left',l+'px');
+ siteHeader.style.setProperty('--header-right',r+'px');
+ const room=width-l-r-2*gap-2,size=Math.max(10,Math.min(base,base*room/intrinsic));
+ siteHeader.style.setProperty('--header-size',size+'px');
+ siteHeader.style.setProperty('--header-scale',Math.min(1,room/Math.max(1,title.offsetWidth)));
 }
-const headerFit=new ResizeObserver(fitSiteHeader);headerFit.observe(siteHeader);
-new MutationObserver(fitSiteHeader).observe(siteHeader,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['hidden']});
-document.fonts?.ready.then(fitSiteHeader);
-new ResizeObserver(scheduleAccountLayout).observe(accountRow);
-new MutationObserver(scheduleAccountLayout).observe(accountRow,{subtree:true,childList:true,characterData:true});
+function scheduleAccountLayout(){
+ if(!accountFrame)accountFrame=requestAnimationFrame(()=>{accountFrame=0;fitAccountBanner();fitSiteHeader();});
+}
+const responsiveSize=new ResizeObserver(scheduleAccountLayout);
+for(const el of [accountRow,siteHeader,$('themeBtn'),$('profileBtn'),$('authBtn')])responsiveSize.observe(el);
+for(const el of [accountRow,siteHeader])new MutationObserver(scheduleAccountLayout).observe(el,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['hidden']});
 document.fonts?.ready.then(scheduleAccountLayout);
+scheduleAccountLayout();
+
+// Use the grid's real positions. Animate only a reflow that moves items to a different row.
+const previousGrid=new WeakMap(), gridMotion=new WeakMap(), reducedLayout=matchMedia('(prefers-reduced-motion: reduce)');
+let layoutFrame=0, lastLayoutWidth=0;
+function captureGrid(resized){
+ const groups=document.querySelectorAll('.tab-content:not([hidden]) :is(.accordion.open .accordion-inner,.ai-semester-wrap .accordion-inner,.rate-accordion .accordion-inner,.save-slot-list-container,.stats-grid-2,.stats-grid-3,.ai-roll-section,.media-grid119)');
+ for(const group of groups){
+  const bounds=group.getBoundingClientRect();
+  if(!bounds.height||bounds.bottom<0||bounds.top>innerHeight)continue;
+  for(const el of group.children){
+   if(!el.offsetWidth)continue;
+   const now={x:el.offsetLeft,y:el.offsetTop,w:el.offsetWidth},old=previousGrid.get(el);previousGrid.set(el,now);
+   if(!resized||!old||reducedLayout.matches||Math.abs(old.y-now.y)<8&&Math.abs(old.w-now.w)<32)continue;
+   const current=gridMotion.get(el);current?.cancel();
+   const motion=el.animate([{translate:(old.x-now.x)+'px '+(old.y-now.y)+'px',scale:Math.min(1.7,Math.max(.65,old.w/now.w))+' 1'},{translate:'0px 0px',scale:'1 1'}],{duration:220,easing:'cubic-bezier(.2,.8,.2,1)'});
+   gridMotion.set(el,motion);
+  }
+ }
+}
+function scheduleGrid(){
+ if(layoutFrame)return;
+ layoutFrame=requestAnimationFrame(()=>{layoutFrame=0;const w=document.documentElement.clientWidth;captureGrid(lastLayoutWidth!==0&&lastLayoutWidth!==w);lastLayoutWidth=w;});
+}
+window.addEventListener('resize',scheduleGrid,{passive:true});
+window.addEventListener('course-tab-visible',scheduleGrid);
+document.addEventListener('click',scheduleGrid,{passive:true});
+new MutationObserver(scheduleGrid).observe($('courseList'),{childList:true});
+scheduleGrid();
 
 let saveGeneration=0,presenceGeneration=0;
 let state=E.normalize({}),uid='device',user=null,profile={},slots={},history=[],revision=0,dirty=false,saving=false,epoch=0,saveTimer,unsub=[],presence=null,aiBusy=false,inquiryBusy=false,selectedFiles=[],signup=false,readyForSave=false,conflict=false;
@@ -2564,16 +2869,16 @@ document.querySelectorAll('.printBtn').forEach(b=>b.onclick=()=>Course119.printS
 function appendMessage(target,m,{scroll=true,id}={}){
  const time=Number(m.timestamp)||Date.now(),date=new Date(time).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
  if(target.lastElementChild?.dataset.date!==date){const separator=make('div','date-separator');separator.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>';separator.append(document.createTextNode(date));target.append(separator);}
- const row=make('div',m.role==='user'?'msg-row-user':'msg-row-ai'),bubble=make('div','chat-bubble '+(m.role==='user'?'chat-user':'chat-ai'),m.text||''),stamp=make('div','msg-time',new Date(time).toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'}));row.dataset.date=date;if(id)row.dataset.messageId=id;bubble.style.whiteSpace='pre-wrap';if(m.role==='user')row.append(stamp,bubble);else row.append(bubble,stamp);target.append(row);const mediaGroup=make('div','media-grid119');if(m.images?.length)bubble.append(mediaGroup);for(const image of(Array.isArray(m.images)?m.images:[])){const holder=make('div','media-cell119');mediaGroup.append(holder);App.imageElement({...image,senderName:m.senderName||(m.role==='user'?'학생':'개발자'),timestamp:m.timestamp}).then(node=>{if(row.isConnected&&holder.isConnected){node.classList.add('chat-image-wrap');node.querySelector('img')?.classList.add('chat-image');node.querySelector('a')?.classList.add('img-download-btn');holder.append(node);if(scroll)target.scrollTop=target.scrollHeight;else inquiryScroll.refresh();}else App.releaseImages(node);});}if(scroll)target.scrollTop=target.scrollHeight;return row;
+ const row=make('div',m.role==='user'?'msg-row-user':'msg-row-ai'),bubble=make('div','chat-bubble '+(m.role==='user'?'chat-user':'chat-ai'),m.text||''),stamp=make('div','msg-time',new Date(time).toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'}));row.dataset.date=date;if(id)row.dataset.messageId=id;bubble.style.whiteSpace='pre-wrap';if(m.role==='user')row.append(stamp,bubble);else row.append(bubble,stamp);target.append(row);const mediaGroup=make('div','media-grid119');if(m.images?.length)bubble.append(mediaGroup);for(const [index,image] of (Array.isArray(m.images)?m.images:[]).entries()){const holder=make('div','media-cell119');mediaGroup.append(holder);App.imageElement({...image,gallery:target===$('inquiryMessages')?{room:uid,id,index,entries:()=>galleryMessages121}:null,senderName:m.senderName||(m.role==='user'?'학생':'개발자'),timestamp:m.timestamp}).then(node=>{if(row.isConnected&&holder.isConnected){node.classList.add('chat-image-wrap');node.querySelector('img')?.classList.add('chat-image');node.querySelector('a')?.classList.add('img-download-btn');holder.append(node);if(scroll)target.scrollTop=target.scrollHeight;else inquiryScroll.refresh();}else App.releaseImages(node);});}if(scroll)target.scrollTop=target.scrollHeight;return row;
 }
 const inquiryScroll=ChatScroll.create({container:$('inquiryMessages'),button:$('inquiryJump')});
-let inquiryLoaded=false,inquiryKeys=new Set();
+let inquiryLoaded=false,inquiryKeys=new Set(),galleryMessages121=[];
 function renderInquiryWelcome(box,timestamp){box.replaceChildren();appendMessage(box,{role:'assistant',timestamp,text:'안녕하세요! 개발자입니다.\n수강신청과 관련하여 궁금한 점이나 사이트 오류, 건의사항이 있다면 자유롭게 문의해 주세요.\n(확인하는 대로 최대한 빠르게 답변드리겠습니다!)'},{scroll:false,id:'welcome'});}
 function renderInquiries(snapshot){
  const entries=[];
  // Firebase forEach stops on a truthy return value. Never return the message DOM node.
  snapshot.forEach(child=>{entries.push([child.key,child.val()]);});
- entries.sort(ChatOrder.compare);
+ entries.sort(ChatOrder.compare);galleryMessages121=entries;
  const incomingIds=inquiryLoaded?entries.filter(([id,m])=>!inquiryKeys.has(id)&&m.role!=='user').map(([id])=>id):[];
  const box=$('inquiryMessages');
  inquiryScroll.update(()=>{
@@ -2743,7 +3048,7 @@ $('profileForm').onsubmit=async e=>{
 async function authAction(fn){$('authSubmit').disabled=true;$('googleBtn').disabled=true;$('authError').textContent='';try{await fn();$('password').value='';$('authDialog').close();}catch(e){$('authError').textContent=App.error(e);}finally{$('authSubmit').disabled=false;$('googleBtn').disabled=false;}}
 $('authForm').onsubmit=e=>{e.preventDefault();if(!App.auth)return;authAction(()=>signup?App.auth.createUserWithEmailAndPassword($('email').value.trim(),$('password').value).then(credential=>App.captureRegistration120(credential)):App.signInEmail($('email').value,$('password').value));};$('googleBtn').onclick=()=>authAction(()=>App.signInGoogle());$('signupToggle').onclick=()=>{signup=!signup;$('authTitle').textContent=signup?'회원가입':'로그인';$('authSubmit').textContent=signup?'가입하기':'로그인';$('signupToggle').textContent=signup?'로그인으로 돌아가기':'새 계정 만들기';$('password').autocomplete=signup?'new-password':'current-password';};$('resetPassword').onclick=async()=>{try{if(!$('email').value)return App.toast('이메일을 입력해주세요.');await App.auth.sendPasswordResetEmail($('email').value.trim());App.toast('비밀번호 재설정 이메일을 요청했습니다. 스팸함도 확인해주세요.');}catch(e){App.toast(App.error(e));}};
 
-function resetAccount(next){globalThis.InquiryPreview?.close();pendingChange=null;profileBusy=false;profileReady=false;inquiryScroll.reset();inquiryLoaded=false;inquiryKeys.clear();connectionIssues.clear();renderConnectionIssues();if(serverDialog.open)serverDialog.close();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;for(const id of ['aiInput','inquiryInput','studentName','password'])$(id).value='';$('classNum').value='1';$('studentNum').value='1';$('previewContent').replaceChildren();for(const id of ['profileDialog','previewDialog','authDialog']){if($(id).open)$(id).close();}unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}App.releaseImages($('inquiryMessages'));clearTimeout(saveTimer);user=next;uid=next?.uid||'device';profile=App.cache.read('gimpo_v2_profile_'+uid,{})||{};history=[];selectedFiles=[];slots=App.cache.read('gimpo_v2_slots_'+uid,{})||{};const saved=App.cache.read(stateKey(uid),{});state=E.normalize(saved.state||{});const cachedDraft=App.cache.read(draftKey());recommendation=cachedDraft?E.normalize(cachedDraft):null;dirty=Boolean(saved.dirty);revision=Number(saved.revision)||0;conflict=false;render();renderSlots();renderHistory();renderFiles();renderInquiryWelcome($('inquiryMessages'));$('profileLabel').textContent=next?currentName():'기기 내 연습';$('authBtn').textContent=App.isMember(next)?'로그아웃':'로그인';$('profileBtn').hidden=!next;$('dashboardBanner').hidden=false;const account=$('accountIdentity');account.hidden=!next?.email;account.textContent=next?.email?'계정: '+next.email:'';account.title=account.textContent;scheduleAccountLayout();$('saveStatus').textContent=dirty?'기기 변경 불러옴':'기기 저장';}
+function resetAccount(next){globalThis.InquiryPreview?.close();pendingChange=null;profileBusy=false;profileReady=false;inquiryScroll.reset();inquiryLoaded=false;inquiryKeys.clear();galleryMessages121=[];connectionIssues.clear();renderConnectionIssues();if(serverDialog.open)serverDialog.close();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;for(const id of ['aiInput','inquiryInput','studentName','password'])$(id).value='';$('classNum').value='1';$('studentNum').value='1';$('previewContent').replaceChildren();for(const id of ['profileDialog','previewDialog','authDialog']){if($(id).open)$(id).close();}unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}App.releaseImages($('inquiryMessages'));clearTimeout(saveTimer);user=next;uid=next?.uid||'device';profile=App.cache.read('gimpo_v2_profile_'+uid,{})||{};history=[];selectedFiles=[];slots=App.cache.read('gimpo_v2_slots_'+uid,{})||{};const saved=App.cache.read(stateKey(uid),{});state=E.normalize(saved.state||{});const cachedDraft=App.cache.read(draftKey());recommendation=cachedDraft?E.normalize(cachedDraft):null;dirty=Boolean(saved.dirty);revision=Number(saved.revision)||0;conflict=false;render();renderSlots();renderHistory();renderFiles();renderInquiryWelcome($('inquiryMessages'));$('profileLabel').textContent=next?currentName():'기기 내 연습';$('authBtn').textContent=App.isMember(next)?'로그아웃':'로그인';$('profileBtn').hidden=!next;$('dashboardBanner').hidden=false;const account=$('accountIdentity');account.hidden=!next?.email;account.textContent=next?.email?'계정: '+next.email:'';account.title=account.textContent;scheduleAccountLayout();$('saveStatus').textContent=dirty?'기기 변경 불러옴':'기기 저장';}
 async function connect(next,{retry=false}={}){
  profileReady=false;
  if(!retry||user?.uid!==next?.uid)aiSessionMessages=[];
