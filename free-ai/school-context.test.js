@@ -37,13 +37,13 @@ test('short astronomy questions retrieve the relevant foundations without unrela
   assert.equal(context.courseRows.length < 15,true);
   assert.equal(context.facts.some(fact => /6개 이상|79학점|수학 선택과목 4/.test(fact)),false);
   assert.match(context.scope,/총 2~4개 과목/);
-  assert.match(context.facts.join('\n'),/과학중점을 선택하지 않을 수 있다/);
+  assert.match(context.facts.join('\n'),/과학 중점을 선택하지 않을 수 있다/);
   assert.match(context.facts.join('\n'),/모든 대학 천문학과의 지원 필수라고 단정하지/);
   assert.equal(instructions(input).length < 4000,true);
 });
 
 test('detailed curriculum query retrieves exact units and science years without unrelated course rows', () => {
-  const context = questionContext(validateInput({...basic, messages:[{role:'user',text:'우리 학교 과학중점의 심화6과목 기준이 어느 학년인지, 예술과 생활교양 최소학점, 2026 고1 적용 교육과정을 자세하게 설명해줘.'}]}));
+  const context = questionContext(validateInput({...basic, messages:[{role:'user',text:'우리 학교 과학 중점의 심화6과목 기준이 어느 학년인지, 예술과 생활교양 최소학점, 2026 고1 적용 교육과정을 자세하게 설명해줘.'}]}));
   const facts = context.facts.join('\n');
   assert.match(facts,/교과 총 174학점 \+ 창의적 체험활동 18학점 = 졸업 최소 192학점/);
   assert.match(facts,/2학년 2학기와 3학년을 합산/);
@@ -124,8 +124,8 @@ test('career answer keeps the real model explanation and replaces unsupported un
   const unsupported = '이 두 과목은 대학 천문학과 지원 시 필수적이거나 강력히 권장되는 과목입니다.';
   assert.equal(finalizeAnswer(explanation + ' ' + unsupported, input), explanation + ' ' + ADMISSION_CAVEAT);
   assert.equal(finalizeAnswer(explanation, input), explanation);
-  const school = '과학중점을 선택하면 2학년 물리학·화학·생명과학·지구과학 이수는 필수입니다.';
-  assert.equal(finalizeAnswer(school, input), school);
+  const school = '과학 중점을 선택하면 2학년 물리학 ·화학 · 생명과학 · 지구과학 이수는 필수입니다.';
+  assert.equal(finalizeAnswer(school.replace('과학 중점','과학중점'), input), school);
   for (const conditional of [
     '지구과학이 모든 대학의 지원 필수과목인 것은 아닙니다.',
     '대학별 지원 필수 여부는 모집요강을 확인해야 합니다.',
