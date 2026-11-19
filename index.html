@@ -163,7 +163,7 @@
         .chat-input-area { display: flex; gap: 8px; align-items: center; width: 100%; padding: 12px 16px 16px 16px; }
         .chat-input { flex: 1; border: 1px solid var(--border-color); border-radius: 24px; padding: 12px 16px; outline: none; font-size: 14px; background-color: var(--bg-color); color: var(--text-black); width: 100%; transition: opacity 0.2s; min-width: 0; }
         .chat-send { background-color: var(--primary-dark); color: white; border: none; border-radius: 50%; width: 42px; height: 42px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; transition: background-color 0.2s; }
-        .chat-send:disabled { background-color: var(--text-light-gray); cursor: not-allowed; }
+        .chat-send:is(:disabled,[data-blocked-reason]) { background-color: var(--text-light-gray); cursor: not-allowed; }
 
         #tab-2 { padding-bottom: 10px; } 
         .warning-banner { background-color: var(--light-orange); color: var(--dark-orange); padding: 12px; border-radius: 12px; font-size: 13px; line-height: 1.4; margin-bottom: 12px; font-weight: 600; flex-shrink: 0; word-break: keep-all; }
@@ -333,7 +333,7 @@
         body { color: var(--text-black); }
         button, input, select, textarea { font-family: inherit; }
         button { cursor: pointer; }
-        button:disabled { cursor: not-allowed; }
+        button:is(:disabled,[data-blocked-reason]) { cursor: not-allowed; }
         button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, [role="button"]:focus-visible { outline: 3px solid #FF8A00; outline-offset: 2px; }
         [hidden] { display: none !important; }
         #app { height: 100vh; height: 100dvh; min-height: 0; }
@@ -669,7 +669,60 @@ dialog.site-confirm p,.studio-modal p{word-break:keep-all;overflow-wrap:anywhere
 #app .accordion-inner .course-card:has(.pin-box){padding-top:28px}
 #app .save-slot-list-container{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
 #app .nav-item{font-size:clamp(10px,calc(9px + .35vw),12px)}
-</style></head>
+</style><style>
+body{word-break:keep-all;line-break:strict}
+.save-slot-name,.course-name,.course-tags,.science-track-wrap,.school-notice,.validation-result,.site-confirm p,#validation p,#appToast{word-break:keep-all;overflow-wrap:normal;line-break:strict}
+.save-slot-name{overflow-x:auto}
+.chat-bubble,.msg-bubble,.student-chat-bubble,.accordion-header,.ai-semester-title,.stat-title,.warning-banner,.submit-desc,.update-modal-desc,#saveStatus,.validation-results{word-break:keep-all;overflow-wrap:normal}
+#appToast{overflow-wrap:normal!important;pointer-events:none}
+button[data-blocked-reason],.science-track-wrap:has([aria-disabled="true"]){cursor:not-allowed}
+#validation .msg-track122{color:var(--dark-purple,#9333ea)}
+button.sending122{position:relative;color:transparent!important}
+button.sending122::after{content:"";position:absolute;inset:0;margin:auto;width:1em;height:1em;box-sizing:border-box;border:.15em solid #ffffff65;border-top-color:#fff;border-radius:50%;animation:course-send122 .8s linear infinite}
+@keyframes course-send122{to{transform:rotate(1turn)}}
+@media(prefers-reduced-motion:reduce){button.sending122::after{animation-duration:2.5s}}
+</style>
+<script>
+(function(root){
+ const sendingText='문의 메시지를 보내고 있습니다. 잠시만 기다려 주세요.';
+ function gate(control,blocked,reason){
+  if(blocked){
+   control.dataset.blockedReason=reason;
+   control.setAttribute('aria-disabled','true');
+  }else{
+   delete control.dataset.blockedReason;
+   control.removeAttribute('aria-disabled');
+  }
+ }
+ function explain(event){
+  const el=event.target.closest?.('[data-blocked-reason]');
+  if(!el||!el.dataset.blockedReason)return;
+  event.preventDefault();event.stopImmediatePropagation();root.App?.toast(el.dataset.blockedReason);
+ }
+ document.addEventListener('click',explain,true);
+ document.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')explain(e);},true);
+ document.addEventListener('invalid',event=>{
+  const el=event.target;
+  if(!el.matches?.('#email,#password,#studentName'))return;
+  if(el.form&&el.form.querySelector(':invalid')!==el)return;
+  const messages={email:'이메일 주소를 올바른 형식으로 입력해 주세요.',password:'비밀번호를 6자 이상 입력해 주세요.',studentName:'프로필을 저장하려면 이름을 입력해 주세요.'};
+  root.App?.toast(messages[el.id]);
+ },true);
+ // Native disabled inputs suppress clicks, but still expose the pointer gesture.
+ document.addEventListener('pointerup',e=>{if(e.target.matches?.(':disabled[data-blocked-reason]'))explain(e);},true);
+ function sending(button,active){
+  if(button.classList.contains('sending122')===active)return;
+  button.classList.toggle('sending122',active);button.setAttribute('aria-busy',String(active));
+  if(active)root.App.toast(sendingText,true);
+  else{
+   const box=document.getElementById('appToast');
+   if(box?.textContent===sendingText)box.hidden=true;
+  }
+ }
+ root.CourseFeedback=Object.freeze({gate,sending,sendingText});
+})(window);
+</script>
+</head>
 <body>
 <div id="app">
     <header class="header">
@@ -840,14 +893,16 @@ dialog.site-confirm p,.studio-modal p{word-break:keep-all;overflow-wrap:anywhere
     const start=Number(profile.entryYear)||Number(cohort?.entryYear)||year(createdAt||now);
     return Math.max(1,Math.min(3,base+Math.max(0,year(now)-start)));
   }
-  function confirmation(message) {
+  function confirmation(message,{onNo,signal}={}) {
     return new Promise(resolve=>{
       const previous=document.activeElement,d=el('dialog','site-confirm'),p=el('p','',message),actions=el('div'),yes=el('button','','예'),no=el('button','','아니요'),close=el('button','confirm-close','×');
       d.setAttribute('aria-label','확인');close.setAttribute('aria-label','확인 취소');[yes,no,close].forEach(b=>b.type='button');
-      let done=false;const finish=value=>{if(done)return;done=true;d.close();d.remove();if(previous?.isConnected)previous.focus();resolve(value);};
-      yes.onclick=()=>finish(true);no.onclick=close.onclick=()=>finish(false);
+      let done=false;const abort=()=>finish(false);
+      const finish=(value,declined=false)=>{if(done)return;done=true;signal?.removeEventListener('abort',abort);d.close();d.remove();if(previous?.isConnected)previous.focus();if(declined)onNo?.();resolve(value);};
+      if(signal?.aborted){resolve(false);return;}signal?.addEventListener('abort',abort,{once:true});
+      yes.onclick=()=>finish(true);no.onclick=()=>finish(false,true);close.onclick=()=>finish(false);
       d.addEventListener('cancel',e=>{e.preventDefault();finish(false);});
-      d.addEventListener('keydown',e=>{if(e.isComposing)return;if(e.key==='Enter'){e.preventDefault();finish(document.activeElement!==no&&document.activeElement!==close);}});
+      d.addEventListener('keydown',e=>{if(e.isComposing)return;if(e.key==='Enter'){e.preventDefault();finish(document.activeElement!==no&&document.activeElement!==close,document.activeElement===no);}});
       actions.append(yes,no);d.append(close,p,actions);document.body.append(d);d.showModal();yes.focus();
     });
   }
@@ -1110,7 +1165,10 @@ window.App = (() => {
   'use strict';
   const config = {apiKey:'AIzaSyD-IyAGGXQ69d8LupTU2mKmr87yoenahRo',authDomain:'gimpo-monitoring.firebaseapp.com',databaseURL:'https://gimpo-monitoring-default-rtdb.firebaseio.com',projectId:'gimpo-monitoring',storageBucket:'gimpo-monitoring.firebasestorage.app',messagingSenderId:'918422830852',appId:'1:918422830852:web:c9d6412cb2fc3dcc619a51'};
   let timer;
-  function toast(text){let box=document.getElementById('appToast');if(!box){box=document.createElement('div');box.id='appToast';box.setAttribute('role','status');box.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);max-width:90vw;width:max-content;background:#191f28;color:white;padding:12px 18px;border-radius:12px;z-index:999999;white-space:pre-wrap;overflow-wrap:anywhere';document.body.append(box);}box.textContent=text;box.hidden=false;clearTimeout(timer);timer=setTimeout(()=>box.hidden=true,6500);}
+  function toast(text,hold=false){let box=document.getElementById('appToast');if(!box){box=document.createElement('div');box.id='appToast';box.setAttribute('role','status');box.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);max-width:90vw;width:max-content;background:#191f28;color:white;padding:12px 18px;border-radius:12px;z-index:999999;white-space:pre-wrap;overflow-wrap:anywhere';document.body.append(box);}
+    const host=Array.from(document.querySelectorAll('dialog[open]')).at(-1)||document.body;
+    if(box.parentNode!==host)host.append(box);
+    box.textContent=text;box.hidden=false;clearTimeout(timer);if(!hold)timer=setTimeout(()=>box.hidden=true,6500);}
   function error(e){const c=String(e?.code||''); if(c.includes('permission-denied')||c.includes('PERMISSION_DENIED'))return '접근 권한이 없습니다. 로그인 상태와 Firebase 보안 규칙을 확인해주세요.';if(c.includes('unauthenticated'))return '로그인이 필요합니다.';if(c.includes('resource-exhausted'))return '요청 한도에 도달했습니다. 잠시 후 다시 이용해주세요.';if(c.includes('popup-closed'))return '로그인 창이 닫혔습니다.';if(c.includes('credential')||c.includes('wrong-password')||c.includes('user-not-found'))return '이메일 또는 비밀번호를 확인해주세요.';if(c.includes('email-already'))return '이미 가입된 이메일입니다.';if(c.includes('network')||c.includes('unavailable'))return '서버에 연결할 수 없습니다. 연결 상태를 확인해주세요.';return e?.message||'요청을 처리하지 못했습니다. 다시 시도해주세요.';}
   const cache={read(key,fallback=null){try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}},write(key,value){try{localStorage.setItem(key,JSON.stringify(value));return true;}catch{toast('기기 저장 공간에 접근할 수 없습니다. 창을 닫기 전에 저장 상태를 확인해주세요.');return false;}},remove(key){try{localStorage.removeItem(key);}catch{}}};
   const studioPreview=window.parent!==window&&new URLSearchParams(location.search).get('studio-preview')==='1';
@@ -1661,7 +1719,7 @@ function open(blob,ref){
  function say(message){clearTimeout(noteTimer);note.textContent=message;note.hidden=false;noteTimer=setTimeout(()=>{note.hidden=true;},2000);}
  function edge(direction){say(direction<0?'이전 첨부가 더 이상 없습니다.':'다음 첨부가 더 이상 없습니다.');}
  function metadata(){
-  sender.textContent=current.ref.senderName||'보낸 사람';stamp.textContent=galleryTimestamp(current.ref.timestamp);down.disabled=!current.blob&&!current.external;
+  sender.textContent=current.ref.senderName||'보낸 사람';stamp.textContent=galleryTimestamp(current.ref.timestamp);CourseFeedback.gate(down,!current.blob&&!current.external,'첨부파일을 불러와야 다운로드할 수 있습니다. 불러오지 못했다면 다시 불러오기를 눌러 주세요.');
  }
  function dispose(slide){
   if(!slide)return;slide.closed=true;slide.abort.abort();slide.el.getAnimations().forEach(a=>a.cancel());
@@ -1786,7 +1844,7 @@ function open(blob,ref){
     const card=node('div','file-card119'),button=node('button','file-open121'),down=node('button','file-symbol119');
     button.type=down.type='button';button.setAttribute('aria-label',name+' 크게 보기');button.append(node('strong','',name),node('span','',ref.size?'용량 '+size(ref.size):'첨부 파일'));
     button.onclick=()=>open(null,ref);down.setAttribute('aria-label',name+' 다운로드');down.append(Media120.icon());
-    down.onclick=async()=>{down.disabled=true;try{save(await downloadRecord(ref),name);}catch(error){App.toast(error.message);}finally{down.disabled=false;}};
+    down.onclick=async()=>{CourseFeedback.gate(down,true,'이 파일을 다운로드하고 있습니다. 잠시만 기다려 주세요.');try{save(await downloadRecord(ref),name);}catch(error){App.toast(error.message);}finally{CourseFeedback.gate(down,false);}};
     card.append(button,down);wrap.append(card);return wrap;
    }
    if(ref.mediaId&&validPoster121(ref)){
@@ -1871,7 +1929,7 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
     for(const id of ids){const c=byId.get(id);if(!c)continue;
       if(['국어','수학','영어'].includes(c.cat))kys+=c.cred;
       if(c.req)continue;const key=groupOf(c),count=(counts.get(key)||0)+1;counts.set(key,count);
-      if(groupMap.has(key)&&count>groupMap.get(key).limit)return '해당 학기 또는 선택 그룹의 과목 수 한도를 초과합니다.';
+      if(groupMap.has(key)&&count>groupMap.get(key).limit)return semesters.find(s=>s.key===c.sem).title+'의 '+(c.sem==='3-2'?'이 선택 그룹에서 ':'선택과목 중 ')+groupMap.get(key).limit+'과목을 이미 선택했습니다. 다른 과목의 선택을 해제하면 이 과목을 선택할 수 있습니다.';
       if(c.pair){if(pairs.has(c.pair))return c.name+' 과목이 다른 학기와 중복됩니다.';pairs.add(c.pair);}
     }
     if(kys>81)return '국·영·수 합계 81학점을 초과합니다.';
@@ -2717,7 +2775,7 @@ new MutationObserver(scheduleGrid).observe($('courseList'),{childList:true});
 scheduleGrid();
 
 let saveGeneration=0,presenceGeneration=0;
-let state=E.normalize({}),uid='device',user=null,profile={},slots={},history=[],revision=0,dirty=false,saving=false,epoch=0,saveTimer,unsub=[],presence=null,aiBusy=false,inquiryBusy=false,selectedFiles=[],signup=false,readyForSave=false,conflict=false;
+let state=E.normalize({}),uid='device',user=null,profile={},slots={},sharedSlots={},history=[],revision=0,dirty=false,saving=false,epoch=0,saveTimer,unsub=[],presence=null,aiBusy=false,inquiryBusy=false,selectedFiles=[],signup=false,readyForSave=false,conflict=false;
 let inquiryPending=null,profileBusy=false,profileReady=false;
 // Recommendation edits stay in their own draft until the user runs recommendation.
 let recommendation=null;
@@ -2737,7 +2795,7 @@ function renderVisitorCount() {
  else if (presenceOnline && tabCount !== null) value = String(tabCount);
  $('connectionCountValue').textContent = value;
 }
-const issueLabels={selections:'과목 선택',profiles:'프로필',contact:'문의 계정',history:'AI 대화',slots:'저장 구성',inquiries:'문의',statistics:'선택률',presenceRead:'접속 현황',presenceWrite:'내 접속 등록',connection:'DB 연결',auth:'로그인',sdk:'연결 모듈',save:'과목 저장'};
+const issueLabels={sharedSlots:'다른 학년 사이트의 저장 구성',selections:'과목 선택',profiles:'프로필',contact:'문의 계정',history:'AI 대화',slots:'저장 구성',inquiries:'문의',statistics:'선택률',presenceRead:'접속 현황',presenceWrite:'내 접속 등록',connection:'DB 연결',auth:'로그인',sdk:'연결 모듈',save:'과목 저장'};
 const issuePaths={selections:'v2/selections/{내 UID}',profiles:'v2/profiles/{내 UID}',contact:'v2/inquiryContacts/{내 UID}',history:'v2/aiHistory/{내 UID}',slots:'v2/slots/{내 UID}',inquiries:'v2/inquiries/{내 UID}',statistics:'v2/statistics/public',presenceRead:'v2/presence',presenceWrite:'v2/presence/{내 UID}'};
 function issueKind(error){const code=String(error?.code||'unknown').toLowerCase();if(code.includes('permission')||code.includes('denied'))return 'permission';if(code.includes('auth/')||code.includes('unauth'))return 'auth';if(code.includes('timeout')||code.includes('unavailable')||code.includes('network')||code.includes('disconnect'))return 'network';return 'other';}
 const connectionNotice=make('button','','');connectionNotice.id='connectionNotice';connectionNotice.type='button';connectionNotice.hidden=true;connectionNotice.style.cssText='border:0;background:transparent;color:var(--dark-red);padding:0;font:inherit;text-align:left;cursor:pointer;overflow-wrap:anywhere';$('saveStatus').parentElement.append(connectionNotice);
@@ -2802,9 +2860,14 @@ function localSave(){return App.cache.write(stateKey(uid),{state,dirty,revision}
 function currentName(){return profile.name?(profile.classNum&&profile.studentNum?`${Course119.grade(profile,Date.parse(user?.metadata?.creationTime)||Date.now(),1)}학년 ${profile.classNum}반 ${profile.studentNum}번 ${profile.name}`:profile.name):'익명 사용자';}
 function apply(next){$('recommendResult').textContent='';state=E.normalize(next);dirty=true;conflict=false;localSave();render();$('saveStatus').textContent=App.offline||!user?'기기에 저장됨':'기기 저장됨 · 서버 저장 대기';clearTimeout(saveTimer);saveTimer=setTimeout(()=>flush(),450);}
 async function flush(){clearTimeout(saveTimer);if(!dirty||saving||!readyForSave||conflict||!user||!App.db)return !dirty;const owner=uid,version=epoch,snapshot=JSON.stringify(state),expected=revision;const data=JSON.parse(snapshot),saveToken=++saveGeneration;saving=true;$('saveStatus').textContent='서버 저장 중';try{const result=await App.db.ref('v2/selections/'+owner).transaction(old=>{if((old?.revision||0)!==expected)return;return {...data,revision:expected+1,updatedAt:serverTime()};},undefined,false);if(version!==epoch)return false;if(!result.committed){conflict=true;$('saveStatus').textContent='다른 기기 변경과 충돌 · 여기를 눌러 해결';return false;}revision=expected+1;dirty=JSON.stringify(state)!==snapshot;App.cloud?.publishSelection?.().catch(error=>reportConnectionIssue('statistics',error));localSave();clearConnectionIssue('save');$('saveStatus').textContent=dirty?'추가 변경 저장 대기':'서버 저장 완료';return !dirty;}catch(e){if(version===epoch){$('saveStatus').textContent='기기 저장됨 · 서버 저장 실패';reportConnectionIssue('save',e);App.toast(App.error(e));}return false;}finally{if(saveToken===saveGeneration)saving=false;if(dirty&&!conflict&&version===epoch&&navigator.onLine)setTimeout(()=>{if($('saveStatus').textContent==='추가 변경 저장 대기')flush();},500);}}
-$('saveStatus').tabIndex=0;$('saveStatus').role='button';$('saveStatus').onclick=async()=>{if(!conflict&&(connectionIssues.size||user&&!readyForSave)){showConnectionIssues();return;}if(!user)return;const owner=uid,ver=epoch;try{if(conflict){if(!await SiteConfirm('다른 기기의 최신 선택을 불러오시겠습니까? 현재 기기 구성은 충돌 백업으로 남깁니다.'))return;App.cache.write('gimpo_v2_conflict_'+uid,{state,savedAt:Date.now()});const snap=await readOnce(App.db.ref('v2/selections/'+owner));if(ver!==epoch||owner!==uid)return;const val=snap.val();state=E.normalize(val||{});revision=val?.revision||0;dirty=false;conflict=false;localSave();render();$('saveStatus').textContent='최신 구성 불러옴';}else await flush();}catch(error){if(ver===epoch)App.toast(App.error(error));}};$('saveStatus').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('saveStatus').click();}};
+$('saveStatus').tabIndex=0;$('saveStatus').role='button';$('saveStatus').onclick=async()=>{if(!conflict&&(connectionIssues.size||user&&!readyForSave)){showConnectionIssues();return;}if(!user)return App.toast('현재 과목 구성은 이 기기에 저장됩니다. 로그인하면 계정에 저장할 수 있습니다.');if(saving)return App.toast('과목 구성을 서버에 저장하고 있습니다.');if(!conflict&&!dirty)return App.toast('현재 과목 구성이 이미 저장되어 있습니다.');const owner=uid,ver=epoch;try{if(conflict){if(!await SiteConfirm('다른 기기의 최신 선택을 불러오시겠습니까? 현재 기기 구성은 충돌 백업으로 남깁니다.'))return;App.cache.write('gimpo_v2_conflict_'+uid,{state,savedAt:Date.now()});const snap=await readOnce(App.db.ref('v2/selections/'+owner));if(ver!==epoch||owner!==uid)return;const val=snap.val();state=E.normalize(val||{});revision=val?.revision||0;dirty=false;conflict=false;localSave();render();$('saveStatus').textContent='최신 구성 불러옴';}else await flush();}catch(error){if(ver===epoch)App.toast(App.error(error));}};$('saveStatus').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('saveStatus').click();}};
 function render(){
- const a=E.analyze(state);document.querySelectorAll('#panel-2 .track').forEach(x=>x.checked=state.sciTrack);document.querySelectorAll('#panel-3 .track').forEach(x=>x.checked=recommendationState().sciTrack);
+ const a=E.analyze(state);
+ document.querySelectorAll('.track').forEach(box=>{
+  const value=box.closest('#panel-3')?recommendationState():state,reason=E.trackReason?.(value)||'';
+  box.checked=value.sciTrack;box.classList.toggle('disabled',Boolean(reason));CourseFeedback.gate(box,Boolean(reason),reason);
+ });
+ queueTrackOffer();
  const rows=[[['total','총 교과 학점',174],['kys','국·영·수 제한',81]],[['kor','국어',8],['math','수학',8],['eng','영어',8]],[['his','한국사',6],['soc','사회',8],['sci','과학',10]],[['pe','체육',10],['art','예술',6]],[['info','정보',0],['msi','수학/과학/정보',state.sciTrack?79:0],['etc','정보/외국어/한문/교양',15]]];
  $('stats').replaceChildren(...rows.map(specs=>{const row=make('div','stats-grid-'+specs.length);for(const [key,label,target]of specs){const item=make('div','stat-item'),value=make('div','stat-value'),v=a.totals[key]||0;const good=key==='total'?v===target:key==='kys'?v<=target:!target||v>=target;const number=make('span','stat-val-left'+(target?(good?' color-green':' color-red'):''),v);number.id='val-'+key;value.append(number,make('span','stat-val-right',target?'/ '+target:''));item.append(make('div','stat-title',label),value);row.append(item);}return row;}));
  renderCourses($('courseList'),false,a);renderCourses($('recommendList'),true,E.analyze(recommendationState()));if($('validation').childNodes.length)validation();
@@ -2818,9 +2881,13 @@ function courseCard(c,recommend,preview=false){
  const unavailable=!checked&&Boolean(decision&&!decision.ok);
  if(unavailable){card.classList.add('selection-unavailable');card.title=decision.reason;card.setAttribute('aria-disabled','true');}
  if(!preview){
-  const check=make('button','course-check custom-checkbox'+(checked?' checked':'')+(fixed?' disabled':''));check.type='button';check.setAttribute('aria-label',c.name+' '+(checked?'선택 해제':'선택'));check.setAttribute('aria-pressed',String(checked));check.disabled=unavailable||termLocked||(!recommend&&fixed);check.setAttribute('aria-disabled',String(unavailable||termLocked||fixed||(recommend&&pinned)));
+  const check=make('button','course-check custom-checkbox'+(checked?' checked':'')+(fixed?' disabled':''));check.type='button';check.setAttribute('aria-label',c.name+' '+(checked?'선택 해제':'선택'));check.setAttribute('aria-pressed',String(checked));check.setAttribute('aria-disabled',String(unavailable||termLocked||fixed||(recommend&&pinned)));
   const explainFixed=()=>c.req?'「'+c.name+'」은 학교에서 지정한 필수 이수 과목이므로 선택을 취소할 수 없습니다. 과학 중점 신청 여부와 관계없이 이수해야 합니다.':'「'+c.name+'」은 과학 중점 과정의 필수 과목입니다. 과학 중점 과정에서는 '+E.courses.filter(item=>item.sciReq).map(item=>item.name).join('·')+'을 모두 이수해야 하므로 선택을 취소할 수 없습니다. 일반 과정으로 변경하려면 과학 중점 신청 체크를 해제해 주세요.';
-  const toggle=()=>{if(recommend&&fixed)return App.toast(explainFixed());if(recommend&&pinned)return App.toast('직접 고정한 과목입니다. 이 과목의 핀을 먼저 해제하면 선택을 취소할 수 있습니다.');const r=E.canToggle(current,c.id);r.ok?(recommend?draftSave(r.state):apply(r.state)):App.toast(r.reason);};check.onclick=e=>{e.stopPropagation();toggle();};card.onclick=()=>{if(recommend||!fixed)toggle();};card.append(check);
+  if(fixed||unavailable||(recommend&&pinned)){
+   const reason=fixed?explainFixed():unavailable?decision.reason:'직접 고정한 과목입니다. 핀을 먼저 해제해 주세요.';
+   check.title=reason;check.setAttribute('aria-description',reason);
+  }
+  const toggle=()=>{if(fixed)return App.toast(explainFixed());if(recommend&&pinned)return App.toast('직접 고정한 과목입니다. 이 과목의 핀을 먼저 해제하면 선택을 취소할 수 있습니다.');const r=E.canToggle(current,c.id);r.ok?(recommend?draftSave(r.state):apply(r.state)):App.toast(r.reason);};check.onclick=e=>{e.stopPropagation();toggle();};card.onclick=toggle;card.append(check);
  }
  const info=courseInfo(c);card.append(info);const right=make('div','course-right-info');right.append(make('div','tag-select-type '+(c.req?'req':'elec'),c.req?'지정':'선택'),make('div','tag-credits',c.cred+'학점'));card.append(right);
  if(recommend&&!preview){const pin=make('button','pin-box'+(pinned||fixed?' pinned':'')+(fixed?' locked':''));pin.type='button';pin.setAttribute('aria-disabled',String(fixed));pin.setAttribute('aria-label',c.name+' 고정');pin.setAttribute('aria-pressed',String(pinned||fixed));pin.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.222v6h1.556v-6H18v-2l-2-2z"/></svg>';pin.onclick=e=>{e.stopPropagation();if(fixed){App.toast(c.req?'「'+c.name+'」은 학교 지정 필수 이수 과목이므로 고정을 해제할 수 없습니다.':'「'+c.name+'」은 과학 중점 과정에서 반드시 이수하는 기초 과학 과목입니다. 과학 중점을 신청한 동안에는 고정을 해제할 수 없습니다.');return;}if(pinned){draftSave({...current,pinned:current.pinned.filter(x=>x!==c.id)});return;}let next=current;if(!checked){const r=E.canToggle(current,c.id);if(!r.ok)return App.toast(r.reason);next=r.state;}draftSave({...next,pinned:[...next.pinned,c.id]});};card.append(pin);}
@@ -2848,9 +2915,88 @@ function renderCourses(target,recommend,a=E.analyze(state)){
 let lastRates={};
 function renderRates(stats=lastRates){lastRates=stats;const nodes=[];for(const sem of E.semesters.filter(x=>x.limit)){const section=make('div','accordion open rate-accordion'),title=make('div','accordion-header',sem.title),wrap=make('div','accordion-content'),grid=make('div','accordion-inner');wrap.style.maxHeight='none';for(const c of E.courses.filter(c=>c.sem===sem.key&&!c.req).sort((a,b)=>(stats.courses?.[b.id]||0)-(stats.courses?.[a.id]||0))){const count=stats.courses?.[c.id]||0,total=stats.totalUsers||0,card=make('div','stat-rate-card'),right=make('div','stat-rate-right');right.append(make('div','stat-rate-percent',(total?count/total*100:0).toFixed(1)+'%'),make('div','stat-rate-fraction',total+'명 중 '+count+'명 선택'));card.append(courseInfo(c,true),right);grid.append(card);}wrap.append(grid);section.append(title,wrap);nodes.push(section);}$('rates').replaceChildren(...nodes);}
 
-function validation(){const a=E.analyze(state);$('validation').replaceChildren();if(a.valid)$('validation').append(make('p','msg-success','모든 필수 조건을 충족합니다.'));a.errors.forEach(x=>$('validation').append(make('p','msg-error',x)));a.warnings.forEach(x=>$('validation').append(make('p','msg-warn',x)));return a;}
+function validation(){const a=E.analyze(state);$('validation').replaceChildren();if(a.valid)$('validation').append(make('p','msg-success','모든 필수 조건을 충족합니다.'));a.errors.forEach(x=>$('validation').append(make('p','msg-error',x)));a.warnings.forEach(x=>$('validation').append(make('p','msg-warn',x)));
+ if(!state.sciTrack&&fulfillsTrack(state))$('validation').append(make('p','msg-track122','현재 과목 구성이 과학 중점 과정 조건을 모두 충족합니다. 과학 중점 과정 신청을 권장합니다.'));
+ return a;}
 
-document.querySelectorAll('.track').forEach(x=>x.onchange=()=>{const draft=x.closest('#panel-3')!==null;const r=E.toggleTrack(draft?recommendationState():state);if(r.ok){draft?draftSave(r.state):apply(r.state);if(r.reason)App.toast(r.reason);}else{App.toast(r.reason);render();}});
+const trackDay=()=>new Date(Date.now()+9*3600000).toISOString().slice(0,10);
+const declineKey=()=> 'gimpo_science_declined_'+uid;
+const trackOffer={timer:0,dialog:null,shown:{practice:'',draft:''},ready:true,ref:null};
+const fulfillsTrack=value=>E.analyze({...value,sciTrack:true}).valid;
+function currentTrackMode(){
+ if($('nav-3').getAttribute('aria-selected')==='true')return 'draft';
+ if($('nav-2').getAttribute('aria-selected')==='true')return 'practice';
+ return null;
+}
+const trackValue=mode=>mode==='draft'?recommendationState():state;
+function queueTrackOffer(){
+ clearTimeout(trackOffer.timer);
+ trackOffer.timer=setTimeout(checkTrackOffer,0);
+}
+function hasTrackDecline(){return App.cache.read(declineKey())===trackDay();}
+function recordTrackDecline(){
+ const day=trackDay();App.cache.write(declineKey(),day);
+ trackOffer.ref?.set({day}).catch(()=>{});
+}
+function setupTrackPreference(account){
+ trackOffer.dialog?.abort();trackOffer.dialog=null;trackOffer.shown={practice:'',draft:''};trackOffer.ref=null;
+ const ref=account&&App.cloud?.secondary?.ref('v2/sciencePrompt/'+account.uid);trackOffer.ready=!ref;
+ if(!ref)return;
+ const owner=account.uid;trackOffer.ref=ref;let attemptedDay='';
+ const update=snap=>{
+  if(uid!==owner||trackOffer.ref!==ref)return;
+  const day=trackDay(),remote=snap?.val()?.day;
+  if(remote===day){App.cache.write(declineKey(),day);trackOffer.dialog?.abort();}
+  else if(hasTrackDecline()&&attemptedDay!==day){attemptedDay=day;ref.set({day}).catch(()=>{});}
+  trackOffer.ready=true;queueTrackOffer();
+ };
+ const fail=()=>{if(trackOffer.ref===ref){trackOffer.ready=true;queueTrackOffer();}};
+ ref.on('value',update,fail);unsub.push(()=>ref.off('value',update));
+}
+async function checkTrackOffer(){
+ const mode=currentTrackMode(),owner=uid,ver=epoch;
+ if(!mode||App.studioPreview||document.visibilityState==='hidden')return;
+ if(!user&&!App.offline)return;
+ if(user&&!readyForSave&&!dirty&&!App.offline&&(!E.isLocked||App.courseDb)&&!connectionIssues.has('selections'))return;
+ const value=trackValue(mode),day=trackDay();
+ if(value.sciTrack||!fulfillsTrack(value)){trackOffer.shown[mode]='';trackOffer.dialog?.abort();return;}
+ if(!trackOffer.ready||hasTrackDecline()||trackOffer.shown[mode]===day||trackOffer.dialog||document.querySelector('dialog[open]'))return;
+ const controller=new AbortController();trackOffer.dialog=controller;trackOffer.shown[mode]=day;
+ try{
+  const yes=await SiteConfirm('현재 과목 구성이 과학 중점 과정 조건을 모두 충족합니다. 과학 중점 과정을 신청하시겠습니까?',{
+   signal:controller.signal,onNo:()=>{if(owner===uid&&ver===epoch)recordTrackDecline();}
+  });
+  if(!yes||controller.signal.aborted||owner!==uid||ver!==epoch||currentTrackMode()!==mode)return;
+  const latest=trackValue(mode);if(latest.sciTrack||!fulfillsTrack(latest))return;
+  const next=E.toggleTrack(latest);if(next.ok){if(mode==='draft')draftSave(next.state);else apply(next.state);}
+ }finally{if(trackOffer.dialog===controller)trackOffer.dialog=null;}
+}
+async function changeTrack(check){
+ const mode=check.closest('#panel-3')?'draft':'practice',current=trackValue(mode),owner=uid,ver=epoch;
+ // The native control has already toggled. Keep the saved value visible during confirmation.
+ check.checked=current.sciTrack;
+ if(current.sciTrack&&typeof E.isLocked==='function'){
+  const message=fulfillsTrack(current)?'현재 과목 구성이 과학 중점 과정 조건을 모두 충족합니다. 그래도 신청을 취소하시겠습니까?':'2학년 1학기에 선택한 과목은 이미 과학 중점 과정 조건을 충족합니다. 그래도 신청을 취소하시겠습니까?';
+  if(!await SiteConfirm(message)||owner!==uid||ver!==epoch||!trackValue(mode).sciTrack)return;
+  trackOffer.shown[mode]=trackDay();
+ }
+ const next=E.toggleTrack(trackValue(mode));
+ if(!next.ok){App.toast(next.reason);return;}
+ if(mode==='draft')draftSave(next.state);else apply(next.state);
+ if(next.reason)App.toast(next.reason);
+}
+document.querySelectorAll('.track').forEach(box=>{box.onchange=()=>changeTrack(box);});
+document.addEventListener('close',queueTrackOffer,true);
+document.addEventListener('visibilitychange',queueTrackOffer);
+window.addEventListener('course-tab-visible',queueTrackOffer);
+function atNextKoreanMidnight(){
+ setTimeout(()=>{queueTrackOffer();atNextKoreanMidnight();},86400000-(Date.now()+9*3600000)%86400000+50);
+}
+atNextKoreanMidnight();
+window.addEventListener('storage',e=>{
+ if(e.key===declineKey()){if(hasTrackDecline())trackOffer.dialog?.abort();queueTrackOffer();}
+ if(e.key===peerSlotKey(uid))readPeerSlots();
+});
 $('pinResetBtn').onclick=async()=>{if(!recommendationState().pinned.length)return App.toast('이미 모두 초기화되었습니다.');if(await SiteConfirm('선택한 고정 핀을 모두 해제하시겠습니까?')){draftSave({...recommendationState(),pinned:[]});App.toast('고정 핀을 해제했습니다.');}};
 $('resetBtn').onclick=async()=>{
  const draft=$('nav-3').getAttribute('aria-selected')==='true',current=E.normalize(draft?recommendationState():state),next=E.normalize({});
@@ -2859,16 +3005,19 @@ $('resetBtn').onclick=async()=>{
  if(!await SiteConfirm(message))return;
  if(draft)draftSave(next);else{if(!recommendation){recommendation=E.normalize(state);App.cache.write(draftKey(),recommendation);}apply(next);}
 };$('validateBtn').onclick=()=>{validation();$('validation').scrollIntoView({block:'nearest',behavior:'smooth'});};
-$('recommendForm').onsubmit=async e=>{e.preventDefault();const b=$('recommendBtn');b.disabled=true;b.textContent='조건 확인 중';const base=JSON.stringify(recommendationState()),requestEpoch=epoch,requestOwner=uid;await new Promise(r=>requestAnimationFrame(()=>r()));try{if(requestEpoch!==epoch||requestOwner!==uid)return;const r=E.recommend(recommendationState(),$('career').value);if(base!==JSON.stringify(recommendationState()))return App.toast('선택이 변경되어 추천을 다시 실행해주세요.');if(!r.ok){$('recommendResult').textContent=r.reason;return;}draftSave(r.state);apply(r.state);$('recommendResult').textContent=r.reason;}catch(e){App.toast(App.error(e));}finally{b.disabled=false;b.textContent='AI 추천 돌리기';}};
+$('recommendForm').onsubmit=async e=>{e.preventDefault();const b=$('recommendBtn');CourseFeedback.gate(b,true,'과목 추천 조건을 확인하고 있습니다.');b.textContent='조건 확인 중';const base=JSON.stringify(recommendationState()),requestEpoch=epoch,requestOwner=uid;await new Promise(r=>requestAnimationFrame(()=>r()));try{if(requestEpoch!==epoch||requestOwner!==uid)return;const r=E.recommend(recommendationState(),$('career').value);if(base!==JSON.stringify(recommendationState()))return App.toast('선택이 변경되어 추천을 다시 실행해주세요.');if(!r.ok){$('recommendResult').textContent=r.reason;App.toast(r.reason);return;}draftSave(r.state);apply(r.state);$('recommendResult').textContent=r.reason;}catch(e){App.toast(App.error(e));}finally{CourseFeedback.gate(b,false,'');b.textContent='AI 추천 돌리기';}};
 const slotIcons={preview:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',rename:'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',remove:'<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>'};
-function renderSlots(){for(const target of [$('slots'),$('aiSlots')]){target.replaceChildren();for(const slot of Object.values(slots)){const box=make('div','save-slot');box.append(make('div','save-slot-name',slot.name));const actions=make('div','save-slot-actions');const add=(label,fn,icon)=>{const b=make('button',icon?'icon-btn':'load-btn',icon?undefined:label);b.type='button';b.title=label;b.setAttribute('aria-label',label);if(icon)b.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+slotIcons[icon]+'</svg>';b.onclick=()=>Promise.resolve(fn()).catch(e=>App.toast(App.error(e)));actions.append(b);};
+const peerSlotKey=owner=>'gimpo_v2_grade2_slots_'+owner;
+function peerSlots(value){return Object.fromEntries(Object.entries(value||{}).map(([id,slot])=>[id,{...slot,source119:'secundus'}]));}
+function readPeerSlots(){sharedSlots=peerSlots(App.cache.read(peerSlotKey(uid),{}));renderSlots();}
+function renderSlots(){for(const target of [$('slots'),$('aiSlots')]){target.replaceChildren();for(const slot of [...Object.values(sharedSlots),...Object.values(slots)]){const box=make('div','save-slot');box.append(make('div','save-slot-name',slot.name+(slot.source119==='secundus'?' · 2학년 사이트':'')));const actions=make('div','save-slot-actions');const add=(label,fn,icon)=>{const b=make('button',icon?'icon-btn':'load-btn',icon?undefined:label);b.type='button';b.title=label;b.setAttribute('aria-label',label);if(icon)b.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+slotIcons[icon]+'</svg>';b.onclick=()=>Promise.resolve(fn()).catch(e=>App.toast(App.error(e)));actions.append(b);};
  add('미리보기',()=>{const nodes=[];for(const sem of E.semesters.filter(s=>s.limit)){nodes.push(make('h3','',sem.title));E.courses.filter(c=>c.sem===sem.key&&slot.courses?.includes(c.id)&&!c.req).forEach(c=>nodes.push(courseCard(c,false,true)));}$('previewContent').replaceChildren(...nodes);$('previewDialog').showModal();},'preview');
- add('이름 변경',async()=>{const name=prompt('새 구성 이름',slot.name)?.trim();if(!name)return;if(name.length>40)return App.toast('이름은 40자 이하로 입력해주세요.');await saveSlot({...slot,name});},'rename');
- add('삭제',async()=>{if(!await SiteConfirm('저장 구성을 삭제하시겠습니까?'))return;const owner=uid,ver=epoch;if(user)await App.db.ref('v2/slots/'+owner+'/'+slot.id).remove();if(ver!==epoch||owner!==uid)return;delete slots[slot.id];App.cache.write('gimpo_v2_slots_'+owner,slots);renderSlots();},'remove');
+ if(slot.source119!=='secundus')add('이름 변경',async()=>{const input=prompt('새 구성 이름',slot.name);if(input===null)return;const name=input.trim();if(!name)return App.toast('저장 구성의 이름을 입력해 주세요.');if(name.length>40)return App.toast('이름은 40자 이하로 입력해주세요.');await saveSlot({...slot,name});},'rename');
+ if(slot.source119!=='secundus')add('삭제',async()=>{if(!await SiteConfirm('저장 구성을 삭제하시겠습니까?'))return;const owner=uid,ver=epoch;if(user)await App.db.ref('v2/slots/'+owner+'/'+slot.id).remove();if(ver!==epoch||owner!==uid)return;delete slots[slot.id];App.cache.write('gimpo_v2_slots_'+owner,slots);renderSlots();},'remove');
  add('불러오기',async()=>{if(await SiteConfirm('현재 선택을 이 구성으로 바꿀까요?')){if(target.id==='aiSlots')draftSave(slot);else{apply(slot);validation();}}});box.append(actions);target.append(box);}}}
 
 async function saveSlot(slot){const owner=uid;if(user)await App.db.ref(`v2/slots/${owner}/${slot.id}`).set(slot);if(owner!==uid)return;slots[slot.id]=slot;App.cache.write('gimpo_v2_slots_'+uid,slots);renderSlots();App.toast('구성을 저장했습니다.');}
-document.querySelectorAll('.saveSlot').forEach(b=>b.onclick=async()=>{if(Object.keys(slots).length>=30)return App.toast('저장 구성은 최대 30개입니다.');const name=prompt('저장할 구성 이름 (40자 이하)')?.trim();if(!name)return;if(name.length>40)return App.toast('이름은 40자 이하로 입력해주세요.');try{await saveSlot({id:crypto.randomUUID(),name,...(b.closest('#panel-3')?recommendationState():state)});}catch(e){App.toast(App.error(e));}});
+document.querySelectorAll('.saveSlot').forEach(b=>b.onclick=async()=>{if(Object.keys(slots).length>=30)return App.toast('저장 구성은 최대 30개입니다.');const input=prompt('저장할 구성 이름 (40자 이하)');if(input===null)return;const name=input.trim();if(!name)return App.toast('저장 구성의 이름을 입력해 주세요.');if(name.length>40)return App.toast('이름은 40자 이하로 입력해주세요.');try{await saveSlot({id:crypto.randomUUID(),name,...(b.closest('#panel-3')?recommendationState():state)});}catch(e){App.toast(App.error(e));}});
 document.querySelectorAll('.printBtn').forEach(b=>b.onclick=()=>Course119.printSelection(E,b.closest('#panel-3')?recommendationState():state,currentName()));
 function appendMessage(target,m,{scroll=true,id}={}){
  const time=Number(m.timestamp)||Date.now(),date=new Date(time).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
@@ -2926,14 +3075,14 @@ function persistAIAnswer(entries,owner,version){
 }
 $('aiForm').onsubmit=async event=>{
  event.preventDefault();
- if(aiBusy)return;
+ if(aiBusy)return App.toast('AI 답변을 받고 있습니다. 답변이 끝나면 다음 질문을 보낼 수 있습니다.');
  const text=$('aiInput').value.trim();
- if(!text)return;
+ if(!text)return App.toast('보낼 질문을 입력해 주세요.');
  const easteregg=GimpoFreeAI.localAnswer(text);
  if(!easteregg&&!user)return App.toast('AI 상담은 로그인 연결 후 이용할 수 있습니다.');
  if(!easteregg)aiProbeVersion++;
  const owner=uid,ver=epoch,requestUser=user,question={role:'user',text,timestamp:Date.now()};
- aiBusy=true;$('aiSend').disabled=true;$('clearAi').disabled=true;
+ aiBusy=true;CourseFeedback.gate($('aiSend'),true,'AI 답변을 받고 있습니다. 답변이 끝난 뒤 다시 이용해 주세요.');CourseFeedback.gate($('clearAi'),true,'AI 답변을 받고 있습니다. 답변이 끝난 뒤 다시 이용해 주세요.');
  const pending=appendMessage($('aiMessages'),{role:'assistant',text:'답변을 준비하고 있습니다…'});
  try{
   const response=easteregg?{text:easteregg}:await freeAI.ask({
@@ -2947,20 +3096,20 @@ $('aiForm').onsubmit=async event=>{
   history.push(question,answer);history=history.slice(-100);$('aiInput').value='';renderHistory();
   if(requestUser)persistAIAnswer(sessionEntries,owner,ver);
  }catch(error){if(ver===epoch){if(!easteregg){aiAvailability=error.code==='ai/setup'?'missing':'unavailable';const bubble=$('aiMessages').querySelector('[data-ai-welcome]');if(bubble)updateAIWelcome(bubble);}App.toast(App.error(error));}}
- finally{pending.remove();aiBusy=false;$('aiSend').disabled=false;$('clearAi').disabled=false;}
+ finally{pending.remove();aiBusy=false;CourseFeedback.gate($('aiSend'),false,'AI 답변을 받고 있습니다. 답변이 끝난 뒤 다시 이용해 주세요.');CourseFeedback.gate($('clearAi'),false,'AI 답변을 받고 있습니다. 답변이 끝난 뒤 다시 이용해 주세요.');}
 };
-$('clearAi').onclick=async()=>{if(aiBusy)return;if(!history.length&&!aiSessionMessages.length)return App.toast('이미 모두 초기화되었습니다.');if(!await SiteConfirm('현재 계정의 AI 대화를 삭제하시겠습니까?'))return;const owner=uid,ver=epoch;try{if(user)await App.db.ref('v2/aiHistory/'+owner).remove();if(ver!==epoch||owner!==uid)return;history=[];aiSessionMessages=[];renderHistory();}catch(e){if(ver===epoch)App.toast(App.error(e));}};
+$('clearAi').onclick=async()=>{if(aiBusy)return App.toast('AI 답변을 받고 있습니다. 답변이 끝난 뒤 대화를 초기화할 수 있습니다.');if(!history.length&&!aiSessionMessages.length)return App.toast('이미 모두 초기화되었습니다.');if(!await SiteConfirm('현재 계정의 AI 대화를 삭제하시겠습니까?'))return;const owner=uid,ver=epoch;try{if(user)await App.db.ref('v2/aiHistory/'+owner).remove();if(ver!==epoch||owner!==uid)return;history=[];aiSessionMessages=[];renderHistory();}catch(e){if(ver===epoch)App.toast(App.error(e));}};
 let previewUrls=[];
-function renderFiles(){previewUrls.forEach(url=>URL.revokeObjectURL(url));previewUrls=[];$('attachments').replaceChildren(...selectedFiles.map((file,i)=>{const wrap=make('div','preview-img-wrap'),b=make('button','preview-del','×');wrap.append(Media120.preview(file,previewUrls));b.type='button';b.setAttribute('aria-label',file.name+' 첨부 삭제');b.disabled=inquiryBusy;b.onclick=()=>{selectedFiles.splice(i,1);renderFiles();};wrap.append(b);return wrap;}));$('attachments').hidden=selectedFiles.length===0;}
+function renderFiles(){previewUrls.forEach(url=>URL.revokeObjectURL(url));previewUrls=[];$('attachments').replaceChildren(...selectedFiles.map((file,i)=>{const wrap=make('div','preview-img-wrap'),b=make('button','preview-del','×');wrap.append(Media120.preview(file,previewUrls));b.type='button';b.setAttribute('aria-label',file.name+' 첨부 삭제');CourseFeedback.gate(b,inquiryBusy,CourseFeedback.sendingText);b.onclick=()=>{selectedFiles.splice(i,1);renderFiles();};wrap.append(b);return wrap;}));$('attachments').hidden=selectedFiles.length===0;}
 
 $('attachBtn').onclick=()=>$('files').click();$('files').onchange=e=>{const next=[...selectedFiles,...e.target.files];e.target.value='';if(!Media120.valid(next))return App.toast(Media120.hint);selectedFiles=next;renderFiles();$('inquiryInput').focus();};
 $('inquiryInput').onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229){e.preventDefault();$('inquiryForm').requestSubmit();}};
 $('inquiryForm').onsubmit=async e=>{
-e.preventDefault();if(inquiryBusy)return;
-const text=$('inquiryInput').value.trim(),files=[...selectedFiles];if(!text&&!files.length)return;
+e.preventDefault();if(inquiryBusy)return App.toast(CourseFeedback.sendingText);
+const text=$('inquiryInput').value.trim(),files=[...selectedFiles];if(!text&&!files.length)return App.toast('보낼 문의 내용을 입력하거나 첨부파일을 선택해 주세요.');
 if(!user)return App.toast('문의는 서버 연결 후 이용할 수 있습니다.');
 if(!profile.name){$('profileDialog').showModal();return App.toast('이름을 먼저 저장해주세요.');}
-inquiryBusy=true;$('inquirySend').disabled=true;$('attachBtn').disabled=true;renderFiles();
+inquiryBusy=true;CourseFeedback.sending($('inquirySend'),true);CourseFeedback.gate($('inquirySend'),true,CourseFeedback.sendingText);CourseFeedback.gate($('attachBtn'),true,CourseFeedback.sendingText);renderFiles();
 const owner=uid,ver=epoch,requestUser=user;
 try{
  if(!inquiryPending||inquiryPending.owner!==owner||inquiryPending.text!==text||inquiryPending.files.length!==files.length||files.some((f,i)=>f!==inquiryPending.files[i])){
@@ -2976,7 +3125,7 @@ try{
  Promise.resolve().then(()=>App.support.wake(requestUser)).catch(()=>{});
  if(ver===epoch){if($('inquiryInput').value.trim()===text)$('inquiryInput').value='';selectedFiles=[];inquiryPending=null;}
 }catch(e){inquiryScroll.cancelOwnSend?.(inquiryPending?.key);if(ver===epoch&&owner===uid)App.toast(App.error(e));}
-finally{inquiryBusy=false;$('inquirySend').disabled=false;$('attachBtn').disabled=false;renderFiles();}
+finally{inquiryBusy=false;CourseFeedback.sending($('inquirySend'),false);CourseFeedback.gate($('inquirySend'),false,CourseFeedback.sendingText);CourseFeedback.gate($('attachBtn'),false,CourseFeedback.sendingText);renderFiles();}
 };
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).close());
 for(let i=1;i<=12;i++)$('classNum').append(new Option(i+'반',i));for(let i=1;i<=35;i++)$('studentNum').append(new Option(i+'번',i));
@@ -2993,7 +3142,7 @@ function sameProfile(a,b){return Number(a?.grade||1)===Number(b?.grade||1)&&Stri
 let pendingChange=null;
 function renderPendingChange(){
  const bar=$('pendingProfileChange');bar.hidden=!pendingChange;
- $('withdrawProfileChange').disabled=profileBusy;
+ CourseFeedback.gate($('withdrawProfileChange'),profileBusy,'프로필 요청을 처리하고 있습니다. 처리가 끝난 뒤 다시 이용해 주세요.');
 }
 $('withdrawProfileChange').onclick=async()=>{
  const id=pendingChange,version=epoch;if(!id||profileBusy)return;
@@ -3008,8 +3157,8 @@ $('withdrawProfileChange').onclick=async()=>{
 window.addEventListener('course-cohort-changed',()=>{if(user){$('profileLabel').textContent=currentName();if($('profileDialog').open)updateProfileForm();}});
 function updateProfileForm(){
  renderPendingChange();
- $('profileClose').hidden=!profile.name;$('profileClose').disabled=profileBusy;
- $('profileSubmit').disabled=profileBusy||!profileReady||Boolean(pendingChange);
+ $('profileClose').hidden=!profile.name;CourseFeedback.gate($('profileClose'),profileBusy,'프로필 요청을 처리하고 있습니다. 처리가 끝난 뒤 다시 이용해 주세요.');
+ CourseFeedback.gate($('profileSubmit'),profileBusy||!profileReady||Boolean(pendingChange),profileBusy?'프로필 요청을 처리하고 있습니다. 잠시만 기다려 주세요.':!profileReady?'프로필 정보를 불러오는 중입니다. 잠시만 기다려 주세요.':'이미 프로필 수정 승인을 기다리고 있습니다. 기존 요청을 취소해야 다시 신청할 수 있습니다.');
  $('profileSubmit').textContent=profileBusy?'처리 중…':profile.name?'수정 승인 요청':'프로필 저장';
  $('profileInstruction').textContent=profile.name?'변경할 이름, 반, 번호를 설정해주세요. 관리자 승인 후 프로필이 바뀝니다.':Course119.grade(profile,Date.parse(user?.metadata?.creationTime)||Date.now(),1)+'학년의 이름, 반, 번호를 설정해주세요. 처음 등록한 이후의 수정은 관리자 승인이 필요합니다.';
 }
@@ -3026,11 +3175,11 @@ function applyProfileSnapshot(value,owner=uid){
 $('profileBtn').onclick=()=>{$('studentName').value=profile.name||'';$('classNum').value=profile.classNum||'1';$('studentNum').value=profile.studentNum||'1';updateProfileForm();$('profileDialog').showModal();};
 for(const field of [$('studentName'),$('classNum'),$('studentNum')])field.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing)e.preventDefault();});
 $('profileForm').onsubmit=async e=>{
- e.preventDefault();if(profileBusy)return;
+ e.preventDefault();if(profileBusy||pendingChange)return App.toast($('profileSubmit').dataset.blockedReason);
  if(!user)return App.toast('서버 연결 후 정보를 저장할 수 있습니다.');
  if(!profileReady)return App.toast('프로필을 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
  const data={grade:Course119.grade(profile,Date.parse(user?.metadata?.creationTime)||Date.now(),1),name:$('studentName').value.trim(),classNum:$('classNum').value,studentNum:$('studentNum').value};
- if(!data.name)return;
+ if(!data.name)return App.toast('프로필을 저장하려면 이름을 입력해 주세요.');
  if(profile.name&&sameProfile(profile,data)){App.toast('변경된 정보가 없습니다.');return;}
  const ver=epoch,owner=uid,requestUser=user,creating=!profile.name;profileBusy=true;updateProfileForm();
  try{
@@ -3049,20 +3198,21 @@ $('profileForm').onsubmit=async e=>{
  }catch(error){if(ver===epoch&&owner===uid)App.toast(App.error(error));}
  finally{if(ver===epoch&&owner===uid){profileBusy=false;updateProfileForm();}}
 };
-async function authAction(fn){$('authSubmit').disabled=true;$('googleBtn').disabled=true;$('authError').textContent='';try{await fn();$('password').value='';$('authDialog').close();}catch(e){$('authError').textContent=App.error(e);}finally{$('authSubmit').disabled=false;$('googleBtn').disabled=false;}}
-$('authForm').onsubmit=e=>{e.preventDefault();if(!App.auth)return;authAction(()=>signup?App.auth.createUserWithEmailAndPassword($('email').value.trim(),$('password').value).then(credential=>App.captureRegistration120(credential)):App.signInEmail($('email').value,$('password').value));};$('googleBtn').onclick=()=>authAction(()=>App.signInGoogle());$('signupToggle').onclick=()=>{signup=!signup;$('authTitle').textContent=signup?'회원가입':'로그인';$('authSubmit').textContent=signup?'가입하기':'로그인';$('signupToggle').textContent=signup?'로그인으로 돌아가기':'새 계정 만들기';$('password').autocomplete=signup?'new-password':'current-password';};$('resetPassword').onclick=async()=>{try{if(!$('email').value)return App.toast('이메일을 입력해주세요.');await App.auth.sendPasswordResetEmail($('email').value.trim());App.toast('비밀번호 재설정 이메일을 요청했습니다. 스팸함도 확인해주세요.');}catch(e){App.toast(App.error(e));}};
+async function authAction(fn){CourseFeedback.gate($('authSubmit'),true,'로그인 요청을 처리하고 있습니다. 잠시만 기다려 주세요.');CourseFeedback.gate($('googleBtn'),true,'로그인 요청을 처리하고 있습니다. 잠시만 기다려 주세요.');$('authError').textContent='';try{await fn();$('password').value='';$('authDialog').close();}catch(e){$('authError').textContent=App.error(e);}finally{CourseFeedback.gate($('authSubmit'),false,'로그인 요청을 처리하고 있습니다. 잠시만 기다려 주세요.');CourseFeedback.gate($('googleBtn'),false,'로그인 요청을 처리하고 있습니다. 잠시만 기다려 주세요.');}}
+$('authForm').onsubmit=e=>{e.preventDefault();if($('authSubmit').dataset.blockedReason)return App.toast($('authSubmit').dataset.blockedReason);if(!App.auth)return App.toast('로그인하려면 서버에 연결해야 합니다.');authAction(()=>signup?App.auth.createUserWithEmailAndPassword($('email').value.trim(),$('password').value).then(credential=>App.captureRegistration120(credential)):App.signInEmail($('email').value,$('password').value));};$('googleBtn').onclick=()=>authAction(()=>App.signInGoogle());$('signupToggle').onclick=()=>{signup=!signup;$('authTitle').textContent=signup?'회원가입':'로그인';$('authSubmit').textContent=signup?'가입하기':'로그인';$('signupToggle').textContent=signup?'로그인으로 돌아가기':'새 계정 만들기';$('password').autocomplete=signup?'new-password':'current-password';};$('resetPassword').onclick=async()=>{try{if(!$('email').value)return App.toast('이메일을 입력해주세요.');await App.auth.sendPasswordResetEmail($('email').value.trim());App.toast('비밀번호 재설정 이메일을 요청했습니다. 스팸함도 확인해주세요.');}catch(e){App.toast(App.error(e));}};
 
-function resetAccount(next){globalThis.InquiryPreview?.close();pendingChange=null;profileBusy=false;profileReady=false;inquiryScroll.reset();inquiryLoaded=false;inquiryKeys.clear();galleryMessages121=[];connectionIssues.clear();renderConnectionIssues();if(serverDialog.open)serverDialog.close();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;for(const id of ['aiInput','inquiryInput','studentName','password'])$(id).value='';$('classNum').value='1';$('studentNum').value='1';$('previewContent').replaceChildren();for(const id of ['profileDialog','previewDialog','authDialog']){if($(id).open)$(id).close();}unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}App.releaseImages($('inquiryMessages'));clearTimeout(saveTimer);user=next;uid=next?.uid||'device';profile=App.cache.read('gimpo_v2_profile_'+uid,{})||{};history=[];selectedFiles=[];slots=App.cache.read('gimpo_v2_slots_'+uid,{})||{};const saved=App.cache.read(stateKey(uid),{});state=E.normalize(saved.state||{});const cachedDraft=App.cache.read(draftKey());recommendation=cachedDraft?E.normalize(cachedDraft):null;dirty=Boolean(saved.dirty);revision=Number(saved.revision)||0;conflict=false;render();renderSlots();renderHistory();renderFiles();renderInquiryWelcome($('inquiryMessages'));$('profileLabel').textContent=next?currentName():'기기 내 연습';$('authBtn').textContent=App.isMember(next)?'로그아웃':'로그인';$('profileBtn').hidden=!next;$('dashboardBanner').hidden=false;const account=$('accountIdentity');account.hidden=!next?.email;account.textContent=next?.email?'계정: '+next.email:'';account.title=account.textContent;scheduleAccountLayout();$('saveStatus').textContent=dirty?'기기 변경 불러옴':'기기 저장';}
+function resetAccount(next){globalThis.InquiryPreview?.close();pendingChange=null;profileBusy=false;profileReady=false;inquiryScroll.reset();inquiryLoaded=false;inquiryKeys.clear();galleryMessages121=[];connectionIssues.clear();renderConnectionIssues();if(serverDialog.open)serverDialog.close();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;for(const id of ['aiInput','inquiryInput','studentName','password'])$(id).value='';$('classNum').value='1';$('studentNum').value='1';$('previewContent').replaceChildren();for(const id of ['profileDialog','previewDialog','authDialog']){if($(id).open)$(id).close();}unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}App.releaseImages($('inquiryMessages'));clearTimeout(saveTimer);user=next;uid=next?.uid||'device';profile=App.cache.read('gimpo_v2_profile_'+uid,{})||{};history=[];selectedFiles=[];slots=App.cache.read('gimpo_v2_slots_'+uid,{})||{};sharedSlots=peerSlots(App.cache.read(peerSlotKey(uid),{}));const saved=App.cache.read(stateKey(uid),{});state=E.normalize(saved.state||{});const cachedDraft=App.cache.read(draftKey());recommendation=cachedDraft?E.normalize(cachedDraft):null;dirty=Boolean(saved.dirty);revision=Number(saved.revision)||0;conflict=false;render();renderSlots();renderHistory();renderFiles();renderInquiryWelcome($('inquiryMessages'));$('profileLabel').textContent=next?currentName():'기기 내 연습';$('authBtn').textContent=App.isMember(next)?'로그아웃':'로그인';$('profileBtn').hidden=!next;$('dashboardBanner').hidden=false;const account=$('accountIdentity');account.hidden=!next?.email;account.textContent=next?.email?'계정: '+next.email:'';account.title=account.textContent;scheduleAccountLayout();$('saveStatus').textContent=dirty?'기기 변경 불러옴':'기기 저장';}
 async function connect(next,{retry=false}={}){
  profileReady=false;
  if(!retry||user?.uid!==next?.uid)aiSessionMessages=[];
  presenceOnline = null;
  tabCount = null;
  renderVisitorCount();
- if(!next){resetAccount(null);if(App.authError)reportConnectionIssue('auth',App.authError);return;}
+ if(!next){resetAccount(null);setupTrackPreference(null);if(App.authError)reportConnectionIssue('auth',App.authError);return;}
  if(retry&&user?.uid===next.uid){
   localSave();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;clearTimeout(saveTimer);unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}connectionIssues.clear();renderConnectionIssues();
  }else resetAccount(next);
+ setupTrackPreference(next);
  const ver=epoch,owner=next.uid,active=()=>ver===epoch&&owner===uid;
  listen(App.db.ref('v2/profileChangeRequests/'+owner),'value',snap=>{
   if(!active())return;const request=snap.val();pendingChange=request?.status==='pending'?request.requestId:null;updateProfileForm();
@@ -3070,6 +3220,7 @@ async function connect(next,{retry=false}={}){
  Promise.resolve().then(()=>active()?App.support.syncContact(next):undefined).then(()=>{if(active())clearConnectionIssue('contact');},error=>{if(active())reportConnectionIssue('contact',error);});
  $('saveStatus').textContent=dirty?'기기 변경 보관 · 서버 확인 중':'서버 데이터 확인 중';
  // Each feature subscribes independently: a denied profile or AI history must not stop inquiries/presence.
+ if(App.cloud?.secondary)listen(App.cloud.secondary.ref('v2/slots/'+owner),'value',snap=>{const value=snap.val()||{};App.cache.write(peerSlotKey(owner),value);sharedSlots=peerSlots(value);renderSlots();},'sharedSlots');
  listen(App.db.ref('v2/slots/'+owner),'value',snap=>{slots=snap.val()||{};App.cache.write('gimpo_v2_slots_'+owner,slots);renderSlots();},'slots');
  listen(App.db.ref('v2/inquiries/'+owner).orderByChild('timestamp').limitToLast(100),'value',renderInquiries,'inquiries');
  if(App.cloud?.watchStatistics)unsub.push(App.cloud.watchStatistics(stats=>renderRates(stats),error=>reportConnectionIssue('statistics',error)));else listen(App.db.ref('v2/statistics/public'),'value',snap=>renderRates(snap.val()||{}),'statistics');
@@ -3084,7 +3235,7 @@ async function connect(next,{retry=false}={}){
   load('selections',App.db.ref('v2/selections/'+owner),snap=>{
    const remote=snap.val();if(dirty&&(remote?.revision||0)!==revision){conflict=true;$('saveStatus').textContent='다른 기기 변경과 충돌 · 여기를 눌러 해결';}
    else if(!dirty){state=E.normalize(remote||{});revision=remote?.revision||0;localSave();render();$('saveStatus').textContent='서버 데이터 불러옴';}
-   readyForSave=true;
+   readyForSave=true;queueTrackOffer();
    listen(App.db.ref('v2/selections/'+owner),'value',snapshot=>{if(saving)return;const v=snapshot.val();if(!v||v.revision===revision)return;if(dirty){conflict=true;$('saveStatus').textContent='다른 기기 변경과 충돌 · 여기를 눌러 해결';}else{state=E.normalize(v);revision=v.revision;localSave();render();}},'selections');
    if(dirty&&!conflict)flush();else if(!dirty)App.cloud?.publishSelection?.().catch(error=>reportConnectionIssue('statistics',error));
   }),
@@ -3094,14 +3245,14 @@ async function connect(next,{retry=false}={}){
 }
 async function retryConnection(){
  if(retrying)return;if(aiBusy||inquiryBusy||saving)return App.toast('진행 중인 전송을 마친 후 다시 연결해주세요.');
- retrying=true;retryButton.disabled=true;retryButton.textContent='연결 확인 중…';const ver=epoch,owner=uid;
+ retrying=true;CourseFeedback.gate(retryButton,true,'서버 연결을 확인하고 있습니다.');retryButton.textContent='연결 확인 중…';const ver=epoch,owner=uid;
  try{
   let next=App.auth.currentUser;
   if(!next){if(!App.retryAuthentication)throw Object.assign(new Error('페이지를 새로고침해 연결 모듈을 다시 불러와주세요.'),{code:'sdk/unavailable'});await App.retryAuthentication();return;}
   if(next.getIdToken)await next.getIdToken(true);if(ver!==epoch||owner!==uid)return;
   clearConnectionIssue('auth');await connect(next,{retry:true});
  }catch(error){if(ver===epoch)reportConnectionIssue('auth',error);}
- finally{retrying=false;retryButton.disabled=false;retryButton.textContent='설정 적용 후 다시 연결';renderConnectionIssues();}
+ finally{retrying=false;CourseFeedback.gate(retryButton,false,'');retryButton.textContent='설정 적용 후 다시 연결';renderConnectionIssues();}
 }
 retryButton.onclick=retryConnection;
 window.addEventListener('app-auth-error',event=>reportConnectionIssue('auth',event.detail));
