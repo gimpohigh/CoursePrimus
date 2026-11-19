@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-course-site="primus">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -722,6 +722,7 @@ button.sending122::after{content:"";position:absolute;inset:0;margin:auto;width:
  root.CourseFeedback=Object.freeze({gate,sending,sendingText});
 })(window);
 </script>
+<style>.save-slot{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}.save-slot.slot-moving{outline:2px solid var(--primary-dark,#2a52be);box-shadow:0 4px 16px #17285826;cursor:grabbing}.save-slot:focus-visible{outline:2px solid var(--primary-dark,#2a52be)}</style>
 </head>
 <body>
 <div id="app">
@@ -1802,9 +1803,9 @@ function open(blob,ref){
   if(!g.drag){if(Math.abs(dy)>8&&Math.abs(dy)>Math.abs(dx)){gesture=null;return;}if(Math.abs(dx)<7||Math.abs(dx)<Math.abs(dy))return;g.drag=true;stage.setPointerCapture(e.pointerId);}
   if(e.cancelable)e.preventDefault();g.dx=dx;const dir=Math.sign(dx);
   if(dir&&dir!==g.dir){
-   g.dir=dir;g.edge=false;clearAdjacent();const f=sequence.near(current.ref,dir);
+   g.dir=dir;g.edge=false;clearAdjacent();const f=sequence.near(current.ref,-dir);
    if(f)prepare(f,-dir);
-   else{const ticket=++gestureSeq;sequence.find(current.ref,dir).then(file=>{if(gesture!==g||ticket!==gestureSeq)return;if(file)prepare(file,-dir);else g.edge=true;g.offset=pan(g.dx);}).catch(()=>{});}
+   else{const ticket=++gestureSeq;sequence.find(current.ref,-dir).then(file=>{if(gesture!==g||ticket!==gestureSeq)return;if(file)prepare(file,-dir);else g.edge=true;g.offset=pan(g.dx);}).catch(()=>{});}
   }
   g.offset=pan(dx);
  });
@@ -1812,7 +1813,7 @@ function open(blob,ref){
   const g=gesture;if(!g||g.id!==e.pointerId)return;gesture=null;gestureSeq++;
   if(!g.drag)return;quietClick=true;setTimeout(()=>{quietClick=false;},320);
   if(cancel||!g.dir||Math.abs(g.dx)<5){busy=true;const w=stage.clientWidth;Promise.all([animate(current.el,g.offset,0,160),adjacent?animate(adjacent.el,side*w+g.offset,side*w,160):null]).then(()=>{clearAdjacent();busy=false;});}
-  else move(g.dir,-g.dir,g.offset);
+  else move(-g.dir,-g.dir,g.offset);
  }
  stage.addEventListener('pointerup',e=>release(e,false));stage.addEventListener('pointercancel',e=>release(e,true));
  stage.onclick=e=>{if(!quietClick&&!busy&&!e.target.closest('video,button,pre'))bar.classList.toggle('controls-hidden');};
@@ -1915,10 +1916,10 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
     const labels={kor:'국어',math:'수학',eng:'영어',his:'한국사',soc:'사회',sci:'과학',pe:'체육',art:'예술',etc:'정보·제2외국어·한문·교양'};
     for(const [key,min]of Object.entries(minima))if(totals[key]<min)errors.push(labels[key]+' 최소 '+min+'학점을 충족하지 못했습니다. (현재 '+totals[key]+'학점)');
     if(input.sciTrack===true){
-      if(baseScience.some(id=>!chosen.has(id)))errors.push('과학중점 과정은 물리학·화학·생명과학·지구과학이 모두 필요합니다.');
-      if(advanced<6)errors.push('과학중점 심화 지정 과목은 6과목 이상이어야 합니다. (현재 '+advanced+'과목)');
-      if(totals.msi<79)errors.push('과학중점 수학·과학·정보 합계는 79학점 이상이어야 합니다. (현재 '+totals.msi+'학점)');
-      if(mathElectives<4)warnings.push('과학중점 과정은 수학 선택과목 4과목 이상을 권장합니다.');
+      if(baseScience.some(id=>!chosen.has(id)))errors.push('과학 중점 과정은 물리학 ·화학 · 생명과학 · 지구과학이 모두 필요합니다.');
+      if(advanced<6)errors.push('과학 중점 심화 지정 과목은 6과목 이상이어야 합니다. (현재 '+advanced+'과목)');
+      if(totals.msi<79)errors.push('과학 중점 수학·과학·정보 합계는 79학점 이상이어야 합니다. (현재 '+totals.msi+'학점)');
+      if(mathElectives<4)warnings.push('과학 중점 과정은 수학 선택과목 4과목 이상을 권장합니다.');
     }
     const links=[['21_s09',['22_s09'],'역학과 에너지'],['21_s10',['22_s10'],'물질과 에너지'],['21_s11',['22_s11'],'세포와 물질대사'],['21_s12',['22_s12'],'지구시스템 과학'],['21_s09',['31_s09','32_s08'],'전자기와 양자'],['21_s10',['31_s10','32_s09'],'화학 반응의 세계'],['21_s11',['31_s11','32_s10'],'생물의 유전'],['21_s12',['31_s12','32_s11'],'행성우주과학']];
     for(const [base,advancedIds,name]of links)if(!chosen.has(base)&&advancedIds.some(id=>chosen.has(id)))warnings.push(name+((name.charCodeAt(name.length-1)-0xAC00)%28===0?'는 ':'은 ')+byId.get(base).name+'과 연계되므로 '+byId.get(base).name+'을 듣는 것을 권장드립니다.');
@@ -2882,7 +2883,7 @@ function courseCard(c,recommend,preview=false){
  if(unavailable){card.classList.add('selection-unavailable');card.title=decision.reason;card.setAttribute('aria-disabled','true');}
  if(!preview){
   const check=make('button','course-check custom-checkbox'+(checked?' checked':'')+(fixed?' disabled':''));check.type='button';check.setAttribute('aria-label',c.name+' '+(checked?'선택 해제':'선택'));check.setAttribute('aria-pressed',String(checked));check.setAttribute('aria-disabled',String(unavailable||termLocked||fixed||(recommend&&pinned)));
-  const explainFixed=()=>c.req?'「'+c.name+'」은 학교에서 지정한 필수 이수 과목이므로 선택을 취소할 수 없습니다. 과학 중점 신청 여부와 관계없이 이수해야 합니다.':'「'+c.name+'」은 과학 중점 과정의 필수 과목입니다. 과학 중점 과정에서는 '+E.courses.filter(item=>item.sciReq).map(item=>item.name).join('·')+'을 모두 이수해야 하므로 선택을 취소할 수 없습니다. 일반 과정으로 변경하려면 과학 중점 신청 체크를 해제해 주세요.';
+  const explainFixed=()=>c.req?'「'+c.name+'」은 학교에서 지정한 필수 이수 과목이므로 선택을 취소할 수 없습니다. 과학 중점 신청 여부와 관계없이 이수해야 합니다.':'「'+c.name+'」은 과학 중점 과정의 필수 과목입니다. 과학 중점 과정에서는 '+E.courses.filter(item=>item.sciReq).map(item=>item.name).join(' · ').replace('물리학 · 화학','물리학 ·화학')+'을 모두 이수해야 하므로 선택을 취소할 수 없습니다. 일반 과정으로 변경하려면 과학 중점 신청 체크를 해제해 주세요.';
   if(fixed||unavailable||(recommend&&pinned)){
    const reason=fixed?explainFixed():unavailable?decision.reason:'직접 고정한 과목입니다. 핀을 먼저 해제해 주세요.';
    check.title=reason;check.setAttribute('aria-description',reason);
@@ -2939,6 +2940,7 @@ function recordTrackDecline(){
  trackOffer.ref?.set({day}).catch(()=>{});
 }
 function setupTrackPreference(account){
+ setupSlotOrder(account);
  trackOffer.dialog?.abort();trackOffer.dialog=null;trackOffer.shown={practice:'',draft:''};trackOffer.ref=null;
  const ref=account&&App.cloud?.secondary?.ref('v2/sciencePrompt/'+account.uid);trackOffer.ready=!ref;
  if(!ref)return;
@@ -3010,7 +3012,132 @@ const slotIcons={preview:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
 const peerSlotKey=owner=>'gimpo_v2_grade2_slots_'+owner;
 function peerSlots(value){return Object.fromEntries(Object.entries(value||{}).map(([id,slot])=>[id,{...slot,source119:'secundus'}]));}
 function readPeerSlots(){sharedSlots=peerSlots(App.cache.read(peerSlotKey(uid),{}));renderSlots();}
-function renderSlots(){for(const target of [$('slots'),$('aiSlots')]){target.replaceChildren();for(const slot of [...Object.values(sharedSlots),...Object.values(slots)]){const box=make('div','save-slot');box.append(make('div','save-slot-name',slot.name+(slot.source119==='secundus'?' · 2학년 사이트':'')));const actions=make('div','save-slot-actions');const add=(label,fn,icon)=>{const b=make('button',icon?'icon-btn':'load-btn',icon?undefined:label);b.type='button';b.title=label;b.setAttribute('aria-label',label);if(icon)b.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+slotIcons[icon]+'</svg>';b.onclick=()=>Promise.resolve(fn()).catch(e=>App.toast(App.error(e)));actions.append(b);};
+// The same account sees one order for its primary and secondary saved configurations.
+const slotSite=document.documentElement.dataset.courseSite;
+const slotKey=s=>(s.source119||slotSite)+':'+s.id;
+const orderCache=owner=>'gimpo_slot_order122_'+owner;
+let orderSession=null;
+function orderedKeys(stored,visible){
+ const first=new Set(stored||[]);return [...first,...visible.filter(id=>!first.has(id))];
+}
+function applySlotMove(stored,op){
+ const keys=orderedKeys(stored,op.visible).filter(id=>id!==op.id),at=op.before?keys.indexOf(op.before):-1;
+ keys.splice(at<0?keys.length:at,0,op.id);
+ // Keep all visible cards, including newly created ones. Obsolete ids yield their place first.
+ if(keys.length<=120)return keys;
+ const keep=new Set(op.visible);for(const key of keys)if(keep.size<120)keep.add(key);
+ return keys.filter(id=>keep.has(id));
+}
+function readOrder(owner){const data=App.cache.read(orderCache(owner));return {keys:Array.isArray(data?.keys)?data.keys:[],pending:Array.isArray(data?.pending)?data.pending:[]};}
+function slotSequence(){
+ const all=[...Object.values(sharedSlots),...Object.values(slots)],byKey=new Map(all.map(s=>[slotKey(s),s]));
+ const data=orderSession?.owner===uid?orderSession.data:readOrder(uid);
+ return orderedKeys(data.pending.reduce(applySlotMove,data.keys),[...byKey.keys()]).filter(k=>byKey.has(k)).map(k=>byKey.get(k));
+}
+function writeOrder(session){App.cache.write(orderCache(session.owner),session.data);}
+function moveSavedSlot(id,before){
+ const visible=slotSequence().map(slotKey);if(id===before||!visible.includes(id))return;
+ const op={id,before,visible,nonce:crypto.randomUUID()};
+ const session=orderSession?.owner===uid?orderSession:null;
+ if(!session){const data=readOrder(uid);data.keys=applySlotMove(data.keys,op);App.cache.write(orderCache(uid),data);}
+ else{
+  if(user)session.data.pending.push(op);else session.data.keys=applySlotMove(session.data.keys,op);
+  writeOrder(session);flushSlotOrder(session);
+ }
+ renderSlots();
+}
+async function flushSlotOrder(session){
+ if(!session.ref||session.saving||session!==orderSession||!session.data.pending.length)return;
+ session.saving=true;
+ try{
+  while(session===orderSession&&session.data.pending.length){
+   const op=session.data.pending[0];
+   const saved=await session.ref.transaction(current=>({keys:applySlotMove(current?.keys||[],op)}));
+   if(session!==orderSession)return;
+   session.data.keys=saved.snapshot.val().keys;session.data.pending=session.data.pending.filter(p=>p.nonce!==op.nonce);writeOrder(session);
+  }
+ }catch{if(session===orderSession){App.toast('구성 순서를 이 기기에 저장했습니다. 서버에 연결되면 동기화합니다.');clearTimeout(session.retry);session.retry=setTimeout(()=>flushSlotOrder(session),15000);}}
+ finally{session.saving=false;if(session===orderSession)renderSlots();}
+}
+function setupSlotOrder(account){
+ const old=orderSession;if(old){clearTimeout(old.retry);old.ref?.off('value',old.listener);}
+ const session={owner:uid,data:readOrder(uid),ref:account&&App.cloud?.secondary?.ref('v2/slotOrder/'+uid),saving:false};
+ orderSession=session;
+ if(session.ref){
+  session.listener=session.ref.on('value',snap=>{if(session!==orderSession)return;session.data.keys=snap.val()?.keys||[];writeOrder(session);renderSlots();flushSlotOrder(session);},()=>{});
+  flushSlotOrder(session);
+ }
+ renderSlots();
+}
+window.addEventListener('online',()=>{if(orderSession)flushSlotOrder(orderSession);});
+window.addEventListener('storage',e=>{if(e.key!==orderCache(uid)||!orderSession)return;
+ const disk=readOrder(uid),local=orderSession.data;
+ // In-flight moves from another tab can arrive in a different order. Each move has a stable id.
+ if(orderSession.saving){const known=new Set(local.pending.map(p=>p.nonce));local.pending.push(...disk.pending.filter(p=>!known.has(p.nonce)));local.keys=disk.keys;}
+ else orderSession.data=disk;
+ renderSlots();if(orderSession.data.pending.length)flushSlotOrder(orderSession);
+});
+let slotGesture=null;
+function slotDragActive(){return Boolean(slotGesture?.held);}
+function installSlotReorder(board){
+ let stopClick=0,scrollFrame=0;
+ const cardAt=e=>e.target.closest?.('.save-slot[data-slot-key]');
+ const cards=()=>[...board.querySelectorAll('.save-slot[data-slot-key]')];
+ function scrollDuringDrag(){
+  const g=slotGesture;if(!g?.held||g.board!==board)return;const port=g.port,rect=port.getBoundingClientRect(),lo=Math.max(rect.top,0),hi=Math.min(rect.bottom,innerHeight);
+  const step=g.y<lo+40?-Math.ceil((lo+40-g.y)/4):g.y>hi-40?Math.ceil((g.y-hi+40)/4):0;
+  if(step){const before=port.scrollTop;port.scrollTop+=Math.max(-14,Math.min(14,step));if(port.scrollTop!==before)place(g);}
+  scrollFrame=requestAnimationFrame(scrollDuringDrag);
+ }
+ function place(g){
+  const rect=board.getBoundingClientRect(),x=g.x-rect.left,y=g.y-rect.top;
+  const siblings=cards(),from=siblings.indexOf(g.card);
+  let to=from,minimum=Infinity;
+  g.positions.forEach((point,i)=>{const distance=(x-point.x)**2+(y-point.y)**2;if(distance<minimum){minimum=distance;to=i;}});
+  const hit=siblings[to];if(!hit||from===to)return;
+  const motion=!matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const old=motion?siblings.map(card=>card.getBoundingClientRect()):[];
+  board.insertBefore(g.card,to>from?hit.nextElementSibling:hit);
+  if(motion)siblings.forEach((card,i)=>{card.getAnimations().forEach(a=>a.cancel());const now=card.getBoundingClientRect(),dx=old[i].x-now.x,dy=old[i].y-now.y;if(dx||dy)card.animate([{transform:'translate('+dx+'px,'+dy+'px)'},{transform:'none'}],{duration:160,easing:'ease-out'});});
+  g.changed=true;
+ }
+ function start(target,x,y,id,mode){
+  stopClick=0;
+  if(slotGesture||cards().length<2||!target||target.parentElement!==board)return;
+  let port=board.parentElement;while(port.parentElement&&!(port.scrollHeight>port.clientHeight+2&&/auto|scroll/.test(getComputedStyle(port).overflowY)))port=port.parentElement;
+  const g=slotGesture={board,card:target,port,x,y,startX:x,startY:y,id,mode,held:false,changed:false,positions:[],abort:()=>end(id,true)};
+  g.timer=setTimeout(()=>{if(slotGesture!==g)return;const rect=board.getBoundingClientRect();g.positions=cards().map(card=>{const r=card.getBoundingClientRect();return{x:r.left+r.width/2-rect.left,y:r.top+r.height/2-rect.top};});g.held=true;g.card.classList.add('slot-moving');g.card.setAttribute('aria-grabbed','true');scrollDuringDrag();},370);
+ }
+ function travel(x,y,id,e){
+  const g=slotGesture;if(!g||g.board!==board||g.id!==id)return;g.x=x;g.y=y;
+  if(!g.held){if(Math.hypot(x-g.startX,y-g.startY)>8)end(id,true);return;}
+  if(e.cancelable)e.preventDefault();place(g);
+ }
+ function end(id,cancel){
+  const g=slotGesture;if(!g||g.board!==board||g.id!==id)return;
+  clearTimeout(g.timer);cancelAnimationFrame(scrollFrame);slotGesture=null;if(!g.held)return;
+  g.card.classList.remove('slot-moving');g.card.removeAttribute('aria-grabbed');stopClick=performance.now()+500;
+  if(!cancel&&g.changed)moveSavedSlot(g.card.dataset.slotKey,g.card.nextElementSibling?.dataset.slotKey||null);else renderSlots();
+ }
+ board.addEventListener('contextmenu',e=>{if(cardAt(e))e.preventDefault();});
+ board.addEventListener('click',e=>{if(performance.now()<stopClick){e.preventDefault();e.stopImmediatePropagation();}},true);
+ board.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch'&&e.button===0)start(cardAt(e),e.clientX,e.clientY,e.pointerId,'pointer');});
+ window.addEventListener('pointermove',e=>{if(slotGesture?.mode==='pointer')travel(e.clientX,e.clientY,e.pointerId,e);});
+ window.addEventListener('pointerup',e=>{if(slotGesture?.mode==='pointer')end(e.pointerId,false);});
+ window.addEventListener('pointercancel',e=>{if(slotGesture?.mode==='pointer')end(e.pointerId,true);});
+ board.addEventListener('touchstart',e=>{if(e.touches.length===1){const t=e.changedTouches[0];start(cardAt(e),t.clientX,t.clientY,t.identifier,'touch');}else if(slotGesture)end(slotGesture.id,true);},{passive:true});
+ board.addEventListener('touchmove',e=>{const t=[...e.changedTouches].find(t=>t.identifier===slotGesture?.id);if(t)travel(t.clientX,t.clientY,t.identifier,e);},{passive:false});
+ for(const type of ['touchend','touchcancel'])board.addEventListener(type,e=>{const t=[...e.changedTouches].find(t=>t.identifier===slotGesture?.id);if(t){if(slotGesture?.held&&e.cancelable)e.preventDefault();end(t.identifier,type==='touchcancel');}},{passive:false});
+ window.addEventListener('blur',()=>{if(slotGesture?.board===board)end(slotGesture.id,true);});
+ board.addEventListener('keydown',e=>{const box=cardAt(e);if(!box||e.target!==box||!e.altKey||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return;
+  e.preventDefault();e.stopPropagation();const items=cards(),i=items.indexOf(box),back=['ArrowLeft','ArrowUp'].includes(e.key),next=i+(back?-1:1);
+  if(!items[next])return App.toast(back?'이미 첫 번째 과목 구성입니다.':'이미 마지막 과목 구성입니다.');
+  moveSavedSlot(box.dataset.slotKey,items[back?next:i+2]?.dataset.slotKey||null);
+  board.querySelector('[data-slot-key="'+CSS.escape(box.dataset.slotKey)+'"]')?.focus();
+ });
+}
+for(const board of [$('slots'),$('aiSlots')])installSlotReorder(board);
+function renderSlots(){if(slotDragActive())return;for(const target of [$('slots'),$('aiSlots')]){target.replaceChildren();for(const slot of slotSequence()){const box=make('div','save-slot');box.dataset.slotKey=slotKey(slot);box.tabIndex=0;box.title='길게 눌러 순서를 변경할 수 있습니다.';box.setAttribute('aria-label',slot.name+' 과목 구성');box.setAttribute('aria-description','길게 누른 뒤 드래그하거나 Alt와 방향키로 이동하세요.');box.append(make('div','save-slot-name',slot.name+(slot.source119==='secundus'?' · 2학년 사이트':'')));const actions=make('div','save-slot-actions');const add=(label,fn,icon)=>{const b=make('button',icon?'icon-btn':'load-btn',icon?undefined:label);b.type='button';b.title=label;b.setAttribute('aria-label',label);if(icon)b.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+slotIcons[icon]+'</svg>';b.onclick=()=>Promise.resolve(fn()).catch(e=>App.toast(App.error(e)));actions.append(b);};
  add('미리보기',()=>{const nodes=[];for(const sem of E.semesters.filter(s=>s.limit)){nodes.push(make('h3','',sem.title));E.courses.filter(c=>c.sem===sem.key&&slot.courses?.includes(c.id)&&!c.req).forEach(c=>nodes.push(courseCard(c,false,true)));}$('previewContent').replaceChildren(...nodes);$('previewDialog').showModal();},'preview');
  if(slot.source119!=='secundus')add('이름 변경',async()=>{const input=prompt('새 구성 이름',slot.name);if(input===null)return;const name=input.trim();if(!name)return App.toast('저장 구성의 이름을 입력해 주세요.');if(name.length>40)return App.toast('이름은 40자 이하로 입력해주세요.');await saveSlot({...slot,name});},'rename');
  if(slot.source119!=='secundus')add('삭제',async()=>{if(!await SiteConfirm('저장 구성을 삭제하시겠습니까?'))return;const owner=uid,ver=epoch;if(user)await App.db.ref('v2/slots/'+owner+'/'+slot.id).remove();if(ver!==epoch||owner!==uid)return;delete slots[slot.id];App.cache.write('gimpo_v2_slots_'+owner,slots);renderSlots();},'remove');
@@ -3022,7 +3149,7 @@ document.querySelectorAll('.printBtn').forEach(b=>b.onclick=()=>Course119.printS
 function appendMessage(target,m,{scroll=true,id}={}){
  const time=Number(m.timestamp)||Date.now(),date=new Date(time).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
  if(target.lastElementChild?.dataset.date!==date){const separator=make('div','date-separator');separator.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>';separator.append(document.createTextNode(date));target.append(separator);}
- const row=make('div',m.role==='user'?'msg-row-user':'msg-row-ai'),bubble=make('div','chat-bubble '+(m.role==='user'?'chat-user':'chat-ai'),m.text||''),stamp=make('div','msg-time',new Date(time).toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'}));row.dataset.date=date;if(id)row.dataset.messageId=id;bubble.style.whiteSpace='pre-wrap';if(m.role==='user')row.append(stamp,bubble);else row.append(bubble,stamp);target.append(row);const mediaGroup=make('div','media-grid119');if(m.images?.length)bubble.append(mediaGroup);for(const [index,image] of (Array.isArray(m.images)?m.images:[]).entries()){const holder=make('div','media-cell119');mediaGroup.append(holder);App.imageElement({...image,gallery:target===$('inquiryMessages')?{room:uid,id,index,entries:()=>galleryMessages121}:null,senderName:m.senderName||(m.role==='user'?'학생':'개발자'),timestamp:m.timestamp}).then(node=>{if(row.isConnected&&holder.isConnected){node.classList.add('chat-image-wrap');node.querySelector('img')?.classList.add('chat-image');node.querySelector('a')?.classList.add('img-download-btn');holder.append(node);if(scroll)target.scrollTop=target.scrollHeight;else inquiryScroll.refresh();}else App.releaseImages(node);});}if(scroll)target.scrollTop=target.scrollHeight;return row;
+ const row=make('div',m.role==='user'?'msg-row-user':'msg-row-ai'),bubble=make('div','chat-bubble '+(m.role==='user'?'chat-user':'chat-ai'),(target===$('aiMessages')&&m.role==='assistant'?String(m.text||'').replace(/과학중점/g,'과학 중점'):m.text||'')),stamp=make('div','msg-time',new Date(time).toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'}));row.dataset.date=date;if(id)row.dataset.messageId=id;bubble.style.whiteSpace='pre-wrap';if(m.role==='user')row.append(stamp,bubble);else row.append(bubble,stamp);target.append(row);const mediaGroup=make('div','media-grid119');if(m.images?.length)bubble.append(mediaGroup);for(const [index,image] of (Array.isArray(m.images)?m.images:[]).entries()){const holder=make('div','media-cell119');mediaGroup.append(holder);App.imageElement({...image,gallery:target===$('inquiryMessages')?{room:uid,id,index,entries:()=>galleryMessages121}:null,senderName:m.senderName||(m.role==='user'?'학생':'개발자'),timestamp:m.timestamp}).then(node=>{if(row.isConnected&&holder.isConnected){node.classList.add('chat-image-wrap');node.querySelector('img')?.classList.add('chat-image');node.querySelector('a')?.classList.add('img-download-btn');holder.append(node);if(scroll)target.scrollTop=target.scrollHeight;else inquiryScroll.refresh();}else App.releaseImages(node);});}if(scroll)target.scrollTop=target.scrollHeight;return row;
 }
 const inquiryScroll=ChatScroll.create({container:$('inquiryMessages'),button:$('inquiryJump')});
 let inquiryLoaded=false,inquiryKeys=new Set(),galleryMessages121=[];
@@ -3056,7 +3183,7 @@ function settleAIHistory(){const box=$('aiMessages');if(!aiInitialScrollPending|
 window.addEventListener('course-tab-visible',event=>{if(event.detail.index===0)settleAIHistory();});
 if(typeof ResizeObserver==='function')new ResizeObserver(settleAIHistory).observe($('aiMessages'));
 function renderHistory(){aiInitialScrollPending=true;const box=$('aiMessages');box.replaceChildren();const welcome=appendMessage(box,{role:'assistant',timestamp:history[0]?.timestamp||Date.now()});const bubble=welcome.querySelector('.chat-bubble');bubble.dataset.aiWelcome='true';updateAIWelcome(bubble);history.forEach(m=>appendMessage(box,m));box.scrollTop=box.scrollHeight;settleAIHistory();}
-const faqs=[{"q":"공대 희망하는데 2학년 과목 추천해줘","label":"💻 공학 계열 추천"},{"q":"의약계열/생명공학 필수 과목이 뭐야?","label":"⚕️ 의약/생명 계열 추천"},{"q":"경영학과 가고 싶은데 뭘 들어야 해?","label":"📈 경영/경제 추천"},{"q":"문과(인문학) 추천 과목 알려줘","label":"📚 인문학/어문계열 추천"},{"q":"사범대/교육학과 지망생 추천 과목은?","label":"🏫 교육/사범대 추천"},{"q":"미대나 체대 등 예체능 과목 추천해줘","label":"🎨 예체능 계열 추천"},{"q":"컴퓨터공학과/소프트웨어 추천 과목","label":"⌨️ SW/컴공 추천"},{"q":"간호학과 가려면 과학 뭐 선택해?","label":"🩺 간호학과 추천"},{"q":"미디어 커뮤니케이션/언론 지망생 추천","label":"🎥 미디어/언론 추천"},{"q":"심리학과 가려면 뭐 들어야 해?","label":"🧠 심리학과 추천"},{"q":"과학중점과정이 뭐야?","label":"🔬 과학중점과정 이란?"},{"q":"과중반 필수 조건이 어떻게 돼?","label":"📋 과중반 필수 조건"},{"q":"과중반 수학 선택은 어떻게 권장해?","label":"🔢 과중반 수학 선택"},{"q":"과중반 2학년 2학기와 3학년 심화과목은 합쳐 몇 개 들어야 해?","label":"📈 과중반 심화 과목"},{"q":"국영수 제한 81학점이 무슨 뜻이야?","label":"🚫 국영수 81학점 제한"},{"q":"2학년 때 선택과목 몇 개 골라야 해?","label":"✌️ 2학년 선택과목 개수"},{"q":"3학년 때는 선택과목 몇 개 골라?","label":"🤟 3학년 선택과목 개수"},{"q":"수강신청은 어떻게 하고 언제까지야?","label":"📅 수강신청 방법/일정"},{"q":"총 이수 학점이 174학점이야?","label":"💯 총 교과 학점 안내"},{"q":"각 교과군별 필수 학점이 뭐야?","label":"📌 교과별 필수 학점"},{"q":"석차등급(5등급제)이 나오지 않는 과목도 있어?","label":"📊 등급 산출 안 되는 과목"},{"q":"P/F 과목이 무슨 뜻이야?","label":"✅ P/F 과목이란?"},{"q":"경제 수학이랑 전문 수학 차이가 뭐야?","label":"📐 경제수학 vs 전문수학"},{"q":"물리학 꼭 들어야 할까?","label":"⚡ 물리학 필수 여부"},{"q":"제2외국어 꼭 들어야 돼? 중국어/일본어 추천","label":"🗣️ 제2외국어 추천/필수"},{"q":"사회문제 탐구는 어떤 과목이야?","label":"🌍 사회문제 탐구 소개"},{"q":"진로 과목이랑 일반 과목 차이가 뭐야?","label":"🔖 일반 과목 vs 진로 과목"},{"q":"기후변화나 환경 관련 과목 추천해줘","label":"🌱 환경/기후 과목 추천"},{"q":"심화 국어/영어/수학 추천해줘","label":"📖 심화 교과 추천"},{"q":"수능에서 유리한 선택과목이 있을까?","label":"🎓 수능 유리한 과목"}];faqs.forEach(({q,label})=>{const b=make('button','example-chip',label);b.type='button';b.onclick=()=>{if(aiBusy)return;$('aiInput').value=q;$('aiForm').requestSubmit();};$('faq').append(b);});
+const faqs=[{"q":"공대 희망하는데 2학년 과목 추천해줘","label":"💻 공학 계열 추천"},{"q":"의약계열/생명공학 필수 과목이 뭐야?","label":"⚕️ 의약/생명 계열 추천"},{"q":"경영학과 가고 싶은데 뭘 들어야 해?","label":"📈 경영/경제 추천"},{"q":"문과(인문학) 추천 과목 알려줘","label":"📚 인문학/어문계열 추천"},{"q":"사범대/교육학과 지망생 추천 과목은?","label":"🏫 교육/사범대 추천"},{"q":"미대나 체대 등 예체능 과목 추천해줘","label":"🎨 예체능 계열 추천"},{"q":"컴퓨터공학과/소프트웨어 추천 과목","label":"⌨️ SW/컴공 추천"},{"q":"간호학과 가려면 과학 뭐 선택해?","label":"🩺 간호학과 추천"},{"q":"미디어 커뮤니케이션/언론 지망생 추천","label":"🎥 미디어/언론 추천"},{"q":"심리학과 가려면 뭐 들어야 해?","label":"🧠 심리학과 추천"},{"q":"과학 중점과정이 뭐야?","label":"🔬 과학 중점과정 이란?"},{"q":"과중반 필수 조건이 어떻게 돼?","label":"📋 과중반 필수 조건"},{"q":"과중반 수학 선택은 어떻게 권장해?","label":"🔢 과중반 수학 선택"},{"q":"과중반 2학년 2학기와 3학년 심화과목은 합쳐 몇 개 들어야 해?","label":"📈 과중반 심화 과목"},{"q":"국영수 제한 81학점이 무슨 뜻이야?","label":"🚫 국영수 81학점 제한"},{"q":"2학년 때 선택과목 몇 개 골라야 해?","label":"✌️ 2학년 선택과목 개수"},{"q":"3학년 때는 선택과목 몇 개 골라?","label":"🤟 3학년 선택과목 개수"},{"q":"수강신청은 어떻게 하고 언제까지야?","label":"📅 수강신청 방법/일정"},{"q":"총 이수 학점이 174학점이야?","label":"💯 총 교과 학점 안내"},{"q":"각 교과군별 필수 학점이 뭐야?","label":"📌 교과별 필수 학점"},{"q":"석차등급(5등급제)이 나오지 않는 과목도 있어?","label":"📊 등급 산출 안 되는 과목"},{"q":"P/F 과목이 무슨 뜻이야?","label":"✅ P/F 과목이란?"},{"q":"경제 수학이랑 전문 수학 차이가 뭐야?","label":"📐 경제수학 vs 전문수학"},{"q":"물리학 꼭 들어야 할까?","label":"⚡ 물리학 필수 여부"},{"q":"제2외국어 꼭 들어야 돼? 중국어/일본어 추천","label":"🗣️ 제2외국어 추천/필수"},{"q":"사회문제 탐구는 어떤 과목이야?","label":"🌍 사회문제 탐구 소개"},{"q":"진로 과목이랑 일반 과목 차이가 뭐야?","label":"🔖 일반 과목 vs 진로 과목"},{"q":"기후변화나 환경 관련 과목 추천해줘","label":"🌱 환경/기후 과목 추천"},{"q":"심화 국어/영어/수학 추천해줘","label":"📖 심화 교과 추천"},{"q":"수능에서 유리한 선택과목이 있을까?","label":"🎓 수능 유리한 과목"}];faqs.forEach(({q,label})=>{const b=make('button','example-chip',label);b.type='button';b.onclick=()=>{if(aiBusy)return;$('aiInput').value=q;$('aiForm').requestSubmit();};$('faq').append(b);});
 
 const freeAI=GimpoFreeAI.createClient({fetcher:(...args)=>fetch(...args),pageURL:location.href,currentUser:()=>App.auth?.currentUser});
 const initialAIProbe=aiProbeVersion;
@@ -3090,7 +3217,7 @@ $('aiForm').onsubmit=async event=>{
   },requestUser);
   if(ver!==epoch)return;
   if(!easteregg)aiAvailability='ready';
-  const answer={role:'assistant',text:response.text,timestamp:Date.now()};
+  const answer={role:'assistant',text:String(response.text).replace(/과학중점/g,'과학 중점'),timestamp:Date.now()};
   const sessionEntries=[question,answer].map(message=>({message,serverKey:null}));
   aiSessionMessages=[...aiSessionMessages,...sessionEntries].slice(-100);
   history.push(question,answer);history=history.slice(-100);$('aiInput').value='';renderHistory();
@@ -3201,7 +3328,7 @@ $('profileForm').onsubmit=async e=>{
 async function authAction(fn){CourseFeedback.gate($('authSubmit'),true,'로그인 요청을 처리하고 있습니다. 잠시만 기다려 주세요.');CourseFeedback.gate($('googleBtn'),true,'로그인 요청을 처리하고 있습니다. 잠시만 기다려 주세요.');$('authError').textContent='';try{await fn();$('password').value='';$('authDialog').close();}catch(e){$('authError').textContent=App.error(e);}finally{CourseFeedback.gate($('authSubmit'),false,'로그인 요청을 처리하고 있습니다. 잠시만 기다려 주세요.');CourseFeedback.gate($('googleBtn'),false,'로그인 요청을 처리하고 있습니다. 잠시만 기다려 주세요.');}}
 $('authForm').onsubmit=e=>{e.preventDefault();if($('authSubmit').dataset.blockedReason)return App.toast($('authSubmit').dataset.blockedReason);if(!App.auth)return App.toast('로그인하려면 서버에 연결해야 합니다.');authAction(()=>signup?App.auth.createUserWithEmailAndPassword($('email').value.trim(),$('password').value).then(credential=>App.captureRegistration120(credential)):App.signInEmail($('email').value,$('password').value));};$('googleBtn').onclick=()=>authAction(()=>App.signInGoogle());$('signupToggle').onclick=()=>{signup=!signup;$('authTitle').textContent=signup?'회원가입':'로그인';$('authSubmit').textContent=signup?'가입하기':'로그인';$('signupToggle').textContent=signup?'로그인으로 돌아가기':'새 계정 만들기';$('password').autocomplete=signup?'new-password':'current-password';};$('resetPassword').onclick=async()=>{try{if(!$('email').value)return App.toast('이메일을 입력해주세요.');await App.auth.sendPasswordResetEmail($('email').value.trim());App.toast('비밀번호 재설정 이메일을 요청했습니다. 스팸함도 확인해주세요.');}catch(e){App.toast(App.error(e));}};
 
-function resetAccount(next){globalThis.InquiryPreview?.close();pendingChange=null;profileBusy=false;profileReady=false;inquiryScroll.reset();inquiryLoaded=false;inquiryKeys.clear();galleryMessages121=[];connectionIssues.clear();renderConnectionIssues();if(serverDialog.open)serverDialog.close();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;for(const id of ['aiInput','inquiryInput','studentName','password'])$(id).value='';$('classNum').value='1';$('studentNum').value='1';$('previewContent').replaceChildren();for(const id of ['profileDialog','previewDialog','authDialog']){if($(id).open)$(id).close();}unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}App.releaseImages($('inquiryMessages'));clearTimeout(saveTimer);user=next;uid=next?.uid||'device';profile=App.cache.read('gimpo_v2_profile_'+uid,{})||{};history=[];selectedFiles=[];slots=App.cache.read('gimpo_v2_slots_'+uid,{})||{};sharedSlots=peerSlots(App.cache.read(peerSlotKey(uid),{}));const saved=App.cache.read(stateKey(uid),{});state=E.normalize(saved.state||{});const cachedDraft=App.cache.read(draftKey());recommendation=cachedDraft?E.normalize(cachedDraft):null;dirty=Boolean(saved.dirty);revision=Number(saved.revision)||0;conflict=false;render();renderSlots();renderHistory();renderFiles();renderInquiryWelcome($('inquiryMessages'));$('profileLabel').textContent=next?currentName():'기기 내 연습';$('authBtn').textContent=App.isMember(next)?'로그아웃':'로그인';$('profileBtn').hidden=!next;$('dashboardBanner').hidden=false;const account=$('accountIdentity');account.hidden=!next?.email;account.textContent=next?.email?'계정: '+next.email:'';account.title=account.textContent;scheduleAccountLayout();$('saveStatus').textContent=dirty?'기기 변경 불러옴':'기기 저장';}
+function resetAccount(next){if(slotGesture)slotGesture.abort();globalThis.InquiryPreview?.close();pendingChange=null;profileBusy=false;profileReady=false;inquiryScroll.reset();inquiryLoaded=false;inquiryKeys.clear();galleryMessages121=[];connectionIssues.clear();renderConnectionIssues();if(serverDialog.open)serverDialog.close();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;for(const id of ['aiInput','inquiryInput','studentName','password'])$(id).value='';$('classNum').value='1';$('studentNum').value='1';$('previewContent').replaceChildren();for(const id of ['profileDialog','previewDialog','authDialog']){if($(id).open)$(id).close();}unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}App.releaseImages($('inquiryMessages'));clearTimeout(saveTimer);user=next;uid=next?.uid||'device';profile=App.cache.read('gimpo_v2_profile_'+uid,{})||{};history=[];selectedFiles=[];slots=App.cache.read('gimpo_v2_slots_'+uid,{})||{};sharedSlots=peerSlots(App.cache.read(peerSlotKey(uid),{}));const saved=App.cache.read(stateKey(uid),{});state=E.normalize(saved.state||{});const cachedDraft=App.cache.read(draftKey());recommendation=cachedDraft?E.normalize(cachedDraft):null;dirty=Boolean(saved.dirty);revision=Number(saved.revision)||0;conflict=false;render();renderSlots();renderHistory();renderFiles();renderInquiryWelcome($('inquiryMessages'));$('profileLabel').textContent=next?currentName():'기기 내 연습';$('authBtn').textContent=App.isMember(next)?'로그아웃':'로그인';$('profileBtn').hidden=!next;$('dashboardBanner').hidden=false;const account=$('accountIdentity');account.hidden=!next?.email;account.textContent=next?.email?'계정: '+next.email:'';account.title=account.textContent;scheduleAccountLayout();$('saveStatus').textContent=dirty?'기기 변경 불러옴':'기기 저장';}
 async function connect(next,{retry=false}={}){
  profileReady=false;
  if(!retry||user?.uid!==next?.uid)aiSessionMessages=[];
@@ -3320,11 +3447,21 @@ function course(value){
   else bad('지원하지 않는 과목 속성입니다.');
  }if(Object.keys(n).length)out.catalogue[id]=n;}return out;
 }
+function courseRecord(record,site){
+ const base=record||{revision:0,dataJSON:canonical(blankCourse())};
+ const value=site==='grade2'&&base.grade2?base.grade2:base;
+ return {revision:site==='grade2'&&!base.grade2?0:Number(value.revision)||0,dataJSON:value.dataJSON,updatedAt:value.updatedAt||0};
+}
+function withCourseRecord(record,site,next){
+ const first=courseRecord(record,'grade1'),second=courseRecord(record,'grade2');
+ return site==='grade2'?{...first,grade2:next}:{...next,grade2:second};
+}
 function catalogue(base,edits){const known=new Set(base.courses.map(c=>c.id));for(const id of Object.keys(edits))if(!known.has(id))bad('원본에 없는 과목 ID입니다.');return{...clone(base),courses:base.courses.map(c=>{const n={...c,...edits[c.id]};if(n.sem==='3-2'&&!n.req&&![0,1,2].includes(n.g))n.g=0;return n;})};}
-function newNotice(id){return{id:key(id),header:'김포고 수강신청 도우미 공지',title:'새 공지',body:'공지 내용을 입력해 주세요.',dismissText:'다시 보지 않기',policy:'legacy',intervalDays:'1',styles:{},items:[]};}
+function newNotice(id){return{id:key(id),audience:'grade1',header:'김포고 수강신청 도우미 공지',title:'새 공지',body:'공지 내용을 입력해 주세요.',dismissText:'다시 보지 않기',policy:'legacy',intervalDays:'1',styles:{},items:[]};}
 function notices(value){if(!Array.isArray(value)||value.length>100)bad('공지는 100개 이내로 작성해 주세요.');const ids=new Set();return value.map(item=>{
  if(!record(item))bad('공지 형식을 확인해 주세요.');const id=key(item.id);if(ids.has(id))bad('공지 ID가 중복되었습니다.');ids.add(id);
- const n={id,header:text(item.header,200,'공지 머리말'),title:text(item.title,300,'공지 제목'),body:text(item.body,30000,'공지 내용'),dismissText:text(item.dismissText,120,'다시 보지 않기 문구'),policy:item.policy,intervalDays:String(item.intervalDays||'1'),styles:{},items:[]};
+ const audience=item.audience??'all';if(!['grade1','grade2','all'].includes(audience))bad('공지를 표시할 사이트를 선택해 주세요.');
+ const n={id,audience,header:text(item.header,200,'공지 머리말'),title:text(item.title,300,'공지 제목'),body:text(item.body,30000,'공지 내용'),dismissText:text(item.dismissText,120,'다시 보지 않기 문구'),policy:item.policy,intervalDays:String(item.intervalDays||'1'),styles:{},items:[]};
  if(!POLICIES.includes(n.policy))bad('공지 표시 방식을 선택해 주세요.');if(!/^[1-9]\d*$/.test(n.intervalDays))bad('일수는 1 이상의 정수로 입력해 주세요.');
  if(!record(item.styles))bad('공지 색상 형식을 확인해 주세요.');for(const [k,v]of Object.entries(item.styles)){if(!['header','title','body','footer','box'].includes(k))bad('공지 요소를 확인해 주세요.');const style=styles(v);if(Object.keys(style).length)n.styles[k]=style;}
  if(!Array.isArray(item.items)||item.items.length>100)bad('공지 오브젝트 수를 확인해 주세요.');const itemIds=new Set();n.items=item.items.map(v=>{const iid=key(v.id);if(itemIds.has(iid))bad('공지 오브젝트 ID가 중복되었습니다.');itemIds.add(iid);if(!['text','image','box','button','tag','ellipse'].includes(v.kind))bad('공지 오브젝트 종류를 확인해 주세요.');const r={id:iid,kind:v.kind,text:text(v.text||'',10000,'텍스트'),styles:styles(v.styles||{})};if(v.kind==='image'){if(typeof v.src!=='string'||v.src.length>750000||!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(v.src))bad('이미지는 JPG·PNG·WebP 형식으로 첨부해 주세요.');r.src=v.src;}return r;});return n;
@@ -3342,10 +3479,10 @@ function eligible(notice,receipt,version,now){
  return notice.policy==='interval'?BigInt(elapsed)>=BigInt(notice.intervalDays):elapsed>=1;
 }
 function move(list,from,before){const next=list.slice(),index=next.findIndex(item=>item.id===from);if(index<0||from===before)return next;const [item]=next.splice(index,1),target=next.findIndex(v=>v.id===before);next.splice(target<0?next.length:target,0,item);return next;}
-const deletePhrase=scope=>({all:'정말로 모든 학생 정보를 삭제합니다',grade1:'정말로 1학년 학생 정보를 삭제합니다',grade2:'정말로 2학년 학생 정보를 삭제합니다',previous:'정말로 작년에 생성된 학생 계정과 정보를 삭제합니다'})[scope]||bad('삭제 범위를 확인해 주세요.');
+const deletePhrase=scope=>({all:'정말로 모든 학생 정보를 삭제합니다',grade1:'정말로 1학년 학생 정보를 삭제합니다',grade2:'정말로 2학년 학생 정보를 삭제합니다',twoYearsAgo:'정말로 재작년에 생성된 학생 계정과 정보를 삭제합니다'})[scope]||bad('삭제 범위를 확인해 주세요.');
 function creationYear(createdAt){const ts=Number(createdAt);return ts>0&&Number.isFinite(ts)?new Date(ts+9*60*60*1000).getUTCFullYear():null;}
-function selectedForDeletion(student,scope,now){if(student.privileged)return false;if(scope==='all')return true;if(scope==='grade1'||scope==='grade2')return Boolean(student.profile)&&Number(student.profile.grade||1)===Number(scope.slice(-1));if(scope==='previous')return creationYear(student.createdAt)===creationYear(now)-1;return false;}
-return{PALETTE,MODES,POLICIES,canonical,clone,styles,section,course,notices,blankCourse,newNotice,catalogue,breakpoint,computedStyle,dayNumber,eligible,move,deletePhrase,creationYear,selectedForDeletion};
+function selectedForDeletion(student,scope,now){if(student.privileged)return false;if(scope==='all')return true;if(scope==='grade1'||scope==='grade2')return Boolean(student.profile)&&Number(student.profile.grade||1)===Number(scope.slice(-1));if(scope==='twoYearsAgo')return creationYear(student.createdAt)===creationYear(now)-2;return false;}
+return{PALETTE,MODES,POLICIES,canonical,clone,styles,section,course,notices,blankCourse,newNotice,courseRecord,withCourseRecord,catalogue,breakpoint,computedStyle,dayNumber,eligible,move,deletePhrase,creationYear,selectedForDeletion};
 });
 
 /* Apply safe visual data to the existing live DOM; preview never writes student data. */
@@ -3468,7 +3605,7 @@ if(preview){
  });
  send('ready');report();
 }else if(App.db){
- const ref=App.db.ref('v2/siteContent/course');ref.on('value',snapshot=>{const record=snapshot.val();try{setData(record?.dataJSON?JSON.parse(record.dataJSON):M.blankCourse());}catch{App.toast('저장된 화면 설정을 읽지 못해 기본 화면을 유지합니다.');}},()=>App.toast('화면 설정을 불러오지 못했습니다. 잠시 후 새로고침해 주세요.'));
+ const ref=App.db.ref('v2/siteContent/course');ref.on('value',snapshot=>{const record=M.courseRecord(snapshot.val(),'grade1');try{setData(record?.dataJSON?JSON.parse(record.dataJSON):M.blankCourse());}catch{App.toast('저장된 화면 설정을 읽지 못해 기본 화면을 유지합니다.');}},()=>App.toast('화면 설정을 불러오지 못했습니다. 잠시 후 새로고침해 주세요.'));
 }
 })();
 
@@ -3496,7 +3633,7 @@ function dismiss(permanent=false){if(!active)return;const current=active;App.cac
 function next(){if(active||!loaded||document.querySelector('dialog[open]'))return;while(queue.length){const notice=queue.shift();if(seen.has(version+':'+notice.id)||!M.eligible(notice,receipt(notice.id),version,Date.now()))continue;active=notice;dialog.replaceChildren(render(notice,{onClose:()=>dismiss(false),onHide:()=>dismiss(true)}));dialog.showModal();break;}}
 dialog.addEventListener('cancel',event=>{event.preventDefault();dismiss(false);});
 document.addEventListener('close',()=>requestAnimationFrame(next),true);
-App.db.ref('v2/siteContent/notices').on('value',snapshot=>{try{const value=snapshot.val();queue=M.notices(value?.dataJSON?JSON.parse(value.dataJSON):[]);version=String(value?.revision||0);loaded=true;if(active){active=null;dialog.close();}next();}catch{App.toast('공지를 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.');}},()=>{});
+App.db.ref('v2/siteContent/notices').on('value',snapshot=>{try{const value=snapshot.val();queue=M.notices(value?.dataJSON?JSON.parse(value.dataJSON):[]).filter(n=>n.audience==='all'||n.audience==='grade1');version=String(value?.revision||0);loaded=true;if(active){active=null;dialog.close();}next();}catch{App.toast('공지를 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.');}},()=>{});
 })();
 
 /* Register verified account metadata for the existing administrator directory. */
