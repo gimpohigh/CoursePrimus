@@ -710,16 +710,36 @@ button.sending122::after{content:"";position:absolute;inset:0;margin:auto;width:
  },true);
  // Native disabled inputs suppress clicks, but still expose the pointer gesture.
  document.addEventListener('pointerup',e=>{if(e.target.matches?.(':disabled[data-blocked-reason]'))explain(e);},true);
+ const notices=new WeakMap();
+ function setNotice(box,visible,text,holdTime=0){
+  const previous=notices.get(box);
+  const opacity=box.hidden||(!previous&&visible)?0:Number(getComputedStyle(box).opacity);
+  if(previous){clearTimeout(previous.timer);previous.animation?.cancel();}
+  if(visible){box.textContent=text;box.hidden=false;}
+  else if(box.hidden)return;
+  const state={timer:0,animation:null},target=visible?1:0;
+  notices.set(box,state);
+  function finish(){
+   if(notices.get(box)!==state)return;
+   state.animation=null;
+   if(!visible){box.hidden=true;notices.delete(box);}
+  }
+  if(opacity!==target&&box.animate&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+   state.animation=box.animate([{opacity},{opacity:target}],{duration:visible?180:220,easing:visible?'ease-out':'ease-in'});
+   state.animation.onfinish=finish;
+  }else finish();
+  if(visible&&holdTime)state.timer=setTimeout(()=>setNotice(box,false),holdTime);
+ }
  function sending(button,active){
   if(button.classList.contains('sending122')===active)return;
   button.classList.toggle('sending122',active);button.setAttribute('aria-busy',String(active));
   if(active)root.App.toast(sendingText,true);
   else{
    const box=document.getElementById('appToast');
-   if(box?.textContent===sendingText)box.hidden=true;
+   if(box?.textContent===sendingText)setNotice(box,false);
   }
  }
- root.CourseFeedback=Object.freeze({gate,sending,sendingText});
+ root.CourseFeedback=Object.freeze({gate,sending,sendingText,setNotice});
 })(window);
 </script>
 <style>.save-slot{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}.save-slot.slot-moving{outline:2px solid var(--primary-dark,#2a52be);box-shadow:0 4px 16px #17285826;cursor:grabbing}.save-slot:focus-visible{outline:2px solid var(--primary-dark,#2a52be)}</style>
@@ -1165,11 +1185,10 @@ return{create,Snapshot,ordered,pushKey};
 window.App = (() => {
   'use strict';
   const config = {apiKey:'AIzaSyD-IyAGGXQ69d8LupTU2mKmr87yoenahRo',authDomain:'gimpo-monitoring.firebaseapp.com',databaseURL:'https://gimpo-monitoring-default-rtdb.firebaseio.com',projectId:'gimpo-monitoring',storageBucket:'gimpo-monitoring.firebasestorage.app',messagingSenderId:'918422830852',appId:'1:918422830852:web:c9d6412cb2fc3dcc619a51'};
-  let timer;
   function toast(text,hold=false){let box=document.getElementById('appToast');if(!box){box=document.createElement('div');box.id='appToast';box.setAttribute('role','status');box.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);max-width:90vw;width:max-content;background:#191f28;color:white;padding:12px 18px;border-radius:12px;z-index:999999;white-space:pre-wrap;overflow-wrap:anywhere';document.body.append(box);}
     const host=Array.from(document.querySelectorAll('dialog[open]')).at(-1)||document.body;
     if(box.parentNode!==host)host.append(box);
-    box.textContent=text;box.hidden=false;clearTimeout(timer);if(!hold)timer=setTimeout(()=>box.hidden=true,6500);}
+    CourseFeedback.setNotice(box,true,text,hold?0:6500);}
   function error(e){const c=String(e?.code||''); if(c.includes('permission-denied')||c.includes('PERMISSION_DENIED'))return '접근 권한이 없습니다. 로그인 상태와 Firebase 보안 규칙을 확인해주세요.';if(c.includes('unauthenticated'))return '로그인이 필요합니다.';if(c.includes('resource-exhausted'))return '요청 한도에 도달했습니다. 잠시 후 다시 이용해주세요.';if(c.includes('popup-closed'))return '로그인 창이 닫혔습니다.';if(c.includes('credential')||c.includes('wrong-password')||c.includes('user-not-found'))return '이메일 또는 비밀번호를 확인해주세요.';if(c.includes('email-already'))return '이미 가입된 이메일입니다.';if(c.includes('network')||c.includes('unavailable'))return '서버에 연결할 수 없습니다. 연결 상태를 확인해주세요.';return e?.message||'요청을 처리하지 못했습니다. 다시 시도해주세요.';}
   const cache={read(key,fallback=null){try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}},write(key,value){try{localStorage.setItem(key,JSON.stringify(value));return true;}catch{toast('기기 저장 공간에 접근할 수 없습니다. 창을 닫기 전에 저장 상태를 확인해주세요.');return false;}},remove(key){try{localStorage.removeItem(key);}catch{}}};
   const studioPreview=window.parent!==window&&new URLSearchParams(location.search).get('studio-preview')==='1';
@@ -1715,9 +1734,9 @@ function open(blob,ref){
  const prev=node('button','gallery-arrow121 previous121'),next=node('button','gallery-arrow121 next121');
  const note=node('div','gallery-note121');note.setAttribute('role','status');note.hidden=true;
  const sequence=gallerySequence(ref),motion=matchMedia('(prefers-reduced-motion: reduce)');
- let current=null,adjacent=null,side=0,navigation=0,busy=false,gesture=null,gestureSeq=0,quietClick=false,noteTimer;
+ let current=null,adjacent=null,side=0,navigation=0,busy=false,gesture=null,gestureSeq=0,quietClick=false;
  const orderButton=(button,label,icon,action)=>{button.type='button';button.setAttribute('aria-label',label);button.append(icon);button.onclick=action;};
- function say(message){clearTimeout(noteTimer);note.textContent=message;note.hidden=false;noteTimer=setTimeout(()=>{note.hidden=true;},2000);}
+ function say(message){CourseFeedback.setNotice(note,true,message,2000);}
  function edge(direction){say(direction<0?'이전 첨부가 더 이상 없습니다.':'다음 첨부가 더 이상 없습니다.');}
  function metadata(){
   sender.textContent=current.ref.senderName||'보낸 사람';stamp.textContent=galleryTimestamp(current.ref.timestamp);CourseFeedback.gate(down,!current.blob&&!current.external,'첨부파일을 불러와야 다운로드할 수 있습니다. 불러오지 못했다면 다시 불러오기를 눌러 주세요.');
@@ -1777,7 +1796,7 @@ function open(blob,ref){
    const file=await sequence.find(current.ref,direction);if(!d.open||turn!==navigation)return;
    if(!file){edge(direction);if(offset)await animate(current.el,offset,0,160);clearAdjacent();return;}
    prepare(file,fromSide);const before=current,after=adjacent;
-   before.el.querySelector('video')?.pause();bar.classList.remove('controls-hidden');note.hidden=true;
+   before.el.querySelector('video')?.pause();bar.classList.remove('controls-hidden');CourseFeedback.setNotice(note,false);
    const distance=Math.min(1,Math.abs(offset)/Math.max(1,w));
    const remaining=Math.max(110,290*(1-distance));
    const duration=speed?Math.max(65,remaining/(1+speed)):remaining;
@@ -1834,7 +1853,7 @@ function open(blob,ref){
  }
  stage.addEventListener('pointerup',e=>release(e,false));stage.addEventListener('pointercancel',e=>release(e,true));
  stage.onclick=e=>{if(!quietClick&&!busy&&!e.target.closest('video,button,pre'))bar.classList.toggle('controls-hidden');};
- d.addEventListener('close',()=>{navigation++;gestureSeq++;gesture=null;clearTimeout(noteTimer);dispose(current);clearAdjacent();d.remove();if(viewer===d)viewer=null;},{once:true});
+ d.addEventListener('close',()=>{navigation++;gestureSeq++;gesture=null;CourseFeedback.setNotice(note,false);dispose(current);clearAdjacent();d.remove();if(viewer===d)viewer=null;},{once:true});
 }
  function install(){
   if(!root.App||App.studioPreview||App.offline||App.media119)return;App.media119=true;App.uploadImages=Media120.upload;const old=App.imageElement,release=App.releaseImages;legacyElement121=old;
