@@ -683,6 +683,337 @@ button.sending122::after{content:"";position:absolute;inset:0;margin:auto;width:
 @media(prefers-reduced-motion:reduce){button.sending122::after{animation-duration:2.5s}}
 </style>
 <script>
+const SystemGuides = (() => {
+  const rows = [
+["ad7620d13a3132e75375c6c3","2학년 1학기는 5과목을 선택해야 합니다. (현재 {현재 과목 수}과목)"],
+["47316b15f973dcaec03efbd1","2학년 2학기는 5과목을 선택해야 합니다. (현재 {현재 과목 수}과목)"],
+["e0fec1ea26db6152c4736950","3학년 1학기는 6과목을 선택해야 합니다. (현재 {현재 과목 수}과목)"],
+["882823383a7cbfa286d3199c","3학년 2학기 택1-1는 1과목을 선택해야 합니다. (현재 {현재 과목 수}과목)"],
+["7e183cc9487de6e347000b16","3학년 2학기 택1-2는 1과목을 선택해야 합니다. (현재 {현재 과목 수}과목)"],
+["76239b9429ce92a18c88189f","3학년 2학기 택4는 4과목을 선택해야 합니다. (현재 {현재 과목 수}과목)"],
+["509bd54984df88d317d23d8a","AI 답변을 받고 있습니다. 답변이 끝나면 다음 질문을 보낼 수 있습니다."],
+["1b5ce7d195460934ffdbf97a","AI 답변을 받고 있습니다. 답변이 끝난 뒤 다시 이용해 주세요."],
+["0ad9ad8ea3d3eda9a9f7a779","AI 답변을 받고 있습니다. 답변이 끝난 뒤 대화를 초기화할 수 있습니다."],
+["5043322fe2ff5a86108e8df1","AI 답변을 받지 못했습니다. 잠시 후 다시 보내주세요."],
+["ed3b741115b6eb203df300e1","AI 상담은 로그인 연결 후 이용할 수 있습니다."],
+["3a4f5afff088613f1e608315","AI 서버 연결을 준비하고 있습니다. 잠시 후 다시 이용해주세요."],
+["49e8c348e50c8121146b6695","JPG·PNG·WEBP 사진을 각 5MB 이하로 선택해주세요."],
+["a75cc13288579d53286d4ed4","account-changed"],
+["c3eefb58d7c42440a9d4abec","closed"],
+["fa9e1d22205ad852b0dc9509","conflict"],
+["e036f72d5dce5d90aeba7803","invalid-catalogue"],
+["267bfd92e322fde7116197c7","invalid-data"],
+["da6e8482ce2833dfabe1a814","invalid-endpoint"],
+["77fc7e5640e64d7d9f687202","invalid-operation"],
+["204c4314a3a880276b884fe1","invalid-path"],
+["d08181f14333940d9cdab424","invalid-query"],
+["7b2219c389200e8847536f84","invalid-request"],
+["8f137919dc96df44ba50919f","invalid-site"],
+["326d643c0e395af505a2f31b","unsupported-event"],
+["47e1c155e1a90c0f9ecc42c1","unsupported-transaction"],
+["838aeae0d0bb5d9193dd889a","{과목명} 과목은 다른 학기와 중복 선택할 수 없습니다."],
+["aceaf44c74495cf07267481b","{과목명} 과목이 다른 학기와 중복됩니다."],
+["2e78f0ef4dccf5a39e74e26f","{과목명}은 과학 중점 과정에서 반드시 이수하는 기초 과학 과목입니다. 과학 중점을 신청한 동안에는 고정을 해제할 수 없습니다."],
+["dbc51b017778067de6941234","{과목명}은 과학 중점 과정의 필수 과목입니다. 과학 중점 과정에서는 물리학 · 화학 · 생명과학 · 지구과학을 모두 이수해야 하므로 선택을 취소할 수 없습니다. 일반 과정으로 변경하려면 과학 중점 신청 체크를 해제해 주세요."],
+["7b0959bdb0e41be2a270cbc6","{과목명}은 학교 지정 필수 이수 과목이므로 고정을 해제할 수 없습니다."],
+["e64983676d003efee3e0be58","{과목명}은 학교에서 지정한 필수 이수 과목이므로 선택을 취소할 수 없습니다. 과학 중점 신청 여부와 관계없이 이수해야 합니다."],
+["b09c185193a373da43f2a366","{오류 내용}"],
+["0534893794e7a7b1221dc726","{학년·학기}의 선택과목 중 {선택 한도}과목을 이미 선택했습니다. 다른 과목의 선택을 해제하면 이 과목을 선택할 수 있습니다."],
+["546481041d3cea7abb528b5b","{학년·학기}의 이 선택 그룹에서 {선택 한도}과목을 이미 선택했습니다. 다른 과목의 선택을 해제하면 이 과목을 선택할 수 있습니다."],
+["ec44e0f8104b2732c8a9452f","같은 전송 번호에 다른 내용이 있습니다."],
+["6e9990bbbc472db4c6b81147","고정 과목과 학기별 선택 개수를 동시에 만족할 수 없습니다."],
+["ce276fc870f2c8391a0d1594","고정 과목을 유지하면 {선택 조건 위반 사유}"],
+["44b40800ed4370c3fc2debd1","고정 과목을 유지하면서 모든 이수 조건을 만족하는 구성이 없습니다."],
+["1705be03879caad883cb3fff","고정 핀을 해제했습니다."],
+["b6c80ddfe8c07b838bcc47fb","공지를 불러오지 못했습니다. 잠시 후 다시 확인해 주세요."],
+["b64737abd7a4df973e46318a","과목 구성을 서버에 저장하고 있습니다."],
+["ab475fbf31da09b93cd497ff","과목 추천 조건을 확인하고 있습니다."],
+["581ba188579a5a449a6d0c22","과학 중점 과정 필수 과목입니다."],
+["e679a1cda8b52012332209b8","과학 중점 과정은 물리학 · 화학 · 생명과학 · 지구과학이 모두 필요합니다."],
+["764c40bc5be8665b7dbb0c9f","과학 중점 과정은 수학 선택과목 4과목 이상을 권장합니다."],
+["9474cbd215998ef7bb409a6e","과학 중점 수학·과학·정보 합계는 79학점 이상이어야 합니다. (현재 {현재 학점}학점)"],
+["427e394132ba1c33c620e080","과학 중점 심화 지정 과목은 6과목 이상이어야 합니다. (현재 {현재 과목 수}과목)"],
+["42e33fcdb468aae22cc225b7","과학 중점 필수 지정으로 인해 기존 선택 과목이 취소되었습니다."],
+["c474c49b1c1f60684d630495","과학 최소 10학점을 충족하지 못했습니다. (현재 {현재 학점}학점)"],
+["937663206d13862d92ea5e1d","구성 순서를 이 기기에 저장했습니다. 서버에 연결되면 동기화합니다."],
+["3ec1c0e3a5abd8b80b8f9177","구성을 저장했습니다."],
+["0f580ecb157d59ba6c0efc0e","국·영·수 합계 81학점을 초과합니다."],
+["fcbffa8236ab792d7e2ecd9c","국·영·수 합계가 81학점을 초과합니다. (현재 {현재 학점}학점)"],
+["cf47d8d5161a2c5180242989","국어 최소 8학점을 충족하지 못했습니다. (현재 {현재 학점}학점)"],
+["95efa12f5193952baf93c3eb","기기 내 연습은 가능합니다. 서버 연결: {오류 내용}"],
+["49f4403dbd00bbdaf224f8f3","기기 저장 공간에 접근할 수 없습니다. 창을 닫기 전에 저장 상태를 확인해주세요."],
+["0a07714efa23c7f00211fe6f","다른 기기의 변경과 충돌했습니다."],
+["8ca4199cb6b9a27aefe7d3e9","다른 저장 작업이 진행 중입니다. 잠시 후 다시 전송해주세요."],
+["f75a094cf45ae9311e47e199","다음 첨부가 더 이상 없습니다."],
+["b17d40755d098858ea11230b","답변 시간이 길어지고 있습니다. 잠시 후 다시 보내주세요."],
+["58e432639df1903ed1e68ee1","답변은 이 화면에만 남아 있습니다. 서버 대화 저장에 실패했습니다."],
+["4433a1469aff8459fe20428a","답변은 표시했지만 서버 저장을 아직 확인하지 못했습니다. 연결이 복구되면 저장될 수 있습니다."],
+["0a207fa781b74e1a2f90b2f0","동영상 파일 형식이 올바르지 않습니다."],
+["46d52967971e67022691d868","로그인 계정이 변경되어 답변 요청을 중단했습니다. 다시 질문해주세요."],
+["f03dd0bdb48d84c78618e1fd","로그인 계정이 변경되었습니다."],
+["8b25a5b80fe88e047d1776d5","로그인 계정이 변경되었습니다. 다시 시도해주세요."],
+["c79bf4b60432da1cd219e2f4","로그인 상태를 확인해주세요."],
+["19c3bf03448e1d414f7ff58a","로그인 연결을 다시 확인한 뒤 질문을 보내주세요."],
+["ce0bea1fdc3bbb6f703400c2","로그인 요청을 처리하고 있습니다. 잠시만 기다려 주세요."],
+["ba944c632d300dce516b0ee6","로그인 창이 닫혔습니다."],
+["d1e60099318a1ef4b287a9b2","로그인 후 이용해주세요."],
+["fe5fe65d69605f40de669bda","로그인은 서버 연결이 필요합니다."],
+["90b8b91e2e6280029efc0fbb","로그인을 다시 확인해주세요."],
+["640f50ae9c6b8e4143190fee","로그인이 필요합니다."],
+["1613af74d0fac20cf6366e25","로그인하려면 서버에 연결해야 합니다."],
+["70d733d55091e6313f9683ad","모든 필수 조건을 충족합니다."],
+["8a4151c6d9ba2751f83148fc","문의 메시지를 보내고 있습니다. 잠시만 기다려 주세요."],
+["1d3e7ec639c8d94f2968b7f7","문의는 서버 연결 후 이용할 수 있습니다."],
+["8b4dbf9e71f92b8e61ec84a8","물질과 에너지는 화학과 연계되므로 화학을 듣는 것을 권장드립니다."],
+["572ade23708c0198955390a0","변경된 정보가 없습니다."],
+["686bbbdf2fa9dd5032bbc0b4","보낼 문의 내용을 입력하거나 첨부파일을 선택해 주세요."],
+["81f934f2c8e968496b45ddbe","보낼 질문을 입력해 주세요."],
+["0f6e2448c6e489ec7692f23f","복원된 이미지 크기나 형식이 올바르지 않습니다."],
+["2f92cdb1b6dddb8848d3a71c","복원된 이미지 형식이 올바르지 않습니다."],
+["ae621c2a11c67540da4794c8","비밀번호 재설정 이메일을 요청했습니다. 스팸함도 확인해주세요."],
+["65803844a87872353e2749aa","비밀번호를 6자 이상 입력해 주세요."],
+["fe601b6d5cd7a12f411866e6","사진 데이터 크기나 형식이 올바르지 않습니다."],
+["172ee546b6d513c69f633e75","사진 데이터 형식이 올바르지 않습니다."],
+["27d2af9977fa13f4e15fd363","사진 변환에 실패했습니다."],
+["1b118488676435a2b7f58e1a","사진 용량을 줄이지 못했습니다. 더 작은 사진을 선택해주세요."],
+["9a59b4c500b30b5776645500","사진 크기를 읽을 수 없습니다."],
+["17c691995589a962bc3977c9","사진 파일 형식과 내용이 일치하지 않습니다."],
+["2e311bb0ff5aa8935910e03c","사진·동영상·파일은 한 번에 30개, 파일당 128MB, 합계 512MB까지 첨부할 수 있습니다."],
+["46399a3abc3df99ba1c1129f","사진·파일은 한 번에 10개, 각 5MB 이하, 합계 10MB 이하로 선택해주세요."],
+["00ff80ac565d3bcc9c2fbfc0","사진은 JPG·PNG·WEBP, 한 장당 5MB 이하로 선택해주세요."],
+["3a4d59e0305fa7755b3de494","사진은 한 번에 3장까지 첨부할 수 있습니다."],
+["f0b53ec529957c52a9e1e748","사진을 불러오지 못했습니다."],
+["2a314867f5db06f5369e75aa","사진을 읽을 수 없습니다."],
+["d0b27048ed94da5cd138b9bf","사진을 준비하지 못했습니다. 다시 선택해주세요."],
+["fdf09d21c07f40449dd2eb41","사회 최소 8학점을 충족하지 못했습니다. (현재 {현재 학점}학점)"],
+["30efac94a3440f706d069732","생물의 유전은 생명과학과 연계되므로 생명과학을 듣는 것을 권장드립니다."],
+["864ad776ceb6c7f35e36f26f","서버 연결 후 정보를 저장할 수 있습니다."],
+["ccea2f4cf0211b34db7f7a98","서버 연결을 확인하고 있습니다."],
+["efb56929588d130a0450560c","서버 요청을 처리하지 못했습니다."],
+["1817745981bb4b82553ea955","서버 응답 시간이 초과되었습니다."],
+["879246f463e4af409a541b9c","서버에 연결할 수 없습니다. 연결 상태를 확인해주세요."],
+["8b7ad6fd73666c33c6e7c9d8","서버의 저장 버전을 확인하지 못해 덮어쓰기를 중단했습니다."],
+["b462ff8c83d30594f8659219","선택이 변경되어 추천을 다시 실행해주세요."],
+["77d3919b1f623fa92624e4c4","세포와 물질대사는 생명과학과 연계되므로 생명과학을 듣는 것을 권장드립니다."],
+["264fbeddc86dad4a85e346c1","수정 요청을 취소했습니다."],
+["d5ad1c7a7b2250fd9a0bcb12","수학 최소 8학점을 충족하지 못했습니다. (현재 {현재 학점}학점)"],
+["2e6cda71714880657839c0b6","아직 서버에 저장하지 못한 선택은 이 기기의 현재 계정에 보관합니다."],
+["19cb1289206ca7452f685cad","역학과 에너지는 물리학과 연계되므로 물리학을 듣는 것을 권장드립니다."],
+["27d331cab31b217695101b51","영상 파일 형식이 올바르지 않습니다."],
+["f184372b63ace51385d1225c","영어 최소 8학점을 충족하지 못했습니다. (현재 {현재 학점}학점)"],
+["51a7b9cb443c6109c19137e7","예술 최소 6학점을 충족하지 못했습니다. (현재 {현재 학점}학점)"],
+["26b9eec3882d454e5e4b9e7b","오늘의 무료 AI 이용 한도에 도달했거나 요청이 많습니다. 잠시 후 또는 다음 날 다시 이용해주세요."],
+["9392075cfafa7e4b67f02544","요청 한도에 도달했습니다. 잠시 후 다시 이용해주세요."],
+["f8458daa5371ea6dbd58bc00","요청을 처리하지 못했습니다. 다시 시도해주세요."],
+["1b6aae790f1811b33e12fd05","이 대화에 접근할 권한이 없습니다."],
+["6d7eb9e7423050c5c063d6c7","이 브라우저에서 사진을 준비할 수 없습니다."],
+["2274c4ef8d9c8be015dd1730","이 브라우저에서 영상을 재생하지 못했습니다. 크게 보기에서 다운로드할 수 있습니다."],
+["2050c010205c2dc12831786d","이 첨부를 이용할 권한이 없습니다."],
+["27c204147ac9b4dd0e61cb7d","이 파일을 다운로드하고 있습니다. 잠시만 기다려 주세요."],
+["543f097b634e7103e5d4f24d","이름, 반, 번호를 확인해주세요."],
+["cc073ede6572b7114ef88ef3","이름은 40자 이하로 입력해주세요."],
+["05fe2ed40dcb0a831adf8ea9","이름을 먼저 저장해주세요."],
+["edb5a42745e479600211667d","이메일 또는 비밀번호를 확인해주세요."],
+["0d3b313df5440023d0172d18","이메일 주소를 올바른 형식으로 입력해 주세요."],
+["c0a1083e3645b1039a13939d","이메일을 입력해주세요."],
+["46295aade3d2a2c163fc8131","이미 가입된 이메일입니다."],
+["ccca1a6d306dcae9ea3a7e55","이미 등록된 프로필이 있습니다. 수정 요청으로 변경해주세요."],
+["af027eaca40a577fd7047ff8","이미 마지막 과목 구성입니다."],
+["12f753ab5612c590fd972179","이미 모두 초기화되었습니다."],
+["24fdf8fb22c1243ee32126e1","이미 승인 대기 중인 프로필 수정 요청이 있습니다."],
+["42092230ac654b1c2b162cae","이미 첫 번째 과목 구성입니다."],
+["d0427772aab5f410e468a636","이미 프로필 수정 승인을 기다리고 있습니다. 기존 요청을 취소해야 다시 신청할 수 있습니다."],
+["6a6a43d2106927b7111fadcf","이미지를 읽을 수 없습니다."],
+["ef86adfc67e5ed120d7a122b","이수 조건을 확인한 기본 구성을 만들었습니다. 진로 키워드를 입력하면 선호 과목을 반영합니다."],
+["3fa58d6ea42c5e7327259739","이수 조건을 확인한 진로 맞춤 구성을 만들었습니다."],
+["5f7df40b39a11e2a396e8d05","이전 대화를 불러오지 못했습니다."],
+["c735cfa44e1b9e3478c1df8e","이전 사진을 불러오지 못했습니다."],
+["839f91b90681c288b1a1bf85","이전 첨부 주소가 올바르지 않습니다."],
+["fd3d6b116c0e730e166be2d6","이전 첨부가 더 이상 없습니다."],
+["a72c3b14e19b584d73a0b5dc","저장 구성은 최대 30개입니다."],
+["775c17dcaed62b1b622c10df","저장 구성의 이름을 입력해 주세요."],
+["5f9fbb0caa3be7c0d48dd7a5","저장된 과목 목록 형식이 올바르지 않습니다."],
+["0963786701869b554b0dfa22","저장된 화면 설정을 읽지 못해 기본 화면을 유지합니다."],
+["f1993e1dfe4684c89d3248fa","전송 서버에 연결하지 못했습니다. 첨부와 입력 내용은 유지됩니다."],
+["00188dc24ab99a1dab24ef19","전송하지 못했습니다. 입력 내용은 유지되므로 다시 시도해주세요."],
+["23248a8497e8390ba26d4222","전자기와 양자는 물리학과 연계되므로 물리학을 듣는 것을 권장드립니다."],
+["00cdc08c417ed9376e3ad4c4","접근 권한이 없습니다. 로그인 상태와 Firebase 보안 규칙을 확인해주세요."],
+["dcdae4930bbd430640c0fdc7","정보·제2외국어·한문·교양 최소 15학점을 충족하지 못했습니다. (현재 {현재 학점}학점)"],
+["6c1ad8bd6e5ae0c01de51942","정보를 저장했습니다."],
+["6ad438c0a456d190268fb15d","정해진 탐색 범위에서 조건에 맞는 구성을 찾지 못했습니다. 고정 과목을 줄여 다시 시도해주세요."],
+["c02a112787b9c2472d5104f9","존재하지 않는 과목입니다."],
+["60b1daed2856c7940d161d1d","지구시스템 과학은 지구과학과 연계되므로 지구과학을 듣는 것을 권장드립니다."],
+["182b29f7bab99152cb6e8100","지원하지 않는 이미지입니다."],
+["26753eb3552dcb91311a750e","지원하지 않는 첨부입니다."],
+["4ba57ef17ae728654d3376cb","지정된 과목은 취소할 수 없습니다."],
+["4f692ef75b0c020abade1842","직접 고정한 과목입니다. 이 과목의 핀을 먼저 해제하면 선택을 취소할 수 있습니다."],
+["aff5d0173d9992bcf5f11dbd","진행 중인 전송을 마친 후 계정을 전환해주세요."],
+["9176c1150ee4249b6bf259a3","진행 중인 전송을 마친 후 다시 연결해주세요."],
+["76a831e4597952d8e97a6182","진행 중인 첨부 전송이 많습니다. 잠시 후 다시 보내주세요."],
+["0abffbce5af6ff7993d6b6f0","질문이 너무 길거나 형식이 올바르지 않습니다. 질문을 줄여 다시 보내주세요."],
+["ae300074e9b849de54cc7d8f","첨부 경로가 올바르지 않습니다."],
+["490f8c69b4ff2324c235a082","첨부 전송이 완료되지 않았습니다."],
+["ca43ddc07068ed1b02b48618","첨부 크기가 달라졌습니다."],
+["71720c9c581ae7343172bce7","첨부 크기를 초과했습니다."],
+["8e49af86d505ec967deb4b98","첨부 파일을 불러오지 못했습니다."],
+["8700e457c9dc1773a393785b","첨부 파일의 형식이나 용량을 확인해주세요."],
+["5c90d7e82649ab5af4ecfdb6","첨부는 로그인 후 이용할 수 있습니다."],
+["123157592fd9151954fba65d","첨부를 처리하지 못했습니다. 파일 형식과 연결을 확인한 뒤 다시 시도해 주세요."],
+["02affa90ab691434da428ced","첨부파일을 불러와야 다운로드할 수 있습니다. 불러오지 못했다면 다시 불러오기를 눌러 주세요."],
+["0dc8f6d411607d49aa6b599a","체육 최소 10학점을 충족하지 못했습니다. (현재 {현재 학점}학점)"],
+["7b3c01b79ffba9b3b3fab25e","총 교과 학점은 174학점이어야 합니다. (현재 {현재 학점}학점)"],
+["58b9a4e70c670b3dea681e6f","페이지를 새로고침해 연결 모듈을 다시 불러와주세요."],
+["a34ce6b2cbf5a38f02cc75dd","프로필 수정 승인을 요청했습니다. 관리자 승인 후 반영됩니다."],
+["bed19cc250b047e5df90f5b1","프로필 요청을 처리하고 있습니다. 잠시만 기다려 주세요."],
+["96ef661ee340905d2e3e7d41","프로필 요청을 처리하고 있습니다. 처리가 끝난 뒤 다시 이용해 주세요."],
+["614c57431db5b3c4cf04b68a","프로필 정보를 불러오는 중입니다. 잠시만 기다려 주세요."],
+["909e01a94baa495ea02c5db8","프로필을 불러오는 중입니다. 잠시 후 다시 시도해주세요."],
+["31b87019284c5733c47c39ad","프로필을 저장하려면 이름을 입력해 주세요."],
+["2d2b0e37f865d82046903d13","프로필이 {학년·반·번호·이름}으로 바뀌었습니다."],
+["ed89817ccf72c620013f7a97","학교 지정 필수 과목이 누락되었습니다."],
+["233c65e19e0baa7ead9017e4","한국사 최소 6학점을 충족하지 못했습니다. (현재 {현재 학점}학점)"],
+["44e5a93b8934a6e0b53738e5","행성우주과학은 지구과학과 연계되므로 지구과학을 듣는 것을 권장드립니다."],
+["c472d2ba187c5386849d6b05","현재 과목 구성은 이 기기에 저장됩니다. 로그인하면 계정에 저장할 수 있습니다."],
+["777f6695fb3bef3752f45343","현재 과목 구성이 과학 중점 과정 조건을 모두 충족합니다. 과학 중점 과정 신청을 권장합니다."],
+["83649e0d67c3bc8a1c8ed714","현재 과목 구성이 이미 저장되어 있습니다."],
+["03205490b61df84dd61e19ab","현재 교육과정에 없는 과목 ID가 있습니다: {과목 ID}"],
+["3fba80f6d453ec6e88d416c4","현재 선택을 기기에 저장하지 못했습니다. 계정을 전환하기 전에 저장 상태를 확인해주세요."],
+["ceae17438a5ad831253c5f40","화학 반응의 세계는 화학과 연계되므로 화학을 듣는 것을 권장드립니다."]
+];
+  const all = new Map(rows.map(([id, original]) => [original, id]));
+  const expressions = [];
+  const escape = text => text.replace(/[.*+?^$()|[\]\\]/g, '\\$&');
+  const field = /\{([^{}]+)\}/g;
+  let overrides = {};
+  const bound = new WeakMap();
+  for (const [id, original] of rows) {
+    const keys = Array.from(original.matchAll(field), m => m[1]);
+    if (!keys.length || original === '{오류 내용}') continue;
+    let pattern = '', at = 0;
+    for (const m of original.matchAll(field)) {
+      pattern += escape(original.slice(at, m.index));
+      pattern += /학점|과목 수|한도|학생 수|대상 학생 수|대화 수/.test(m[1]) ? '([0-9]+)' :
+        m[1] === '오류 코드' ? '([a-zA-Z][\\w./-]*)' : '([\\s\\S]+?)';
+      at = m.index + m[0].length;
+    }
+    pattern += escape(original.slice(at));
+    expressions.push({id, original, keys, match: new RegExp('^'+pattern+'$')});
+  }
+  expressions.sort((a,b) => Number(b.keys.includes('오류 코드'))-Number(a.keys.includes('오류 코드')) || b.original.replace(field,'').length-a.original.replace(field,'').length);
+  function format(text, error = false, nested = false) {
+    if (typeof text !== 'string' || !text || !active) return text;
+    if (all.has(text)) return overrides[all.get(text)] ?? text;
+    for (const expr of expressions) {
+      const captures = expr.match.exec(text);
+      if (!captures) continue;
+      const values = new Map(expr.keys.map((key, i) => [key, !nested && (key==='오류 내용'||key==='선택 조건 위반 사유') ? format(captures[i+1], key==='오류 내용', true) : captures[i+1]]));
+      return (overrides[expr.id] ?? expr.original).replace(field, (token,key) => values.get(key) ?? token);
+    }
+    if (error) {
+      const fallback = overrides[all.get('{오류 내용}')];
+      if (fallback !== undefined) return fallback.replace(/\{오류 내용\}/g, () => text);
+    }
+    return text;
+  }
+  let active = false, signature = '';
+  function write(node, text, error = false) {
+    node.textContent = format(text,error);
+    bound.set(node,{text,error});node.setAttribute('data-system-guide','');
+  }
+  function use(next = {}) {
+    const key = JSON.stringify(next);
+    if (key===signature) return;
+    signature=key;overrides=next;active=Object.keys(next).length>0;
+    for (const node of document.querySelectorAll('[data-system-guide]')) {
+      const item=bound.get(node);if(item)node.textContent=format(item.text,item.error);
+    }
+  }
+  function original(node){return bound.get(node)?.text ?? node?.textContent;}
+  return {rows,format,write,use,original};
+})();
+
+const CourseScreenSettings = (() => {
+  const cacheKey='gimpo-public-course-screen-v1', path='v2/siteContent/course';
+  const listeners=new Set(), waiters=new Set();
+  let value=null, signature, valid=false, live=false, revision=0, started=false;
+  let ref=null, receive=null, task=null, retry=0, timer=0, fallback=0, invalidSignature;
+  function notify(listener){listener(value);}
+  function accept(raw, authoritative) {
+    const stamp=JSON.stringify(raw);
+    if(stamp!==signature){
+      if(raw!==null){
+        if(!raw||typeof raw!=='object'||typeof raw.dataJSON!=='string'||(raw.grade2&&typeof raw.grade2.dataJSON!=='string'))throw Error('invalid-settings');
+        for(const site of ['grade1','grade2'])StudioModel.course(JSON.parse(StudioModel.courseRecord(raw,site).dataJSON));
+      }
+      value=raw;signature=stamp;valid=true;
+      for(const listener of listeners)notify(listener);
+      if(authoritative)try{localStorage.setItem(cacheKey,stamp);}catch{}
+    }
+    if(authoritative){
+      live=true;invalidSignature=undefined;retry=0;
+      const snapshot={val:()=>raw};for(const resolve of waiters)resolve(snapshot);waiters.clear();
+    }
+  }
+  function deliver(raw){
+    try{accept(raw,true);return true;}catch{
+      const stamp=JSON.stringify(raw);
+      if(invalidSignature!==stamp){invalidSignature=stamp;App.toast('저장된 화면 설정을 읽지 못해 기본 화면을 유지합니다.');}
+      return false;
+    }
+  }
+  function schedule(ms){
+    clearTimeout(timer);
+    timer=setTimeout(reconnect,ms ?? Math.min(30000,750*2**Math.min(retry++,6)));
+  }
+  function detach(){if(ref&&receive)ref.off('value',receive);ref=null;receive=null;}
+  function attach(){
+    if(ref)return;
+    let db;
+    try{db=window.firebase?.app?.().database?.();}catch{}
+    if(!db&&App.auth?.currentUser)db=App.db;
+    if(!db)return;
+    const source=db.ref(path);ref=source;
+    const success=snap=>{
+      if(source!==ref)return;
+      revision++;clearTimeout(fallback);
+      if(deliver(snap.val()))clearTimeout(timer);else schedule();
+    };
+    receive=success;
+    try{source.on('value',success,()=>{if(ref!==source)return;detach();schedule();read();});}
+    catch{detach();schedule();}
+  }
+  function read(){
+    if(task||navigator.onLine===false)return;
+    const epoch=revision;
+    task=(async()=>{
+      const response=await fetch(App.config.databaseURL.replace(/\/$/,'')+'/'+path+'.json',{
+        credentials:'omit',referrerPolicy:'no-referrer',cache:'no-store',signal:globalThis.AbortSignal?.timeout?.(10000)
+      });
+      if(!response.ok)throw Error('settings-unavailable');
+      const raw=await response.json();if(epoch!==revision)return;
+      if(deliver(raw)){if(!ref)schedule(30000);}else schedule();
+    })().catch(()=>{if(epoch===revision)schedule();}).finally(()=>{task=null;});
+  }
+  function reconnect(){
+    if(navigator.onLine===false)return;
+    attach();read();
+  }
+  function start(){
+    if(started)return;started=true;
+    try{const cached=localStorage.getItem(cacheKey);if(cached!==null)accept(JSON.parse(cached),false);}catch{}
+    attach();
+    if(!ref)read();else fallback=setTimeout(()=>{if(!live)read();},1200);
+    window.addEventListener('online',reconnect);
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!ref||!live))reconnect();});
+    App.auth?.onAuthStateChanged?.(user=>{if(user&&!ref)reconnect();});
+  }
+  function watch(fn){start();listeners.add(fn);if(valid)notify(fn);return()=>listeners.delete(fn);}
+  function current(){start();return valid?Promise.resolve({val:()=>value}):new Promise(resolve=>waiters.add(resolve));}
+  return {watch,current};
+})();
+
+</script>
+<script>
 (function(root){
  const sendingText='문의 메시지를 보내고 있습니다. 잠시만 기다려 주세요.';
  function gate(control,blocked,reason){
@@ -711,11 +1042,11 @@ button.sending122::after{content:"";position:absolute;inset:0;margin:auto;width:
  // Native disabled inputs suppress clicks, but still expose the pointer gesture.
  document.addEventListener('pointerup',e=>{if(e.target.matches?.(':disabled[data-blocked-reason]'))explain(e);},true);
  const notices=new WeakMap();
- function setNotice(box,visible,text,holdTime=0){
+ function setNotice(box,visible,text,holdTime=0,detail=false){
   const previous=notices.get(box);
   const opacity=box.hidden||(!previous&&visible)?0:Number(getComputedStyle(box).opacity);
   if(previous){clearTimeout(previous.timer);previous.animation?.cancel();}
-  if(visible){box.textContent=text;box.hidden=false;}
+  if(visible){SystemGuides.write(box,text,detail);box.hidden=false;}
   else if(box.hidden)return;
   const state={timer:0,animation:null},target=visible?1:0;
   notices.set(box,state);
@@ -736,7 +1067,7 @@ button.sending122::after{content:"";position:absolute;inset:0;margin:auto;width:
   if(active)root.App.toast(sendingText,true);
   else{
    const box=document.getElementById('appToast');
-   if(box?.textContent===sendingText)setNotice(box,false);
+   if(box&&SystemGuides.original(box)===sendingText)setNotice(box,false);
   }
  }
  root.CourseFeedback=Object.freeze({gate,sending,sendingText,setNotice});
@@ -1185,10 +1516,10 @@ return{create,Snapshot,ordered,pushKey};
 window.App = (() => {
   'use strict';
   const config = {apiKey:'AIzaSyD-IyAGGXQ69d8LupTU2mKmr87yoenahRo',authDomain:'gimpo-monitoring.firebaseapp.com',databaseURL:'https://gimpo-monitoring-default-rtdb.firebaseio.com',projectId:'gimpo-monitoring',storageBucket:'gimpo-monitoring.firebasestorage.app',messagingSenderId:'918422830852',appId:'1:918422830852:web:c9d6412cb2fc3dcc619a51'};
-  function toast(text,hold=false){let box=document.getElementById('appToast');if(!box){box=document.createElement('div');box.id='appToast';box.setAttribute('role','status');box.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);max-width:90vw;width:max-content;background:#191f28;color:white;padding:12px 18px;border-radius:12px;z-index:999999;white-space:pre-wrap;overflow-wrap:anywhere';document.body.append(box);}
+  function toast(text,hold=false,detail=false){let box=document.getElementById('appToast');if(!box){box=document.createElement('div');box.id='appToast';box.setAttribute('role','status');box.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);max-width:90vw;width:max-content;background:#191f28;color:white;padding:12px 18px;border-radius:12px;z-index:999999;white-space:pre-wrap;overflow-wrap:anywhere';document.body.append(box);}
     const host=Array.from(document.querySelectorAll('dialog[open]')).at(-1)||document.body;
     if(box.parentNode!==host)host.append(box);
-    CourseFeedback.setNotice(box,true,text,hold?0:6500);}
+    CourseFeedback.setNotice(box,true,text,hold?0:6500,detail);}
   function error(e){const c=String(e?.code||''); if(c.includes('permission-denied')||c.includes('PERMISSION_DENIED'))return '접근 권한이 없습니다. 로그인 상태와 Firebase 보안 규칙을 확인해주세요.';if(c.includes('unauthenticated'))return '로그인이 필요합니다.';if(c.includes('resource-exhausted'))return '요청 한도에 도달했습니다. 잠시 후 다시 이용해주세요.';if(c.includes('popup-closed'))return '로그인 창이 닫혔습니다.';if(c.includes('credential')||c.includes('wrong-password')||c.includes('user-not-found'))return '이메일 또는 비밀번호를 확인해주세요.';if(c.includes('email-already'))return '이미 가입된 이메일입니다.';if(c.includes('network')||c.includes('unavailable'))return '서버에 연결할 수 없습니다. 연결 상태를 확인해주세요.';return e?.message||'요청을 처리하지 못했습니다. 다시 시도해주세요.';}
   const cache={read(key,fallback=null){try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}},write(key,value){try{localStorage.setItem(key,JSON.stringify(value));return true;}catch{toast('기기 저장 공간에 접근할 수 없습니다. 창을 닫기 전에 저장 상태를 확인해주세요.');return false;}},remove(key){try{localStorage.removeItem(key);}catch{}}};
   const studioPreview=window.parent!==window&&new URLSearchParams(location.search).get('studio-preview')==='1';
@@ -1774,7 +2105,7 @@ function open(blob,ref){
     media.src=source;el.replaceChildren(media);
    }
    if(current===entry&&!entry.closed)metadata();
-  })().catch(error=>{if(entry.closed)return;const retry=node('button','gallery-retry121','다시 불러오기');retry.type='button';retry.onclick=()=>{if(current!==entry||busy)return;const replacement=slideFor(file,null,0);dispose(entry);current=replacement;metadata();};el.replaceChildren(node('span','',error.message||'첨부를 불러오지 못했습니다.'),retry);});
+  })().catch(error=>{if(entry.closed)return;const retry=node('button','gallery-retry121','다시 불러오기');retry.type='button';retry.onclick=()=>{if(current!==entry||busy)return;const replacement=slideFor(file,null,0);dispose(entry);current=replacement;metadata();};el.replaceChildren(node('span','',SystemGuides.format(error.message||'첨부를 불러오지 못했습니다.',true)),retry);});
   return entry;
  }
  function clearAdjacent(){dispose(adjacent);adjacent=null;side=0;}
@@ -1872,7 +2203,7 @@ function open(blob,ref){
      const arc=cls=>{const c=document.createElementNS(ns,'circle');c.setAttribute('cx','30');c.setAttribute('cy','30');c.setAttribute('r','27');c.setAttribute('pathLength','100');c.setAttribute('class',cls);return c;};
      const meter=arc('ring-meter121');ring.append(arc('ring-track121'),meter);icon.replaceChildren(ring,node('i','ring-cross121'));status.textContent='0%';load.setAttribute('aria-label','영상 받기 취소');
      try{blob=await Media120.videoBlob(ref,()=>downloadRecord(ref,controller.signal,(n,total)=>{if(total){const percent=Math.max(0,Math.min(100,Math.round(n/total*100)));meter.style.strokeDashoffset=String(100-percent);status.textContent=percent+'%';}else status.textContent=size(n)+' 받는 중';}));if(!wrap.isConnected){blob=null;return;}const url=URL.createObjectURL(blob);wrap.dataset.mediaUrl=url;video.src=url;video.preload='auto';video.load();expand.hidden=false;icon.textContent='▶';status.textContent='재생';load.setAttribute('aria-label','무음으로 재생');Media120.markPrepared(ref);}
-     catch(error){blob=null;icon.replaceChildren(Media120.icon());status.textContent=error.name==='AbortError'?'다시 받기':'받기 실패 · 재시도';load.setAttribute('aria-label','사이트 안에서 영상 받기');if(error.name!=='AbortError')App.toast(error.message);}
+     catch(error){blob=null;icon.replaceChildren(Media120.icon());status.textContent=error.name==='AbortError'?'다시 받기':'받기 실패 · 재시도';load.setAttribute('aria-label','사이트 안에서 영상 받기');if(error.name!=='AbortError')App.toast(error.message,false,true);}
      finally{controller=null;icon.classList.remove('transfer-ring121');}
     };
     video.onloadedmetadata=()=>{const seconds=Number.isFinite(video.duration)?Math.max(0,Math.floor(video.duration)):0;status.textContent=Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');};video.onended=video.onpause=()=>{load.hidden=false;};video.onclick=()=>{if(blob){video.pause();open(blob,ref);}};expand.onclick=()=>{if(blob){video.pause();open(blob,ref);}};const unwatch=Media120.watchPrepared(wrap,ref,()=>{if(!blob&&!controller)load.click();});cleanup.set(wrap,()=>{unwatch();controller?.abort();});return wrap;
@@ -1881,7 +2212,7 @@ function open(blob,ref){
     const card=node('div','file-card119'),button=node('button','file-open121'),down=node('button','file-symbol119');
     button.type=down.type='button';button.setAttribute('aria-label',name+' 크게 보기');button.append(node('strong','',name),node('span','',ref.size?'용량 '+size(ref.size):'첨부 파일'));
     button.onclick=()=>open(null,ref);down.setAttribute('aria-label',name+' 다운로드');down.append(Media120.icon());
-    down.onclick=async()=>{CourseFeedback.gate(down,true,'이 파일을 다운로드하고 있습니다. 잠시만 기다려 주세요.');try{save(await downloadRecord(ref),name);}catch(error){App.toast(error.message);}finally{CourseFeedback.gate(down,false);}};
+    down.onclick=async()=>{CourseFeedback.gate(down,true,'이 파일을 다운로드하고 있습니다. 잠시만 기다려 주세요.');try{save(await downloadRecord(ref),name);}catch(error){App.toast(error.message,false,true);}finally{CourseFeedback.gate(down,false);}};
     card.append(button,down);wrap.append(card);return wrap;
    }
    if(ref.mediaId&&validPoster121(ref)){
@@ -1889,7 +2220,7 @@ function open(blob,ref){
     photo.onclick=()=>open(null,ref);photo.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();photo.click();}};wrap.append(photo);return wrap;
    }
    try{const key=App.auth.currentUser.uid+':'+(ref.dbPath||ref.mediaId);let task=inflight.get(key);if(!task){task=downloadRecord(ref).finally(()=>inflight.delete(key));inflight.set(key,task);}const blob=await task,url=URL.createObjectURL(blob),image=node('img','chat-photo119');wrap.dataset.mediaUrl=url;image.src=url;image.alt=name;image.tabIndex=0;image.setAttribute('role','button');image.setAttribute('aria-label','사진 크게 보기');image.onclick=()=>open(blob,ref);image.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open(blob,ref);}};wrap.append(image);}
-   catch(error){wrap.append(node('span','',error.message));}return wrap;
+   catch(error){wrap.append(node('span','',SystemGuides.format(error.message,true)));}return wrap;
   };
  }
  root.CourseMedia119={summary,kind,install,rememberUpload(uid,file,blob){remember(uid+':'+file.mediaId,blob);}};install();
@@ -2818,7 +3149,7 @@ let inquiryPending=null,profileBusy=false,profileReady=false;
 let recommendation=null;
 const draftKey=()=> 'gimpo_v2_recommend_'+uid;
 const recommendationState=()=>recommendation||state;
-function draftSave(next){recommendation=E.normalize(next);App.cache.write(draftKey(),recommendation);$('recommendResult').textContent='';render();}
+function draftSave(next){recommendation=E.normalize(next);App.cache.write(draftKey(),recommendation);SystemGuides.write($('recommendResult'),'');render();}
 const serverTime=()=>firebase.database.ServerValue.TIMESTAMP;
 const connectionIssues=new Map();let retrying=false;
 let presenceOnline = null;
@@ -2868,7 +3199,7 @@ function renderConnectionIssues() {
    case 'permission': break; // Shared guidance above applies to each denied path.
    case 'auth': item.append(make('div', '', '로그인 연결을 확인해주세요. 비회원 이용에는 Firebase의 익명 로그인 설정이 필요합니다.')); break;
    case 'network': item.append(make('div', '', '인터넷 연결을 확인한 뒤 다시 연결해주세요.')); break;
-   default: item.append(make('div', '', App.error(error)));
+   default: item.append(make('div', '', SystemGuides.format(App.error(error),true)));
   }
   list.append(item);
  }
@@ -2888,16 +3219,16 @@ function showConnectionIssues(){renderConnectionIssues();if(!serverDialog.open)s
 connectionNotice.onclick=showConnectionIssues;
 function listen(ref,event,fn,key='connection'){
  const version=epoch;const onValue=snap=>{if(version!==epoch)return;clearConnectionIssue(key);try{const result=fn(snap);if(result?.catch)result.catch(error=>{if(version===epoch)reportConnectionIssue(key,error);});}catch(error){reportConnectionIssue(key,error);}};
- const onError=error=>{if(version!==epoch)return;if(key==='selections'){readyForSave=false;$('saveStatus').textContent='기기 저장 · 과목 읽기 권한 확인';}reportConnectionIssue(key,error);};
+ const onError=error=>{if(version!==epoch)return;if(key==='selections'){readyForSave=false;SystemGuides.write($('saveStatus'),'기기 저장 · 과목 읽기 권한 확인');}reportConnectionIssue(key,error);};
  ref.on(event,onValue,onError);unsub.push(()=>ref.off(event,onValue));
 }
 function readOnce(ref){return new Promise((resolve,reject)=>{let done=false;const timer=setTimeout(()=>{if(done)return;done=true;reject(Object.assign(new Error('서버 응답 시간이 초과되었습니다.'),{code:'database/timeout'}));},15000);ref.once('value').then(value=>{if(done)return;done=true;clearTimeout(timer);resolve(value);},error=>{if(done)return;done=true;clearTimeout(timer);reject(error);});});}
 
 function localSave(){return App.cache.write(stateKey(uid),{state,dirty,revision});}
 function currentName(){return profile.name?(profile.classNum&&profile.studentNum?`${Course119.grade(profile,Date.parse(user?.metadata?.creationTime)||Date.now(),1)}학년 ${profile.classNum}반 ${profile.studentNum}번 ${profile.name}`:profile.name):'익명 사용자';}
-function apply(next){$('recommendResult').textContent='';state=E.normalize(next);dirty=true;conflict=false;localSave();render();$('saveStatus').textContent=App.offline||!user?'기기에 저장됨':'기기 저장됨 · 서버 저장 대기';clearTimeout(saveTimer);saveTimer=setTimeout(()=>flush(),450);}
-async function flush(){clearTimeout(saveTimer);if(!dirty||saving||!readyForSave||conflict||!user||!App.db)return !dirty;const owner=uid,version=epoch,snapshot=JSON.stringify(state),expected=revision;const data=JSON.parse(snapshot),saveToken=++saveGeneration;saving=true;$('saveStatus').textContent='서버 저장 중';try{const result=await App.db.ref('v2/selections/'+owner).transaction(old=>{if((old?.revision||0)!==expected)return;return {...data,revision:expected+1,updatedAt:serverTime()};},undefined,false);if(version!==epoch)return false;if(!result.committed){conflict=true;$('saveStatus').textContent='다른 기기 변경과 충돌 · 여기를 눌러 해결';return false;}revision=expected+1;dirty=JSON.stringify(state)!==snapshot;App.cloud?.publishSelection?.().catch(error=>reportConnectionIssue('statistics',error));localSave();clearConnectionIssue('save');$('saveStatus').textContent=dirty?'추가 변경 저장 대기':'서버 저장 완료';return !dirty;}catch(e){if(version===epoch){$('saveStatus').textContent='기기 저장됨 · 서버 저장 실패';reportConnectionIssue('save',e);App.toast(App.error(e));}return false;}finally{if(saveToken===saveGeneration)saving=false;if(dirty&&!conflict&&version===epoch&&navigator.onLine)setTimeout(()=>{if($('saveStatus').textContent==='추가 변경 저장 대기')flush();},500);}}
-$('saveStatus').tabIndex=0;$('saveStatus').role='button';$('saveStatus').onclick=async()=>{if(!conflict&&(connectionIssues.size||user&&!readyForSave)){showConnectionIssues();return;}if(!user)return App.toast('현재 과목 구성은 이 기기에 저장됩니다. 로그인하면 계정에 저장할 수 있습니다.');if(saving)return App.toast('과목 구성을 서버에 저장하고 있습니다.');if(!conflict&&!dirty)return App.toast('현재 과목 구성이 이미 저장되어 있습니다.');const owner=uid,ver=epoch;try{if(conflict){if(!await SiteConfirm('다른 기기의 최신 선택을 불러오시겠습니까? 현재 기기 구성은 충돌 백업으로 남깁니다.'))return;App.cache.write('gimpo_v2_conflict_'+uid,{state,savedAt:Date.now()});const snap=await readOnce(App.db.ref('v2/selections/'+owner));if(ver!==epoch||owner!==uid)return;const val=snap.val();state=E.normalize(val||{});revision=val?.revision||0;dirty=false;conflict=false;localSave();render();$('saveStatus').textContent='최신 구성 불러옴';}else await flush();}catch(error){if(ver===epoch)App.toast(App.error(error));}};$('saveStatus').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('saveStatus').click();}};
+function apply(next){SystemGuides.write($('recommendResult'),'');state=E.normalize(next);dirty=true;conflict=false;localSave();render();SystemGuides.write($('saveStatus'),App.offline||!user?'기기에 저장됨':'기기 저장됨 · 서버 저장 대기');clearTimeout(saveTimer);saveTimer=setTimeout(()=>flush(),450);}
+async function flush(){clearTimeout(saveTimer);if(!dirty||saving||!readyForSave||conflict||!user||!App.db)return !dirty;const owner=uid,version=epoch,snapshot=JSON.stringify(state),expected=revision;const data=JSON.parse(snapshot),saveToken=++saveGeneration;saving=true;SystemGuides.write($('saveStatus'),'서버 저장 중');try{const result=await App.db.ref('v2/selections/'+owner).transaction(old=>{if((old?.revision||0)!==expected)return;return {...data,revision:expected+1,updatedAt:serverTime()};},undefined,false);if(version!==epoch)return false;if(!result.committed){conflict=true;SystemGuides.write($('saveStatus'),'다른 기기 변경과 충돌 · 여기를 눌러 해결');return false;}revision=expected+1;dirty=JSON.stringify(state)!==snapshot;App.cloud?.publishSelection?.().catch(error=>reportConnectionIssue('statistics',error));localSave();clearConnectionIssue('save');SystemGuides.write($('saveStatus'),dirty?'추가 변경 저장 대기':'서버 저장 완료');return !dirty;}catch(e){if(version===epoch){SystemGuides.write($('saveStatus'),'기기 저장됨 · 서버 저장 실패');reportConnectionIssue('save',e);App.toast(App.error(e),false,true);}return false;}finally{if(saveToken===saveGeneration)saving=false;if(dirty&&!conflict&&version===epoch&&navigator.onLine)setTimeout(()=>{if($('saveStatus').textContent==='추가 변경 저장 대기')flush();},500);}}
+$('saveStatus').tabIndex=0;$('saveStatus').role='button';$('saveStatus').onclick=async()=>{if(!conflict&&(connectionIssues.size||user&&!readyForSave)){showConnectionIssues();return;}if(!user)return App.toast('현재 과목 구성은 이 기기에 저장됩니다. 로그인하면 계정에 저장할 수 있습니다.');if(saving)return App.toast('과목 구성을 서버에 저장하고 있습니다.');if(!conflict&&!dirty)return App.toast('현재 과목 구성이 이미 저장되어 있습니다.');const owner=uid,ver=epoch;try{if(conflict){if(!await SiteConfirm('다른 기기의 최신 선택을 불러오시겠습니까? 현재 기기 구성은 충돌 백업으로 남깁니다.'))return;App.cache.write('gimpo_v2_conflict_'+uid,{state,savedAt:Date.now()});const snap=await readOnce(App.db.ref('v2/selections/'+owner));if(ver!==epoch||owner!==uid)return;const val=snap.val();state=E.normalize(val||{});revision=val?.revision||0;dirty=false;conflict=false;localSave();render();SystemGuides.write($('saveStatus'),'최신 구성 불러옴');}else await flush();}catch(error){if(ver===epoch)App.toast(App.error(error),false,true);}};$('saveStatus').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('saveStatus').click();}};
 function render(){
  const a=E.analyze(state);
  document.querySelectorAll('.track').forEach(box=>{
@@ -2922,7 +3253,7 @@ function courseCard(c,recommend,preview=false){
   const explainFixed=()=>c.req?c.name+'은 학교에서 지정한 필수 이수 과목이므로 선택을 취소할 수 없습니다. 과학 중점 신청 여부와 관계없이 이수해야 합니다.':c.name+'은 과학 중점 과정의 필수 과목입니다. 과학 중점 과정에서는 '+E.courses.filter(item=>item.sciReq).map(item=>item.name).join(' · ')+'을 모두 이수해야 하므로 선택을 취소할 수 없습니다. 일반 과정으로 변경하려면 과학 중점 신청 체크를 해제해 주세요.';
   if(fixed||unavailable||(recommend&&pinned)){
    const reason=fixed?explainFixed():unavailable?decision.reason:'직접 고정한 과목입니다. 핀을 먼저 해제해 주세요.';
-   check.title=reason;check.setAttribute('aria-description',reason);
+   check.title=SystemGuides.format(reason);check.setAttribute('aria-description',check.title);
   }
   const toggle=()=>{if(fixed)return App.toast(explainFixed());if(recommend&&pinned)return App.toast('직접 고정한 과목입니다. 이 과목의 핀을 먼저 해제하면 선택을 취소할 수 있습니다.');const r=E.canToggle(current,c.id);r.ok?(recommend?draftSave(r.state):apply(r.state)):App.toast(r.reason);};check.onclick=e=>{e.stopPropagation();toggle();};card.onclick=toggle;card.append(check);
  }
@@ -2952,8 +3283,9 @@ function renderCourses(target,recommend,a=E.analyze(state)){
 let lastRates={};
 function renderRates(stats=lastRates){lastRates=stats;const nodes=[];for(const sem of E.semesters.filter(x=>x.limit)){const section=make('div','accordion open rate-accordion'),title=make('div','accordion-header',sem.title),wrap=make('div','accordion-content'),grid=make('div','accordion-inner');wrap.style.maxHeight='none';for(const c of E.courses.filter(c=>c.sem===sem.key&&!c.req).sort((a,b)=>(stats.courses?.[b.id]||0)-(stats.courses?.[a.id]||0))){const count=stats.courses?.[c.id]||0,total=stats.totalUsers||0,card=make('div','stat-rate-card'),right=make('div','stat-rate-right');right.append(make('div','stat-rate-percent',(total?count/total*100:0).toFixed(1)+'%'),make('div','stat-rate-fraction',total+'명 중 '+count+'명 선택'));card.append(courseInfo(c,true),right);grid.append(card);}wrap.append(grid);section.append(title,wrap);nodes.push(section);}$('rates').replaceChildren(...nodes);}
 
-function validation(){const a=E.analyze(state);$('validation').replaceChildren();if(a.valid)$('validation').append(make('p','msg-success','모든 필수 조건을 충족합니다.'));a.errors.forEach(x=>$('validation').append(make('p','msg-error',x)));a.warnings.forEach(x=>$('validation').append(make('p','msg-warn',x)));
- if(!state.sciTrack&&fulfillsTrack(state))$('validation').append(make('p','msg-track122','현재 과목 구성이 과학 중점 과정 조건을 모두 충족합니다. 과학 중점 과정 신청을 권장합니다.'));
+function guideResult(css,message){const p=make('p',css);SystemGuides.write(p,message);return p;}
+function validation(){const a=E.analyze(state);$('validation').replaceChildren();if(a.valid)$('validation').append(guideResult('msg-success','모든 필수 조건을 충족합니다.'));a.errors.forEach(x=>$('validation').append(guideResult('msg-error',x)));a.warnings.forEach(x=>$('validation').append(guideResult('msg-warn',x)));
+ if(!state.sciTrack&&fulfillsTrack(state))$('validation').append(guideResult('msg-track122','현재 과목 구성이 과학 중점 과정 조건을 모두 충족합니다. 과학 중점 과정 신청을 권장합니다.'));
  return a;}
 
 const trackDay=()=>new Date(Date.now()+9*3600000).toISOString().slice(0,10);
@@ -3043,7 +3375,7 @@ $('resetBtn').onclick=async()=>{
  if(!await SiteConfirm(message))return;
  if(draft)draftSave(next);else{if(!recommendation){recommendation=E.normalize(state);App.cache.write(draftKey(),recommendation);}apply(next);}
 };$('validateBtn').onclick=()=>{validation();$('validation').scrollIntoView({block:'nearest',behavior:'smooth'});};
-$('recommendForm').onsubmit=async e=>{e.preventDefault();const b=$('recommendBtn');CourseFeedback.gate(b,true,'과목 추천 조건을 확인하고 있습니다.');b.textContent='조건 확인 중';const base=JSON.stringify(recommendationState()),requestEpoch=epoch,requestOwner=uid;await new Promise(r=>requestAnimationFrame(()=>r()));try{if(requestEpoch!==epoch||requestOwner!==uid)return;const r=E.recommend(recommendationState(),$('career').value);if(base!==JSON.stringify(recommendationState()))return App.toast('선택이 변경되어 추천을 다시 실행해주세요.');if(!r.ok){$('recommendResult').textContent=r.reason;App.toast(r.reason);return;}draftSave(r.state);apply(r.state);$('recommendResult').textContent=r.reason;}catch(e){App.toast(App.error(e));}finally{CourseFeedback.gate(b,false,'');b.textContent='AI 추천 돌리기';}};
+$('recommendForm').onsubmit=async e=>{e.preventDefault();const b=$('recommendBtn');CourseFeedback.gate(b,true,'과목 추천 조건을 확인하고 있습니다.');b.textContent='조건 확인 중';const base=JSON.stringify(recommendationState()),requestEpoch=epoch,requestOwner=uid;await new Promise(r=>requestAnimationFrame(()=>r()));try{if(requestEpoch!==epoch||requestOwner!==uid)return;const r=E.recommend(recommendationState(),$('career').value);if(base!==JSON.stringify(recommendationState()))return App.toast('선택이 변경되어 추천을 다시 실행해주세요.');if(!r.ok){SystemGuides.write($('recommendResult'),r.reason);App.toast(r.reason);return;}draftSave(r.state);apply(r.state);SystemGuides.write($('recommendResult'),r.reason);}catch(e){App.toast(App.error(e),false,true);}finally{CourseFeedback.gate(b,false,'');b.textContent='AI 추천 돌리기';}};
 const slotIcons={preview:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',rename:'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',remove:'<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>'};
 const peerSlotKey=owner=>'gimpo_v2_grade2_slots_'+owner;
 function peerSlots(value){return Object.fromEntries(Object.entries(value||{}).map(([id,slot])=>[id,{...slot,source119:'secundus'}]));}
@@ -3173,14 +3505,14 @@ function installSlotReorder(board){
  });
 }
 for(const board of [$('slots'),$('aiSlots')])installSlotReorder(board);
-function renderSlots(){if(slotDragActive())return;for(const target of [$('slots'),$('aiSlots')]){target.replaceChildren();for(const slot of slotSequence()){const box=make('div','save-slot');box.dataset.slotKey=slotKey(slot);box.tabIndex=0;box.title='길게 눌러 순서를 변경할 수 있습니다.';box.setAttribute('aria-label',slot.name+' 과목 구성');box.setAttribute('aria-description','길게 누른 뒤 드래그하거나 Alt와 방향키로 이동하세요.');box.append(make('div','save-slot-name',slot.name+(slot.source119==='secundus'?' · 2학년 사이트':'')));const actions=make('div','save-slot-actions');const add=(label,fn,icon)=>{const b=make('button',icon?'icon-btn':'load-btn',icon?undefined:label);b.type='button';b.title=label;b.setAttribute('aria-label',label);if(icon)b.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+slotIcons[icon]+'</svg>';b.onclick=()=>Promise.resolve(fn()).catch(e=>App.toast(App.error(e)));actions.append(b);};
+function renderSlots(){if(slotDragActive())return;for(const target of [$('slots'),$('aiSlots')]){target.replaceChildren();for(const slot of slotSequence()){const box=make('div','save-slot');box.dataset.slotKey=slotKey(slot);box.tabIndex=0;box.title='길게 눌러 순서를 변경할 수 있습니다.';box.setAttribute('aria-label',slot.name+' 과목 구성');box.setAttribute('aria-description','길게 누른 뒤 드래그하거나 Alt와 방향키로 이동하세요.');box.append(make('div','save-slot-name',slot.name+(slot.source119==='secundus'?' · 2학년 사이트':'')));const actions=make('div','save-slot-actions');const add=(label,fn,icon)=>{const b=make('button',icon?'icon-btn':'load-btn',icon?undefined:label);b.type='button';b.title=label;b.setAttribute('aria-label',label);if(icon)b.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+slotIcons[icon]+'</svg>';b.onclick=()=>Promise.resolve(fn()).catch(e=>App.toast(App.error(e),false,true));actions.append(b);};
  add('미리보기',()=>{const nodes=[];for(const sem of E.semesters.filter(s=>s.limit)){nodes.push(make('h3','',sem.title));E.courses.filter(c=>c.sem===sem.key&&slot.courses?.includes(c.id)&&!c.req).forEach(c=>nodes.push(courseCard(c,false,true)));}$('previewContent').replaceChildren(...nodes);$('previewDialog').showModal();},'preview');
  if(slot.source119!=='secundus')add('이름 변경',async()=>{const input=prompt('새 구성 이름',slot.name);if(input===null)return;const name=input.trim();if(!name)return App.toast('저장 구성의 이름을 입력해 주세요.');if(name.length>40)return App.toast('이름은 40자 이하로 입력해주세요.');await saveSlot({...slot,name});},'rename');
  if(slot.source119!=='secundus')add('삭제',async()=>{if(!await SiteConfirm('저장 구성을 삭제하시겠습니까?'))return;const owner=uid,ver=epoch;if(user)await App.db.ref('v2/slots/'+owner+'/'+slot.id).remove();if(ver!==epoch||owner!==uid)return;delete slots[slot.id];App.cache.write('gimpo_v2_slots_'+owner,slots);renderSlots();},'remove');
  add('불러오기',async()=>{if(await SiteConfirm('현재 선택을 이 구성으로 바꿀까요?')){if(target.id==='aiSlots')draftSave(slot);else{apply(slot);validation();}}});box.append(actions);target.append(box);}}}
 
 async function saveSlot(slot){const owner=uid;if(user)await App.db.ref(`v2/slots/${owner}/${slot.id}`).set(slot);if(owner!==uid)return;slots[slot.id]=slot;App.cache.write('gimpo_v2_slots_'+uid,slots);renderSlots();App.toast('구성을 저장했습니다.');}
-document.querySelectorAll('.saveSlot').forEach(b=>b.onclick=async()=>{if(Object.keys(slots).length>=30)return App.toast('저장 구성은 최대 30개입니다.');const input=prompt('저장할 구성 이름 (40자 이하)');if(input===null)return;const name=input.trim();if(!name)return App.toast('저장 구성의 이름을 입력해 주세요.');if(name.length>40)return App.toast('이름은 40자 이하로 입력해주세요.');try{await saveSlot({id:crypto.randomUUID(),name,...(b.closest('#panel-3')?recommendationState():state)});}catch(e){App.toast(App.error(e));}});
+document.querySelectorAll('.saveSlot').forEach(b=>b.onclick=async()=>{if(Object.keys(slots).length>=30)return App.toast('저장 구성은 최대 30개입니다.');const input=prompt('저장할 구성 이름 (40자 이하)');if(input===null)return;const name=input.trim();if(!name)return App.toast('저장 구성의 이름을 입력해 주세요.');if(name.length>40)return App.toast('이름은 40자 이하로 입력해주세요.');try{await saveSlot({id:crypto.randomUUID(),name,...(b.closest('#panel-3')?recommendationState():state)});}catch(e){App.toast(App.error(e),false,true);}});
 document.querySelectorAll('.printBtn').forEach(b=>b.onclick=()=>Course119.printSelection(E,b.closest('#panel-3')?recommendationState():state,currentName()));
 function appendMessage(target,m,{scroll=true,id}={}){
  const time=Number(m.timestamp)||Date.now(),date=new Date(time).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
@@ -3258,10 +3590,10 @@ $('aiForm').onsubmit=async event=>{
   aiSessionMessages=[...aiSessionMessages,...sessionEntries].slice(-100);
   history.push(question,answer);history=history.slice(-100);$('aiInput').value='';renderHistory();
   if(requestUser)persistAIAnswer(sessionEntries,owner,ver);
- }catch(error){if(ver===epoch){if(!easteregg){aiAvailability=error.code==='ai/setup'?'missing':'unavailable';const bubble=$('aiMessages').querySelector('[data-ai-welcome]');if(bubble)updateAIWelcome(bubble);}App.toast(App.error(error));}}
+ }catch(error){if(ver===epoch){if(!easteregg){aiAvailability=error.code==='ai/setup'?'missing':'unavailable';const bubble=$('aiMessages').querySelector('[data-ai-welcome]');if(bubble)updateAIWelcome(bubble);}App.toast(App.error(error),false,true);}}
  finally{pending.remove();aiBusy=false;CourseFeedback.gate($('aiSend'),false,'AI 답변을 받고 있습니다. 답변이 끝난 뒤 다시 이용해 주세요.');CourseFeedback.gate($('clearAi'),false,'AI 답변을 받고 있습니다. 답변이 끝난 뒤 다시 이용해 주세요.');}
 };
-$('clearAi').onclick=async()=>{if(aiBusy)return App.toast('AI 답변을 받고 있습니다. 답변이 끝난 뒤 대화를 초기화할 수 있습니다.');if(!history.length&&!aiSessionMessages.length)return App.toast('이미 모두 초기화되었습니다.');if(!await SiteConfirm('현재 계정의 AI 대화를 삭제하시겠습니까?'))return;const owner=uid,ver=epoch;try{if(user)await App.db.ref('v2/aiHistory/'+owner).remove();if(ver!==epoch||owner!==uid)return;history=[];aiSessionMessages=[];renderHistory();}catch(e){if(ver===epoch)App.toast(App.error(e));}};
+$('clearAi').onclick=async()=>{if(aiBusy)return App.toast('AI 답변을 받고 있습니다. 답변이 끝난 뒤 대화를 초기화할 수 있습니다.');if(!history.length&&!aiSessionMessages.length)return App.toast('이미 모두 초기화되었습니다.');if(!await SiteConfirm('현재 계정의 AI 대화를 삭제하시겠습니까?'))return;const owner=uid,ver=epoch;try{if(user)await App.db.ref('v2/aiHistory/'+owner).remove();if(ver!==epoch||owner!==uid)return;history=[];aiSessionMessages=[];renderHistory();}catch(e){if(ver===epoch)App.toast(App.error(e),false,true);}};
 let previewUrls=[];
 function renderFiles(){previewUrls.forEach(url=>URL.revokeObjectURL(url));previewUrls=[];$('attachments').replaceChildren(...selectedFiles.map((file,i)=>{const wrap=make('div','preview-img-wrap'),b=make('button','preview-del','×');wrap.append(Media120.preview(file,previewUrls));b.type='button';b.setAttribute('aria-label',file.name+' 첨부 삭제');CourseFeedback.gate(b,inquiryBusy,CourseFeedback.sendingText);b.onclick=()=>{selectedFiles.splice(i,1);renderFiles();};wrap.append(b);return wrap;}));$('attachments').hidden=selectedFiles.length===0;}
 
@@ -3287,7 +3619,7 @@ try{
  if(ver!==epoch||owner!==uid)return;
  Promise.resolve().then(()=>App.support.wake(requestUser)).catch(()=>{});
  if(ver===epoch){if($('inquiryInput').value.trim()===text)$('inquiryInput').value='';selectedFiles=[];inquiryPending=null;}
-}catch(e){inquiryScroll.cancelOwnSend?.(inquiryPending?.key);if(ver===epoch&&owner===uid)App.toast(App.error(e));}
+}catch(e){inquiryScroll.cancelOwnSend?.(inquiryPending?.key);if(ver===epoch&&owner===uid)App.toast(App.error(e),false,true);}
 finally{inquiryBusy=false;CourseFeedback.sending($('inquirySend'),false);CourseFeedback.gate($('inquirySend'),false,CourseFeedback.sendingText);CourseFeedback.gate($('attachBtn'),false,CourseFeedback.sendingText);renderFiles();}
 };
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).close());
@@ -3299,7 +3631,7 @@ async function beforeAuth(){
  if(user&&readyForSave&&!conflict&&!connectionIssues.has('save')&&!connectionIssues.has('selections')){if(await flush())return true;}
  App.toast('아직 서버에 저장하지 못한 선택은 이 기기의 현재 계정에 보관합니다.');return true;
 }
-$('authBtn').onclick=async()=>{if(!await beforeAuth())return;if(App.offline)return App.toast('로그인은 서버 연결이 필요합니다.');if(App.isMember(user)){if(await SiteConfirm('로그아웃하시겠습니까? 계정별 서버 저장은 유지됩니다.')){try{await App.signOut();}catch(e){App.toast(App.error(e));}}}else $('authDialog').showModal();};
+$('authBtn').onclick=async()=>{if(!await beforeAuth())return;if(App.offline)return App.toast('로그인은 서버 연결이 필요합니다.');if(App.isMember(user)){if(await SiteConfirm('로그아웃하시겠습니까? 계정별 서버 저장은 유지됩니다.')){try{await App.signOut();}catch(e){App.toast(App.error(e),false,true);}}}else $('authDialog').showModal();};
 function profileFullName(value){return `${value.grade||1}학년 ${value.classNum}반 ${value.studentNum}번 ${value.name}`;}
 function sameProfile(a,b){return Number(a?.grade||1)===Number(b?.grade||1)&&String(a?.classNum||'')===String(b?.classNum||'')&&String(a?.studentNum||'')===String(b?.studentNum||'')&&String(a?.name||'')===String(b?.name||'');}
 let pendingChange=null;
@@ -3314,7 +3646,7 @@ $('withdrawProfileChange').onclick=async()=>{
  try{
   await InquiryTransport.call('cancelProfileChange119',{requestId:id});
   if(version===epoch){pendingChange=null;App.toast('수정 요청을 취소했습니다.');}
- }catch(error){if(version===epoch)App.toast(error.message);}
+ }catch(error){if(version===epoch)App.toast(error.message,false,true);}
  finally{if(version===epoch){profileBusy=false;updateProfileForm();}}
 };
 window.addEventListener('course-cohort-changed',()=>{if(user){$('profileLabel').textContent=currentName();if($('profileDialog').open)updateProfileForm();}});
@@ -3323,7 +3655,7 @@ function updateProfileForm(){
  $('profileClose').hidden=!profile.name;CourseFeedback.gate($('profileClose'),profileBusy,'프로필 요청을 처리하고 있습니다. 처리가 끝난 뒤 다시 이용해 주세요.');
  CourseFeedback.gate($('profileSubmit'),profileBusy||!profileReady||Boolean(pendingChange),profileBusy?'프로필 요청을 처리하고 있습니다. 잠시만 기다려 주세요.':!profileReady?'프로필 정보를 불러오는 중입니다. 잠시만 기다려 주세요.':'이미 프로필 수정 승인을 기다리고 있습니다. 기존 요청을 취소해야 다시 신청할 수 있습니다.');
  $('profileSubmit').textContent=profileBusy?'처리 중…':profile.name?'수정 승인 요청':'프로필 저장';
- $('profileInstruction').textContent=profile.name?'변경할 이름, 반, 번호를 설정해주세요. 관리자 승인 후 프로필이 바뀝니다.':Course119.grade(profile,Date.parse(user?.metadata?.creationTime)||Date.now(),1)+'학년의 이름, 반, 번호를 설정해주세요. 처음 등록한 이후의 수정은 관리자 승인이 필요합니다.';
+ SystemGuides.write($('profileInstruction'),profile.name?'변경할 이름, 반, 번호를 설정해주세요. 관리자 승인 후 프로필이 바뀝니다.':Course119.grade(profile,Date.parse(user?.metadata?.creationTime)||Date.now(),1)+'학년의 이름, 반, 번호를 설정해주세요. 처음 등록한 이후의 수정은 관리자 승인이 필요합니다.');
 }
 function applyProfileSnapshot(value,owner=uid){
  if(owner!==uid)return;
@@ -3358,13 +3690,13 @@ $('profileForm').onsubmit=async e=>{
    $('profileDialog').close();App.toast('프로필 수정 승인을 요청했습니다. 관리자 승인 후 반영됩니다.');
    Promise.resolve().then(()=>App.support.wake(requestUser)).catch(()=>{});
   }
- }catch(error){if(ver===epoch&&owner===uid)App.toast(App.error(error));}
+ }catch(error){if(ver===epoch&&owner===uid)App.toast(App.error(error),false,true);}
  finally{if(ver===epoch&&owner===uid){profileBusy=false;updateProfileForm();}}
 };
-async function authAction(fn){CourseFeedback.gate($('authSubmit'),true,'로그인 요청을 처리하고 있습니다. 잠시만 기다려 주세요.');CourseFeedback.gate($('googleBtn'),true,'로그인 요청을 처리하고 있습니다. 잠시만 기다려 주세요.');$('authError').textContent='';try{await fn();$('password').value='';$('authDialog').close();}catch(e){$('authError').textContent=App.error(e);}finally{CourseFeedback.gate($('authSubmit'),false,'로그인 요청을 처리하고 있습니다. 잠시만 기다려 주세요.');CourseFeedback.gate($('googleBtn'),false,'로그인 요청을 처리하고 있습니다. 잠시만 기다려 주세요.');}}
-$('authForm').onsubmit=e=>{e.preventDefault();if($('authSubmit').dataset.blockedReason)return App.toast($('authSubmit').dataset.blockedReason);if(!App.auth)return App.toast('로그인하려면 서버에 연결해야 합니다.');authAction(()=>signup?App.auth.createUserWithEmailAndPassword($('email').value.trim(),$('password').value).then(credential=>App.captureRegistration120(credential)):App.signInEmail($('email').value,$('password').value));};$('googleBtn').onclick=()=>authAction(()=>App.signInGoogle());$('signupToggle').onclick=()=>{signup=!signup;$('authTitle').textContent=signup?'회원가입':'로그인';$('authSubmit').textContent=signup?'가입하기':'로그인';$('signupToggle').textContent=signup?'로그인으로 돌아가기':'새 계정 만들기';$('password').autocomplete=signup?'new-password':'current-password';};$('resetPassword').onclick=async()=>{try{if(!$('email').value)return App.toast('이메일을 입력해주세요.');await App.auth.sendPasswordResetEmail($('email').value.trim());App.toast('비밀번호 재설정 이메일을 요청했습니다. 스팸함도 확인해주세요.');}catch(e){App.toast(App.error(e));}};
+async function authAction(fn){CourseFeedback.gate($('authSubmit'),true,'로그인 요청을 처리하고 있습니다. 잠시만 기다려 주세요.');CourseFeedback.gate($('googleBtn'),true,'로그인 요청을 처리하고 있습니다. 잠시만 기다려 주세요.');SystemGuides.write($('authError'),'');try{await fn();$('password').value='';$('authDialog').close();}catch(e){SystemGuides.write($('authError'),App.error(e),true);}finally{CourseFeedback.gate($('authSubmit'),false,'로그인 요청을 처리하고 있습니다. 잠시만 기다려 주세요.');CourseFeedback.gate($('googleBtn'),false,'로그인 요청을 처리하고 있습니다. 잠시만 기다려 주세요.');}}
+$('authForm').onsubmit=e=>{e.preventDefault();if($('authSubmit').dataset.blockedReason)return App.toast($('authSubmit').dataset.blockedReason);if(!App.auth)return App.toast('로그인하려면 서버에 연결해야 합니다.');authAction(()=>signup?App.auth.createUserWithEmailAndPassword($('email').value.trim(),$('password').value).then(credential=>App.captureRegistration120(credential)):App.signInEmail($('email').value,$('password').value));};$('googleBtn').onclick=()=>authAction(()=>App.signInGoogle());$('signupToggle').onclick=()=>{signup=!signup;$('authTitle').textContent=signup?'회원가입':'로그인';$('authSubmit').textContent=signup?'가입하기':'로그인';$('signupToggle').textContent=signup?'로그인으로 돌아가기':'새 계정 만들기';$('password').autocomplete=signup?'new-password':'current-password';};$('resetPassword').onclick=async()=>{try{if(!$('email').value)return App.toast('이메일을 입력해주세요.');await App.auth.sendPasswordResetEmail($('email').value.trim());App.toast('비밀번호 재설정 이메일을 요청했습니다. 스팸함도 확인해주세요.');}catch(e){App.toast(App.error(e),false,true);}};
 
-function resetAccount(next){if(slotGesture)slotGesture.abort();globalThis.InquiryPreview?.close();pendingChange=null;profileBusy=false;profileReady=false;inquiryScroll.reset();inquiryLoaded=false;inquiryKeys.clear();galleryMessages121=[];connectionIssues.clear();renderConnectionIssues();if(serverDialog.open)serverDialog.close();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;for(const id of ['aiInput','inquiryInput','studentName','password'])$(id).value='';$('classNum').value='1';$('studentNum').value='1';$('previewContent').replaceChildren();for(const id of ['profileDialog','previewDialog','authDialog']){if($(id).open)$(id).close();}unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}App.releaseImages($('inquiryMessages'));clearTimeout(saveTimer);user=next;uid=next?.uid||'device';profile=App.cache.read('gimpo_v2_profile_'+uid,{})||{};history=[];selectedFiles=[];slots=App.cache.read('gimpo_v2_slots_'+uid,{})||{};sharedSlots=peerSlots(App.cache.read(peerSlotKey(uid),{}));const saved=App.cache.read(stateKey(uid),{});state=E.normalize(saved.state||{});const cachedDraft=App.cache.read(draftKey());recommendation=cachedDraft?E.normalize(cachedDraft):null;dirty=Boolean(saved.dirty);revision=Number(saved.revision)||0;conflict=false;render();renderSlots();renderHistory();renderFiles();renderInquiryWelcome($('inquiryMessages'));$('profileLabel').textContent=next?currentName():'기기 내 연습';$('authBtn').textContent=App.isMember(next)?'로그아웃':'로그인';$('profileBtn').hidden=!next;$('dashboardBanner').hidden=false;const account=$('accountIdentity');account.hidden=!next?.email;account.textContent=next?.email?'계정: '+next.email:'';account.title=account.textContent;scheduleAccountLayout();$('saveStatus').textContent=dirty?'기기 변경 불러옴':'기기 저장';}
+function resetAccount(next){if(slotGesture)slotGesture.abort();globalThis.InquiryPreview?.close();pendingChange=null;profileBusy=false;profileReady=false;inquiryScroll.reset();inquiryLoaded=false;inquiryKeys.clear();galleryMessages121=[];connectionIssues.clear();renderConnectionIssues();if(serverDialog.open)serverDialog.close();epoch++;saveGeneration++;presenceGeneration++;saving=false;readyForSave=false;for(const id of ['aiInput','inquiryInput','studentName','password'])$(id).value='';$('classNum').value='1';$('studentNum').value='1';$('previewContent').replaceChildren();for(const id of ['profileDialog','previewDialog','authDialog']){if($(id).open)$(id).close();}unsub.forEach(f=>f());unsub=[];if(presence){presence.remove().catch(()=>{});presence=null;}App.releaseImages($('inquiryMessages'));clearTimeout(saveTimer);user=next;uid=next?.uid||'device';profile=App.cache.read('gimpo_v2_profile_'+uid,{})||{};history=[];selectedFiles=[];slots=App.cache.read('gimpo_v2_slots_'+uid,{})||{};sharedSlots=peerSlots(App.cache.read(peerSlotKey(uid),{}));const saved=App.cache.read(stateKey(uid),{});state=E.normalize(saved.state||{});const cachedDraft=App.cache.read(draftKey());recommendation=cachedDraft?E.normalize(cachedDraft):null;dirty=Boolean(saved.dirty);revision=Number(saved.revision)||0;conflict=false;render();renderSlots();renderHistory();renderFiles();renderInquiryWelcome($('inquiryMessages'));$('profileLabel').textContent=next?currentName():'기기 내 연습';$('authBtn').textContent=App.isMember(next)?'로그아웃':'로그인';$('profileBtn').hidden=!next;$('dashboardBanner').hidden=false;const account=$('accountIdentity');account.hidden=!next?.email;account.textContent=next?.email?'계정: '+next.email:'';account.title=account.textContent;scheduleAccountLayout();SystemGuides.write($('saveStatus'),dirty?'기기 변경 불러옴':'기기 저장');}
 async function connect(next,{retry=false}={}){
  profileReady=false;
  if(!retry||user?.uid!==next?.uid)aiSessionMessages=[];
@@ -3381,7 +3713,7 @@ async function connect(next,{retry=false}={}){
   if(!active())return;const request=snap.val();pendingChange=request?.status==='pending'?request.requestId:null;updateProfileForm();
  },'profiles');
  Promise.resolve().then(()=>active()?App.support.syncContact(next):undefined).then(()=>{if(active())clearConnectionIssue('contact');},error=>{if(active())reportConnectionIssue('contact',error);});
- $('saveStatus').textContent=dirty?'기기 변경 보관 · 서버 확인 중':'서버 데이터 확인 중';
+ SystemGuides.write($('saveStatus'),dirty?'기기 변경 보관 · 서버 확인 중':'서버 데이터 확인 중');
  // Each feature subscribes independently: a denied profile or AI history must not stop inquiries/presence.
  if(App.cloud?.secondary)listen(App.cloud.secondary.ref('v2/slots/'+owner),'value',snap=>{const value=snap.val()||{};App.cache.write(peerSlotKey(owner),value);sharedSlots=peerSlots(value);renderSlots();},'sharedSlots');
  listen(App.db.ref('v2/slots/'+owner),'value',snap=>{slots=snap.val()||{};App.cache.write('gimpo_v2_slots_'+owner,slots);renderSlots();},'slots');
@@ -3393,13 +3725,13 @@ async function connect(next,{retry=false}={}){
   onReadSuccess:()=>{if(active())clearConnectionIssue('presenceRead');},
   onWriteSuccess:()=>{if(active())clearConnectionIssue('presenceWrite');},
   onError:(key,error)=>{if(active())reportConnectionIssue(key,error);}});
- const load=async(key,ref,success)=>{try{const snap=await readOnce(ref);if(!active())return;clearConnectionIssue(key);await success(snap);}catch(error){if(!active())return;if(key==='selections'){readyForSave=false;$('saveStatus').textContent=issueKind(error)==='permission'?'기기 저장 · 과목 읽기 권한 없음':'기기 저장 · 과목 불러오기 실패';}reportConnectionIssue(key,error);}};
+ const load=async(key,ref,success)=>{try{const snap=await readOnce(ref);if(!active())return;clearConnectionIssue(key);await success(snap);}catch(error){if(!active())return;if(key==='selections'){readyForSave=false;SystemGuides.write($('saveStatus'),issueKind(error)==='permission'?'기기 저장 · 과목 읽기 권한 없음':'기기 저장 · 과목 불러오기 실패');}reportConnectionIssue(key,error);}};
  await Promise.allSettled([
   load('selections',App.db.ref('v2/selections/'+owner),snap=>{
-   const remote=snap.val();if(dirty&&(remote?.revision||0)!==revision){conflict=true;$('saveStatus').textContent='다른 기기 변경과 충돌 · 여기를 눌러 해결';}
-   else if(!dirty){state=E.normalize(remote||{});revision=remote?.revision||0;localSave();render();$('saveStatus').textContent='서버 데이터 불러옴';}
+   const remote=snap.val();if(dirty&&(remote?.revision||0)!==revision){conflict=true;SystemGuides.write($('saveStatus'),'다른 기기 변경과 충돌 · 여기를 눌러 해결');}
+   else if(!dirty){state=E.normalize(remote||{});revision=remote?.revision||0;localSave();render();SystemGuides.write($('saveStatus'),'서버 데이터 불러옴');}
    readyForSave=true;queueTrackOffer();
-   listen(App.db.ref('v2/selections/'+owner),'value',snapshot=>{if(saving)return;const v=snapshot.val();if(!v||v.revision===revision)return;if(dirty){conflict=true;$('saveStatus').textContent='다른 기기 변경과 충돌 · 여기를 눌러 해결';}else{state=E.normalize(v);revision=v.revision;localSave();render();}},'selections');
+   listen(App.db.ref('v2/selections/'+owner),'value',snapshot=>{if(saving)return;const v=snapshot.val();if(!v||v.revision===revision)return;if(dirty){conflict=true;SystemGuides.write($('saveStatus'),'다른 기기 변경과 충돌 · 여기를 눌러 해결');}else{state=E.normalize(v);revision=v.revision;localSave();render();}},'selections');
    if(dirty&&!conflict)flush();else if(!dirty)App.cloud?.publishSelection?.().catch(error=>reportConnectionIssue('statistics',error));
   }),
   load('profiles',App.db.ref('v2/profiles/'+owner),snap=>{applyProfileSnapshot(snap.val(),owner);listen(App.db.ref('v2/profiles/'+owner),'value',value=>applyProfileSnapshot(value.val(),owner),'profiles');if(App.isMember(next)&&!profile.name&&!retry){$('studentName').value='';updateProfileForm();$('profileDialog').showModal();}}),
@@ -3420,7 +3752,7 @@ async function retryConnection(){
 retryButton.onclick=retryConnection;
 window.addEventListener('app-auth-error',event=>reportConnectionIssue('auth',event.detail));
 
-render();renderHistory();renderSlots();renderRates();App.auth.onAuthStateChanged(next=>connect(next));if(App.offline){$('saveStatus').textContent='오프라인 연습';renderVisitorCount();if(App.initializationError)reportConnectionIssue('sdk',App.initializationError);}
+render();renderHistory();renderSlots();renderRates();App.auth.onAuthStateChanged(next=>connect(next));if(App.offline){SystemGuides.write($('saveStatus'),'오프라인 연습');renderVisitorCount();if(App.initializationError)reportConnectionIssue('sdk',App.initializationError);}
 window.addEventListener('pagehide',()=>{localSave();epoch++;saveGeneration++;presenceGeneration++;saving=false;clearTimeout(saveTimer);unsub.forEach(f=>f());unsub=[];const oldPresence=presence;presence=null;if(oldPresence)oldPresence.remove().catch(()=>{});});
 window.addEventListener('pageshow',event=>{if(event.persisted)connect(App.auth.currentUser);});
 window.addEventListener('online',()=>{if([...connectionIssues.values()].some(error=>issueKind(error)==='network'))retryConnection();else if(user&&readyForSave)flush();});window.addEventListener('beforeunload',e=>{if(dirty){localSave();e.preventDefault();e.returnValue='';}});
@@ -3481,16 +3813,39 @@ function course(value){
   else if(field==='sem'){if(!['1-1','1-2','2-1','2-2','3-1','3-2'].includes(x))bad('학기를 확인해 주세요.');n.sem=x;}
   else if(field==='g'){if(![0,1,2].includes(x))bad('3학년 2학기 선택 그룹을 확인해 주세요.');n.g=x;}
   else bad('지원하지 않는 과목 속성입니다.');
- }if(Object.keys(n).length)out.catalogue[id]=n;}return out;
+ }if(Object.keys(n).length)out.catalogue[id]=n;}
+ for(const field of ['messages','adminMessages']){
+  if(value[field]===undefined)continue;
+  const map=value[field];
+  if(!record(map)||Object.keys(map).length>600)bad('편집 자료의 버전을 확인해 주세요.');
+  const entries={};
+  for(const [id,v] of Object.entries(map)){
+   if(!/^[a-f0-9]{24}$/.test(id)||typeof v!=='string'||v.length>6000)bad('입력 내용을 확인해 주세요.');
+   entries[id]=v;
+  }
+  if(Object.keys(entries).length)out[field]=entries;
+ }
+ return out;
 }
 function courseRecord(record,site){
  const base=record||{revision:0,dataJSON:canonical(blankCourse())};
  const value=site==='grade2'&&base.grade2?base.grade2:base;
- return {revision:site==='grade2'&&!base.grade2?0:Number(value.revision)||0,dataJSON:value.dataJSON,updatedAt:value.updatedAt||0};
+ let dataJSON=value.dataJSON;
+ if(site==='grade2'&&!base.grade2&&dataJSON){
+  const inherited=JSON.parse(dataJSON);
+  if(inherited.messages){delete inherited.messages;dataJSON=canonical(inherited);}
+ }
+ return {revision:site==='grade2'&&!base.grade2?0:Number(value.revision)||0,dataJSON,updatedAt:value.updatedAt||0};
 }
 function withCourseRecord(record,site,next){
  const first=courseRecord(record,'grade1'),second=courseRecord(record,'grade2');
- return site==='grade2'?{...first,grade2:next}:{...next,grade2:second};
+ let peer=site==='grade2'?first:second;
+ const changes=JSON.parse(next.dataJSON).adminMessages||{},other=JSON.parse(peer.dataJSON);
+ if(canonical(changes)!==canonical(other.adminMessages||{})){
+  if(Object.keys(changes).length)other.adminMessages=changes;else delete other.adminMessages;
+  peer={revision:peer.revision+1,dataJSON:canonical(other),updatedAt:next.updatedAt};
+ }
+ return site==='grade2'?{...peer,grade2:next}:{...next,grade2:peer};
 }
 function catalogue(base,edits){const known=new Set(base.courses.map(c=>c.id));for(const id of Object.keys(edits))if(!known.has(id))bad('원본에 없는 과목 ID입니다.');return{...clone(base),courses:base.courses.map(c=>{const n={...c,...edits[c.id]};if(n.sem==='3-2'&&!n.req&&![0,1,2].includes(n.g))n.g=0;return n;})};}
 function newNotice(id){return{id:key(id),audience:'grade1',header:'김포고 수강신청 도우미 공지',title:'새 공지',body:'공지 내용을 입력해 주세요.',dismissText:'다시 보지 않기',policy:'legacy',intervalDays:'1',styles:{},items:[]};}
@@ -3604,7 +3959,7 @@ function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(app
 function setData(input){
  const data=M.course(input),nextKey=M.canonical(data.catalogue);
  for(const [id,node]of originals){restore(node);if(documentData.objects[id]?.parent||documentData.objects[id]?.placements){const pos=positions.get(node);if(pos?.parent?.isConnected&&!node.contains(pos.parent))pos.parent.insertBefore(node,pos.next?.parentNode===pos.parent?pos.next:null);}}
- documentData=data;
+ documentData=data;SystemGuides.use(data.messages);
  if(nextKey!==catalogueKey){catalogueKey=nextKey;CoursePresentation.applyCatalogue(M.catalogue(baseCatalogue,data.catalogue));}
  schedule();
 }
@@ -3640,8 +3995,13 @@ if(preview){
   }catch(error){send('error',{message:error.message});}
  });
  send('ready');report();
-}else if(App.db){
- const ref=App.db.ref('v2/siteContent/course');ref.on('value',snapshot=>{const record=M.courseRecord(snapshot.val(),'grade1');try{setData(record?.dataJSON?JSON.parse(record.dataJSON):M.blankCourse());}catch{App.toast('저장된 화면 설정을 읽지 못해 기본 화면을 유지합니다.');}},()=>App.toast('화면 설정을 불러오지 못했습니다. 잠시 후 새로고침해 주세요.'));
+}else if(!App.demo){
+ let last;
+ CourseScreenSettings.watch(raw=>{
+  const record=M.courseRecord(raw,'grade1');
+  if(record.dataJSON===last)return;
+  setData(JSON.parse(record.dataJSON));last=record.dataJSON;
+ });
 }
 })();
 
