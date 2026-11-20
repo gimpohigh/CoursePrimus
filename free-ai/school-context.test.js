@@ -124,7 +124,7 @@ test('career answer keeps the real model explanation and replaces unsupported un
   const unsupported = '이 두 과목은 대학 천문학과 지원 시 필수적이거나 강력히 권장되는 과목입니다.';
   assert.equal(finalizeAnswer(explanation + ' ' + unsupported, input), explanation + ' ' + ADMISSION_CAVEAT);
   assert.equal(finalizeAnswer(explanation, input), explanation);
-  const school = '과학 중점을 선택하면 2학년 물리학 ·화학 · 생명과학 · 지구과학 이수는 필수입니다.';
+  const school = '과학 중점을 선택하면 2학년 물리학 · 화학 · 생명과학 · 지구과학 이수는 필수입니다.';
   assert.equal(finalizeAnswer(school.replace('과학 중점','과학중점'), input), school);
   for (const conditional of [
     '지구과학이 모든 대학의 지원 필수과목인 것은 아닙니다.',
