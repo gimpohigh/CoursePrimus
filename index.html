@@ -1715,7 +1715,7 @@ function open(blob,ref){
  const prev=node('button','gallery-arrow121 previous121'),next=node('button','gallery-arrow121 next121');
  const note=node('div','gallery-note121');note.setAttribute('role','status');note.hidden=true;
  const sequence=gallerySequence(ref),motion=matchMedia('(prefers-reduced-motion: reduce)');
- let current=null,adjacent=null,side=0,navigation=0,busy=false,queued=null,gesture=null,gestureSeq=0,quietClick=false,noteTimer;
+ let current=null,adjacent=null,side=0,navigation=0,busy=false,gesture=null,gestureSeq=0,quietClick=false,noteTimer;
  const orderButton=(button,label,icon,action)=>{button.type='button';button.setAttribute('aria-label',label);button.append(icon);button.onclick=action;};
  function say(message){clearTimeout(noteTimer);note.textContent=message;note.hidden=false;noteTimer=setTimeout(()=>{note.hidden=true;},2000);}
  function edge(direction){say(direction<0?'이전 첨부가 더 이상 없습니다.':'다음 첨부가 더 이상 없습니다.');}
@@ -1763,26 +1763,29 @@ function open(blob,ref){
   if(adjacent&&side===fromSide&&adjacent.ref.gallery?.id===file.gallery?.id&&adjacent.ref.gallery?.index===file.gallery?.index)return;
   clearAdjacent();side=fromSide;adjacent=slideFor(file,null,side*stage.clientWidth);
  }
+ const queued=[];
  function animate(el,from,to,duration){
   el.style.transform='translate3d('+to+'px,0,0)';
   if(motion.matches||!el.animate)return Promise.resolve();
   return el.animate([{transform:'translate3d('+from+'px,0,0)'},{transform:'translate3d('+to+'px,0,0)'}],{duration,easing:'cubic-bezier(.2,.8,.2,1)'}).finished.catch(()=>{});
  }
- async function move(direction,fromSide=direction,offset=0){
+ async function move(direction,fromSide=direction,offset=0,speed=0){
   if(!d.open)return;
-  if(busy){queued=direction;return;}
+  if(busy){queued.push({direction,speed});return;}
   busy=true;const turn=++navigation,w=stage.clientWidth;
   try{
    const file=await sequence.find(current.ref,direction);if(!d.open||turn!==navigation)return;
    if(!file){edge(direction);if(offset)await animate(current.el,offset,0,160);clearAdjacent();return;}
    prepare(file,fromSide);const before=current,after=adjacent;
    before.el.querySelector('video')?.pause();bar.classList.remove('controls-hidden');note.hidden=true;
-   const duration=Math.max(110,Math.min(290,290*(1-Math.min(1,Math.abs(offset)/w))));
+   const distance=Math.min(1,Math.abs(offset)/Math.max(1,w));
+   const remaining=Math.max(110,290*(1-distance));
+   const duration=speed?Math.max(65,remaining/(1+speed)):remaining;
    await Promise.all([animate(before.el,offset,-fromSide*w,duration),animate(after.el,fromSide*w+offset,0,duration)]);
    if(turn!==navigation||!d.open)return;
    current=after;adjacent=null;side=0;dispose(before);metadata();
   }catch(error){if(d.open&&turn===navigation){say(error.message||'이전 대화를 불러오지 못했습니다.');await animate(current.el,offset,0,160);clearAdjacent();}}
-  finally{if(turn===navigation){busy=false;if(queued!==null){const step=queued;queued=null;move(step);}}}
+  finally{if(turn===navigation){busy=false;const step=queued.shift();if(step)move(step.direction,step.direction,0,step.speed);}}
  }
  orderButton(back,'뒤로가기',chevron(false),()=>d.close());orderButton(down,'기기에 다운로드',Media120.icon(),()=>{if(current.blob)save(current.blob,current.ref.name);else if(current.external){const a=node('a');a.href=current.external;a.download=current.ref.name||'사진';a.target='_blank';a.rel='noopener noreferrer';a.click();}});
  orderButton(prev,'이전 첨부',chevron(false),()=>move(-1));orderButton(next,'다음 첨부',chevron(true),()=>move(1));
@@ -1794,14 +1797,21 @@ function open(blob,ref){
   position(current,offset);if(adjacent&&side===fromSide)position(adjacent,fromSide*w+offset);return offset;
  }
  stage.addEventListener('pointerdown',e=>{
-  if(busy||e.pointerType==='mouse'||!e.isPrimary||e.target.closest('button,pre')||gesture)return;
+  if(e.pointerType==='mouse'||!e.isPrimary||e.target.closest('button,pre')||gesture)return;
   const v=e.target.closest('video');if(v&&e.clientY>v.getBoundingClientRect().bottom-50)return;
-  gesture={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,offset:0,dir:0,drag:false,edge:false};gestureSeq++;
+  gesture={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,offset:0,dir:0,drag:false,edge:false,deferred:busy,samples:[{x:e.clientX,time:e.timeStamp}]};gestureSeq++;
  });
+ function sampleSwipe(g,x,time){
+  const samples=g.samples,last=samples[samples.length-1];
+  if(time===last.time){last.x=x;return;}
+  samples.push({x,time});
+  while(samples.length>2&&samples[1].time<=time-90)samples.shift();
+ }
  stage.addEventListener('pointermove',e=>{
   const g=gesture;if(!g||g.id!==e.pointerId)return;const dx=e.clientX-g.x,dy=e.clientY-g.y;
   if(!g.drag){if(Math.abs(dy)>8&&Math.abs(dy)>Math.abs(dx)){gesture=null;return;}if(Math.abs(dx)<7||Math.abs(dx)<Math.abs(dy))return;g.drag=true;stage.setPointerCapture(e.pointerId);}
-  if(e.cancelable)e.preventDefault();g.dx=dx;const dir=Math.sign(dx);
+  if(e.cancelable)e.preventDefault();g.dx=dx;sampleSwipe(g,e.clientX,e.timeStamp);const dir=Math.sign(dx);
+  if(g.deferred){g.dir=dir;return;}
   if(dir&&dir!==g.dir){
    g.dir=dir;g.edge=false;clearAdjacent();const f=sequence.near(current.ref,-dir);
    if(f)prepare(f,-dir);
@@ -1812,8 +1822,15 @@ function open(blob,ref){
  function release(e,cancel){
   const g=gesture;if(!g||g.id!==e.pointerId)return;gesture=null;gestureSeq++;
   if(!g.drag)return;quietClick=true;setTimeout(()=>{quietClick=false;},320);
-  if(cancel||!g.dir||Math.abs(g.dx)<5){busy=true;const w=stage.clientWidth;Promise.all([animate(current.el,g.offset,0,160),adjacent?animate(adjacent.el,side*w+g.offset,side*w,160):null]).then(()=>{clearAdjacent();busy=false;});}
-  else move(-g.dir,-g.dir,g.offset);
+  const cancelled=cancel||!g.dir||Math.abs(g.dx)<5;
+  if(cancelled&&g.deferred)return;
+  if(cancelled){busy=true;const w=stage.clientWidth;Promise.all([animate(current.el,g.offset,0,160),adjacent?animate(adjacent.el,side*w+g.offset,side*w,160):null]).then(()=>{clearAdjacent();busy=false;const step=queued.shift();if(step)move(step.direction,step.direction,0,step.speed);});}
+  else{
+   sampleSwipe(g,e.clientX,e.timeStamp);
+   const first=g.samples[0],last=g.samples[g.samples.length-1];
+   const velocity=Math.max(0,(last.x-first.x)*g.dir)/Math.max(8,last.time-first.time);
+   move(-g.dir,-g.dir,g.deferred?0:g.offset,velocity);
+  }
  }
  stage.addEventListener('pointerup',e=>release(e,false));stage.addEventListener('pointercancel',e=>release(e,true));
  stage.onclick=e=>{if(!quietClick&&!busy&&!e.target.closest('video,button,pre'))bar.classList.toggle('controls-hidden');};
@@ -1916,7 +1933,7 @@ const DATA = {"version":"2026-1-v2","courses":[{"id":"11_01","sem":"1-1","name":
     const labels={kor:'국어',math:'수학',eng:'영어',his:'한국사',soc:'사회',sci:'과학',pe:'체육',art:'예술',etc:'정보·제2외국어·한문·교양'};
     for(const [key,min]of Object.entries(minima))if(totals[key]<min)errors.push(labels[key]+' 최소 '+min+'학점을 충족하지 못했습니다. (현재 '+totals[key]+'학점)');
     if(input.sciTrack===true){
-      if(baseScience.some(id=>!chosen.has(id)))errors.push('과학 중점 과정은 물리학 ·화학 · 생명과학 · 지구과학이 모두 필요합니다.');
+      if(baseScience.some(id=>!chosen.has(id)))errors.push('과학 중점 과정은 물리학 · 화학 · 생명과학 · 지구과학이 모두 필요합니다.');
       if(advanced<6)errors.push('과학 중점 심화 지정 과목은 6과목 이상이어야 합니다. (현재 '+advanced+'과목)');
       if(totals.msi<79)errors.push('과학 중점 수학·과학·정보 합계는 79학점 이상이어야 합니다. (현재 '+totals.msi+'학점)');
       if(mathElectives<4)warnings.push('과학 중점 과정은 수학 선택과목 4과목 이상을 권장합니다.');
@@ -2883,7 +2900,7 @@ function courseCard(c,recommend,preview=false){
  if(unavailable){card.classList.add('selection-unavailable');card.title=decision.reason;card.setAttribute('aria-disabled','true');}
  if(!preview){
   const check=make('button','course-check custom-checkbox'+(checked?' checked':'')+(fixed?' disabled':''));check.type='button';check.setAttribute('aria-label',c.name+' '+(checked?'선택 해제':'선택'));check.setAttribute('aria-pressed',String(checked));check.setAttribute('aria-disabled',String(unavailable||termLocked||fixed||(recommend&&pinned)));
-  const explainFixed=()=>c.req?'「'+c.name+'」은 학교에서 지정한 필수 이수 과목이므로 선택을 취소할 수 없습니다. 과학 중점 신청 여부와 관계없이 이수해야 합니다.':'「'+c.name+'」은 과학 중점 과정의 필수 과목입니다. 과학 중점 과정에서는 '+E.courses.filter(item=>item.sciReq).map(item=>item.name).join(' · ').replace('물리학 · 화학','물리학 ·화학')+'을 모두 이수해야 하므로 선택을 취소할 수 없습니다. 일반 과정으로 변경하려면 과학 중점 신청 체크를 해제해 주세요.';
+  const explainFixed=()=>c.req?'「'+c.name+'」은 학교에서 지정한 필수 이수 과목이므로 선택을 취소할 수 없습니다. 과학 중점 신청 여부와 관계없이 이수해야 합니다.':'「'+c.name+'」은 과학 중점 과정의 필수 과목입니다. 과학 중점 과정에서는 '+E.courses.filter(item=>item.sciReq).map(item=>item.name).join(' · ')+'을 모두 이수해야 하므로 선택을 취소할 수 없습니다. 일반 과정으로 변경하려면 과학 중점 신청 체크를 해제해 주세요.';
   if(fixed||unavailable||(recommend&&pinned)){
    const reason=fixed?explainFixed():unavailable?decision.reason:'직접 고정한 과목입니다. 핀을 먼저 해제해 주세요.';
    check.title=reason;check.setAttribute('aria-description',reason);
@@ -3106,7 +3123,7 @@ function installSlotReorder(board){
   if(slotGesture||cards().length<2||!target||target.parentElement!==board)return;
   let port=board.parentElement;while(port.parentElement&&!(port.scrollHeight>port.clientHeight+2&&/auto|scroll/.test(getComputedStyle(port).overflowY)))port=port.parentElement;
   const g=slotGesture={board,card:target,port,x,y,startX:x,startY:y,id,mode,held:false,changed:false,positions:[],abort:()=>end(id,true)};
-  g.timer=setTimeout(()=>{if(slotGesture!==g)return;const rect=board.getBoundingClientRect();g.positions=cards().map(card=>{const r=card.getBoundingClientRect();return{x:r.left+r.width/2-rect.left,y:r.top+r.height/2-rect.top};});g.held=true;g.card.classList.add('slot-moving');g.card.setAttribute('aria-grabbed','true');scrollDuringDrag();},370);
+  g.timer=setTimeout(()=>{if(slotGesture!==g)return;const rect=board.getBoundingClientRect();g.positions=cards().map(card=>{const r=card.getBoundingClientRect();return{x:r.left+r.width/2-rect.left,y:r.top+r.height/2-rect.top};});g.held=true;g.card.classList.add('slot-moving');g.card.setAttribute('aria-grabbed','true');scrollDuringDrag();},185);
  }
  function travel(x,y,id,e){
   const g=slotGesture;if(!g||g.board!==board||g.id!==id)return;g.x=x;g.y=y;
@@ -3660,6 +3677,71 @@ App.auth.onAuthStateChanged(user=>{const version=++epoch;stopProfile?.();stopPro
  const ref=App.db.ref('v2/profiles/'+user.uid);let hasProfile=false;const fn=ref.on('value',snap=>{if(snap.val()?.name&&!hasProfile){hasProfile=true;sent=false;sync();}},()=>{});stopProfile=()=>ref.off('value',fn);if(!user.isAnonymous)sync();
 });
 })();
+</script>
+<script>
+// Only add a same-document history entry while the phone has an in-app way back.
+(function mobileBack(){
+ if(window!==window.top)return;
+ const touch=matchMedia('(pointer:coarse), (hover:none)');
+ const key='gimpoMobileBack122',page=location.pathname+location.search;
+ const marked=()=>history.state?.[key]===page;
+ let armed=marked(),retiring=false,scheduled=false;
+ function visible(element){
+  return !!element&&element.getClientRects().length>0&&!element.closest('[hidden]')&&getComputedStyle(element).visibility!=='hidden';
+ }
+ function backControl(){
+  const dialogs=[...document.querySelectorAll('dialog[open]')].filter(visible);
+  if(dialogs.length){
+   const focused=document.activeElement?.closest('dialog[open]');
+   const dialog=dialogs.includes(focused)?focused:dialogs[dialogs.length-1];
+   const signup=dialog.querySelector('#signupToggle');
+   if(visible(signup)&&signup.textContent.trim()==='로그인으로 돌아가기')return signup;
+   const buttons=[...dialog.querySelectorAll('button')].filter(visible);
+   return buttons.find(b=>b.getAttribute('aria-label')==='뒤로가기')||
+    buttons.find(b=>b.matches('[data-close],.school-notice-close,#studioDialogClose,[aria-label="확인 취소"]')||b.textContent.trim()==='닫기')||null;
+  }
+  for(const selector of ['#workspace.room-open #back','#studioHomeBtn','#studioChatHome']){
+   const button=document.querySelector(selector);if(visible(button))return button;
+  }
+  const gate=document.querySelector('#loginForm');
+  if(visible(gate)){const link=document.querySelector('.gate-actions a[href]');if(visible(link))return link;}
+  return null;
+ }
+ function sync(){
+  scheduled=false;if(retiring)return;
+  const target=touch.matches&&backControl();
+  if(target&&!marked()){
+   history.pushState({...history.state,[key]:page},'');armed=true;
+  }else if(!target&&marked()){
+   retiring=true;history.back();
+  }
+ }
+ function schedule(){if(!scheduled){scheduled=true;queueMicrotask(sync);}}
+ function activate(target){
+  if(target?.tagName==='A')location.replace(target.href);
+  else target?.click();
+ }
+ window.addEventListener('popstate',()=>{
+  if(marked()){armed=true;schedule();return;}
+  const back=armed&&!retiring;armed=false;retiring=false;
+  if(back&&touch.matches)activate(backControl());
+  schedule();
+ });
+ // Android can deliver Back directly to the top native dialog.
+ document.addEventListener('cancel',event=>{
+  if(!touch.matches||!(event.target instanceof HTMLDialogElement))return;
+  const target=backControl();
+  if(target&&event.target.contains(target)){event.preventDefault();event.stopImmediatePropagation();activate(target);schedule();}
+ },true);
+ document.addEventListener('toggle',e=>{if(e.target instanceof HTMLDialogElement)schedule();},true);
+ document.addEventListener('close',schedule,true);
+ new MutationObserver(changes=>{
+  if(changes.some(c=>c.type==='attributes'?c.target.matches('dialog,#workspace,#studioShell,#gate,#loginForm,#profileClose'):Array.from(c.addedNodes).concat(Array.from(c.removedNodes)).some(n=>n.nodeType===1&&n.tagName==='DIALOG')))schedule();
+ }).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','open','class']});
+ touch.addEventListener('change',schedule);window.addEventListener('pageshow',schedule);
+ schedule();
+})();
+
 </script>
 </body>
 </html>
